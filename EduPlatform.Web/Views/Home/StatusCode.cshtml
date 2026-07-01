@@ -1,0 +1,11 @@
+@{
+    var statusCode = ViewData["StatusCode"] as int? ?? 500;
+    ViewData["Title"] = $"Lỗi {statusCode}";
+}
+
+<section class="status-panel">
+    <p class="status-code">@statusCode</p>
+    <h1>Không thể hoàn thành yêu cầu</h1>
+    <p>Trang không tồn tại hoặc bạn không có quyền thực hiện thao tác này.</p>
+    <a class="btn btn-primary" asp-controller="Home" asp-action="Index">Về trang chủ</a>
+</section>

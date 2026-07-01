@@ -1,0 +1,23 @@
+@model CourseFormViewModel
+@{
+    ViewData["Title"] = "Tạo khóa học";
+}
+
+<section class="form-page">
+    <div class="form-heading">
+        <p class="section-label">Khóa học mới</p>
+        <h1>Tạo không gian học tập</h1>
+        <p>Thiết lập thông tin cơ bản. Tài liệu và thành viên có thể thêm sau.</p>
+    </div>
+    <form asp-action="Create" method="post" class="content-panel">
+        <partial name="_CourseForm" model="Model" />
+        <div class="d-flex flex-wrap gap-2 mt-5">
+            <button class="btn btn-primary" type="submit">Tạo khóa học</button>
+            <a class="btn btn-link" asp-action="Index">Hủy</a>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

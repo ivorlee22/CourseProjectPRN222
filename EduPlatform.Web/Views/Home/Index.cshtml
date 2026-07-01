@@ -1,0 +1,51 @@
+@{
+    ViewData["Title"] = "Học từ tài liệu của bạn";
+}
+
+<section class="hero-section">
+    <div class="row align-items-center gy-5">
+        <div class="col-lg-7">
+            <p class="section-label">Nền tảng học tập có ngữ cảnh</p>
+            <h1>Tìm hiểu sâu hơn từ chính tài liệu khóa học</h1>
+            <p class="hero-copy">
+                Tổ chức khóa học, chia sẻ tài liệu và đặt câu hỏi với nguồn trích dẫn rõ ràng.
+            </p>
+            <div class="d-flex flex-wrap gap-3">
+                <a class="btn btn-primary btn-lg" asp-controller="Course" asp-action="Index">
+                    Xem khóa học
+                </a>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a class="btn btn-outline-primary btn-lg" asp-controller="Course" asp-action="Create">
+                        Tạo khóa học
+                    </a>
+                }
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="learning-flow" aria-label="Quy trình học tập">
+                <div>
+                    <span class="flow-number">1</span>
+                    <div>
+                        <strong>Tạo không gian học</strong>
+                        <p>Quản lý khóa học và thành viên tại một nơi.</p>
+                    </div>
+                </div>
+                <div>
+                    <span class="flow-number">2</span>
+                    <div>
+                        <strong>Thêm tài liệu</strong>
+                        <p>Giữ nội dung học tập có cấu trúc và dễ tìm.</p>
+                    </div>
+                </div>
+                <div>
+                    <span class="flow-number">3</span>
+                    <div>
+                        <strong>Hỏi với ngữ cảnh</strong>
+                        <p>Nhận câu trả lời gắn với nguồn tài liệu.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

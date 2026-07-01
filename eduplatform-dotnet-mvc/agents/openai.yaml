@@ -1,0 +1,4 @@
+interface:
+  display_name: "EduPlatform .NET MVC"
+  short_description: "Build EduPlatform with strict three-layer MVC"
+  default_prompt: "Use $eduplatform-dotnet-mvc to implement the next EduPlatform task according to the project architecture and update the project log."

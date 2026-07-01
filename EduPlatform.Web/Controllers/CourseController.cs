@@ -1,0 +1,356 @@
+using EduPlatform.BLL.DTOs.Courses;
+using EduPlatform.BLL.Exceptions;
+using EduPlatform.BLL.Interfaces;
+using EduPlatform.Web.Security;
+using EduPlatform.Web.ViewModels.Courses;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace EduPlatform.Web.Controllers;
+
+public sealed class CourseController(ICourseService courseService) : Controller
+{
+    [AllowAnonymous]
+    [HttpGet]
+    public async Task<IActionResult> Index(
+        string? keyword,
+        int page = 1,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await courseService.SearchAsync(
+            new CourseSearchQuery(keyword, page),
+            User.GetActorOrDefault(),
+            cancellationToken);
+
+        return View(new CourseIndexViewModel(
+            result.Items,
+            keyword,
+            result.PageNumber,
+            result.TotalPages,
+            result.TotalCount,
+            MineOnly: false));
+    }
+
+    [Authorize]
+    [HttpGet]
+    public async Task<IActionResult> Mine(
+        int page = 1,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await courseService.SearchAsync(
+            new CourseSearchQuery(null, page, MineOnly: true),
+            User.GetRequiredActor(),
+            cancellationToken);
+
+        return View("Index", new CourseIndexViewModel(
+            result.Items,
+            null,
+            result.PageNumber,
+            result.TotalPages,
+            result.TotalCount,
+            MineOnly: true));
+    }
+
+    [AllowAnonymous]
+    [HttpGet]
+    public async Task<IActionResult> Details(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var course = await courseService.GetByIdAsync(
+                id,
+                User.GetActorOrDefault(),
+                cancellationToken);
+            var actor = User.GetActorOrDefault();
+            var canManage = actor is not null
+                && (actor.IsAdmin || actor.UserId == course.OwnerId);
+
+            return View(new CourseDetailsViewModel(
+                course,
+                canManage,
+                User.Identity?.IsAuthenticated == true));
+        }
+        catch (ResourceNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.CanCreateCourse)]
+    [HttpGet]
+    public IActionResult Create()
+    {
+        return View(new CourseFormViewModel());
+    }
+
+    [Authorize(Policy = AuthorizationPolicies.CanCreateCourse)]
+    [HttpPost]
+    public async Task<IActionResult> Create(
+        CourseFormViewModel model,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        try
+        {
+            var id = await courseService.CreateAsync(
+                new CreateCourseCommand(
+                    model.Title,
+                    model.Description,
+                    model.Type,
+                    model.IsVisible,
+                    model.EnrollmentPassword),
+                User.GetRequiredActor(),
+                cancellationToken);
+
+            TempData["SuccessMessage"] = "Đã tạo khóa học.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        catch (Exception exception) when (AddBusinessError(exception))
+        {
+            return View(model);
+        }
+    }
+
+    [Authorize]
+    [HttpGet]
+    public async Task<IActionResult> Edit(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var course = await courseService.GetByIdAsync(
+            id,
+            User.GetRequiredActor(),
+            cancellationToken);
+        EnsureCanManage(course);
+
+        return View(new CourseFormViewModel
+        {
+            Id = course.Id,
+            Title = course.Title,
+            Description = course.Description,
+            Type = course.Type,
+            IsVisible = course.IsVisible,
+            HasExistingPassword = course.RequiresEnrollmentPassword
+        });
+    }
+
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> Edit(
+        Guid id,
+        CourseFormViewModel model,
+        CancellationToken cancellationToken)
+    {
+        if (model.Id != id)
+        {
+            return BadRequest();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        try
+        {
+            await courseService.UpdateAsync(
+                id,
+                new UpdateCourseCommand(
+                    model.Title,
+                    model.Description,
+                    model.Type,
+                    model.IsVisible,
+                    model.EnrollmentPassword,
+                    model.RemoveEnrollmentPassword),
+                User.GetRequiredActor(),
+                cancellationToken);
+
+            TempData["SuccessMessage"] = "Đã cập nhật khóa học.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        catch (Exception exception) when (AddBusinessError(exception))
+        {
+            return View(model);
+        }
+    }
+
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> Delete(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        await courseService.DeleteAsync(id, User.GetRequiredActor(), cancellationToken);
+        TempData["SuccessMessage"] = "Đã xóa khóa học.";
+        return RedirectToAction(nameof(Mine));
+    }
+
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> SetVisibility(
+        Guid id,
+        bool isVisible,
+        CancellationToken cancellationToken)
+    {
+        await courseService.SetVisibilityAsync(
+            id,
+            isVisible,
+            User.GetRequiredActor(),
+            cancellationToken);
+
+        TempData["SuccessMessage"] = isVisible
+            ? "Khóa học đã được hiển thị."
+            : "Khóa học đã được ẩn.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> Enroll(
+        Guid id,
+        EnrollCourseViewModel model,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await courseService.EnrollAsync(
+                id,
+                model.EnrollmentPassword,
+                User.GetRequiredActor(),
+                cancellationToken);
+            TempData["SuccessMessage"] = "Bạn đã tham gia khóa học.";
+        }
+        catch (Exception exception) when (IsBusinessException(exception))
+        {
+            TempData["ErrorMessage"] = exception.Message;
+        }
+
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [Authorize]
+    [HttpGet]
+    public async Task<IActionResult> Invite(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var course = await courseService.GetByIdAsync(
+            id,
+            User.GetRequiredActor(),
+            cancellationToken);
+        EnsureCanManage(course);
+
+        return View(new InviteCourseViewModel
+        {
+            CourseId = course.Id,
+            CourseTitle = course.Title
+        });
+    }
+
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> Invite(
+        Guid id,
+        InviteCourseViewModel model,
+        CancellationToken cancellationToken)
+    {
+        if (id != model.CourseId)
+        {
+            return BadRequest();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        try
+        {
+            await courseService.InviteAsync(
+                id,
+                model.UserId,
+                User.GetRequiredActor(),
+                cancellationToken);
+            TempData["SuccessMessage"] = "Đã gửi lời mời tham gia khóa học.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        catch (Exception exception) when (AddBusinessError(exception))
+        {
+            return View(model);
+        }
+    }
+
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> RespondInvitation(
+        Guid id,
+        bool accept,
+        CancellationToken cancellationToken)
+    {
+        await courseService.RespondToInvitationAsync(
+            id,
+            accept,
+            User.GetRequiredActor(),
+            cancellationToken);
+
+        TempData["SuccessMessage"] = accept
+            ? "Đã chấp nhận lời mời."
+            : "Đã từ chối lời mời.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [Authorize]
+    [HttpGet]
+    public async Task<IActionResult> Students(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var students = await courseService.GetStudentsAsync(
+            id,
+            User.GetRequiredActor(),
+            cancellationToken);
+        var course = await courseService.GetByIdAsync(
+            id,
+            User.GetRequiredActor(),
+            cancellationToken);
+
+        ViewData["CourseTitle"] = course.Title;
+        ViewData["CourseId"] = id;
+        return View(students);
+    }
+
+    private void EnsureCanManage(CourseDetailsDto course)
+    {
+        var actor = User.GetRequiredActor();
+
+        if (!actor.IsAdmin && actor.UserId != course.OwnerId)
+        {
+            throw new ForbiddenOperationException(
+                "Bạn không có quyền quản lý khóa học này.");
+        }
+    }
+
+    private bool AddBusinessError(Exception exception)
+    {
+        if (!IsBusinessException(exception))
+        {
+            return false;
+        }
+
+        ModelState.AddModelError(string.Empty, exception.Message);
+        return true;
+    }
+
+    private static bool IsBusinessException(Exception exception)
+    {
+        return exception is BusinessValidationException
+            or ResourceConflictException
+            or CourseQuotaExceededException;
+    }
+}

@@ -1,0 +1,30 @@
+@model InviteCourseViewModel
+@{
+    ViewData["Title"] = "Mời thành viên";
+}
+
+<section class="form-page">
+    <div class="form-heading">
+        <p class="section-label">Thêm thành viên</p>
+        <h1>Mời vào @Model.CourseTitle</h1>
+        <p>Nhập mã người dùng. Thành viên sẽ nhận lời mời đang chờ xác nhận.</p>
+    </div>
+    <form asp-action="Invite" asp-route-id="@Model.CourseId" method="post" class="content-panel">
+        <input asp-for="CourseId" type="hidden" />
+        <input asp-for="CourseTitle" type="hidden" />
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+        <div class="mb-4">
+            <label asp-for="UserId" class="form-label"></label>
+            <input asp-for="UserId" class="form-control" />
+            <span asp-validation-for="UserId" class="text-danger"></span>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-primary" type="submit">Gửi lời mời</button>
+            <a class="btn btn-link" asp-action="Details" asp-route-id="@Model.CourseId">Hủy</a>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

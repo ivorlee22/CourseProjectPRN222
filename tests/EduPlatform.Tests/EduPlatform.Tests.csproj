@@ -1,0 +1,22 @@
+<Project Sdk="MSTest.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\EduPlatform.BLL\EduPlatform.BLL.csproj" />
+    <ProjectReference Include="..\..\EduPlatform.DAL\EduPlatform.DAL.csproj" />
+    <ProjectReference Include="..\..\EduPlatform.Web\EduPlatform.Web.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <MSTestAnalysisMode>Recommended</MSTestAnalysisMode>
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+  </PropertyGroup>
+
+</Project>

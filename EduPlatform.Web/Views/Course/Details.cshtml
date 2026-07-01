@@ -1,0 +1,76 @@
+@model CourseDetailsViewModel
+@{
+    ViewData["Title"] = Model.Course.Title;
+}
+
+<nav aria-label="Đường dẫn" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Khóa học</a></li>
+        <li class="breadcrumb-item active" aria-current="page">@Model.Course.Title</li>
+    </ol>
+</nav>
+
+<section class="course-detail-header">
+    <div>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <span class="course-type">@(
+                Model.Course.Type == CourseType.Private ? "Riêng tư" : "Công khai"
+            )</span>
+            @if (!Model.Course.IsVisible)
+            {
+                <span class="badge text-bg-secondary">Đang ẩn</span>
+            }
+        </div>
+        <h1>@Model.Course.Title</h1>
+        <p class="lead">@Model.Course.Description</p>
+        <div class="course-meta mt-4">
+            <span>Giảng viên: @Model.Course.OwnerName</span>
+            <span>@Model.Course.EnrollmentCount học viên</span>
+        </div>
+    </div>
+</section>
+
+<section class="action-panel">
+    @if (Model.CanManage)
+    {
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.Course.Id">Chỉnh sửa</a>
+            <a class="btn btn-outline-primary" asp-action="Students" asp-route-id="@Model.Course.Id">Học viên</a>
+            <a class="btn btn-outline-primary" asp-action="Invite" asp-route-id="@Model.Course.Id">Mời thành viên</a>
+            <form asp-action="SetVisibility" asp-route-id="@Model.Course.Id" method="post">
+                <input type="hidden" name="isVisible" value="@(!Model.Course.IsVisible).ToString().ToLowerInvariant()" />
+                <button class="btn btn-outline-secondary" type="submit">
+                    @(Model.Course.IsVisible ? "Ẩn khóa học" : "Hiển thị khóa học")
+                </button>
+            </form>
+            <form asp-action="Delete" asp-route-id="@Model.Course.Id" method="post"
+                  data-confirm="Bạn có chắc muốn xóa khóa học này?">
+                <button class="btn btn-outline-danger" type="submit">Xóa khóa học</button>
+            </form>
+        </div>
+    }
+    else if (Model.IsAuthenticated)
+    {
+        <form asp-action="Enroll" asp-route-id="@Model.Course.Id" method="post"
+              class="enroll-form">
+            @if (Model.Course.RequiresEnrollmentPassword)
+            {
+                <div>
+                    <label class="form-label" for="enrollmentPassword">Mật khẩu tham gia</label>
+                    <input class="form-control" id="enrollmentPassword"
+                           name="EnrollmentPassword" type="password"
+                           autocomplete="current-password" required />
+                </div>
+            }
+            <button class="btn btn-primary" type="submit">Tham gia khóa học</button>
+        </form>
+    }
+    else
+    {
+        <div>
+            <h2>Tham gia khóa học</h2>
+            <p>Đăng nhập để tham gia và truy cập nội dung khóa học.</p>
+            <a class="btn btn-primary" asp-controller="Account" asp-action="Login">Đăng nhập</a>
+        </div>
+    }
+</section>

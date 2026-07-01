@@ -1,0 +1,25 @@
+@model CourseFormViewModel
+@{
+    ViewData["Title"] = "Chỉnh sửa khóa học";
+}
+
+<section class="form-page">
+    <div class="form-heading">
+        <p class="section-label">Cập nhật nội dung</p>
+        <h1>Chỉnh sửa khóa học</h1>
+        <p>Thay đổi sẽ áp dụng ngay sau khi lưu.</p>
+    </div>
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post" class="content-panel">
+        <input asp-for="Id" type="hidden" />
+        <input asp-for="HasExistingPassword" type="hidden" />
+        <partial name="_CourseForm" model="Model" />
+        <div class="d-flex flex-wrap gap-2 mt-5">
+            <button class="btn btn-primary" type="submit">Lưu thay đổi</button>
+            <a class="btn btn-link" asp-action="Details" asp-route-id="@Model.Id">Hủy</a>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

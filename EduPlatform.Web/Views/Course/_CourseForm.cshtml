@@ -1,0 +1,48 @@
+@model CourseFormViewModel
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+<div class="mb-4">
+    <label asp-for="Title" class="form-label"></label>
+    <input asp-for="Title" class="form-control" autocomplete="off" />
+    <span asp-validation-for="Title" class="text-danger"></span>
+</div>
+
+<div class="mb-4">
+    <label asp-for="Description" class="form-label"></label>
+    <textarea asp-for="Description" class="form-control" rows="7"></textarea>
+    <span asp-validation-for="Description" class="text-danger"></span>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <label asp-for="Type" class="form-label"></label>
+        <select asp-for="Type" class="form-select" id="courseType">
+            <option value="@CourseType.Public">Công khai</option>
+            <option value="@CourseType.Private">Riêng tư</option>
+        </select>
+    </div>
+    <div class="col-md-6" id="coursePasswordField">
+        <label asp-for="EnrollmentPassword" class="form-label"></label>
+        <input asp-for="EnrollmentPassword" class="form-control"
+               autocomplete="new-password" />
+        @if (Model.HasExistingPassword)
+        {
+            <div class="form-text">Để trống nếu muốn giữ mật khẩu hiện tại.</div>
+        }
+        <span asp-validation-for="EnrollmentPassword" class="text-danger"></span>
+    </div>
+</div>
+
+@if (Model.HasExistingPassword)
+{
+    <div class="form-check mt-4">
+        <input asp-for="RemoveEnrollmentPassword" class="form-check-input" />
+        <label asp-for="RemoveEnrollmentPassword" class="form-check-label"></label>
+    </div>
+}
+
+<div class="form-check mt-4">
+    <input asp-for="IsVisible" class="form-check-input" />
+    <label asp-for="IsVisible" class="form-check-label"></label>
+</div>
