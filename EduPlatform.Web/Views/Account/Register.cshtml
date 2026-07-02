@@ -1,0 +1,74 @@
+@model EduPlatform.Web.ViewModels.Account.RegisterViewModel
+@{
+    ViewData["Title"] = "Đăng ký";
+}
+
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1 class="auth-title">Tạo tài khoản mới</h1>
+            <p class="auth-subtitle">Tham gia EduPlatform và bắt đầu học ngay hôm nay</p>
+        </div>
+
+        <form asp-action="Register" method="post" novalidate>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2" role="alert"></div>
+
+            <div class="mb-3">
+                <label asp-for="FullName" class="form-label fw-semibold"></label>
+                <input asp-for="FullName"
+                       class="form-control form-control-lg"
+                       placeholder="Nguyễn Văn A"
+                       autocomplete="name"
+                       id="register-fullname" />
+                <span asp-validation-for="FullName" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label fw-semibold"></label>
+                <input asp-for="Email"
+                       class="form-control form-control-lg"
+                       placeholder="email@example.com"
+                       autocomplete="email"
+                       type="email"
+                       id="register-email" />
+                <span asp-validation-for="Email" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label fw-semibold"></label>
+                <input asp-for="Password"
+                       class="form-control form-control-lg"
+                       placeholder="Ít nhất 8 ký tự"
+                       autocomplete="new-password"
+                       id="register-password" />
+                <span asp-validation-for="Password" class="text-danger small"></span>
+                <div class="form-text">Bao gồm chữ hoa, chữ thường và chữ số.</div>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="ConfirmPassword" class="form-label fw-semibold"></label>
+                <input asp-for="ConfirmPassword"
+                       class="form-control form-control-lg"
+                       placeholder="Nhập lại mật khẩu"
+                       autocomplete="new-password"
+                       id="register-confirm-password" />
+                <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg w-100" id="register-submit">
+                Tạo tài khoản
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            <p class="mb-0">
+                Đã có tài khoản?
+                <a asp-action="Login" class="fw-semibold">Đăng nhập</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

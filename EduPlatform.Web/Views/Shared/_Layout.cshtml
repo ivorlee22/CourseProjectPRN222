@@ -30,17 +30,57 @@
                         </li>
                         @if (User.Identity?.IsAuthenticated == true)
                         {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Course" asp-action="Mine">Khóa học của tôi</a>
-                            </li>
-                            <li class="nav-item ms-lg-2">
-                                <a class="btn btn-primary" asp-controller="Course" asp-action="Create">Tạo khóa học</a>
+                            @if (User.IsInRole("Teacher") || User.IsInRole("Student"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-controller="Course" asp-action="Mine">Khóa học của tôi</a>
+                                </li>
+                            }
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-controller="Admin" asp-action="Users">Quản trị</a>
+                                </li>
+                            }
+                            @if (User.IsInRole("Teacher") || User.IsInRole("Admin"))
+                            {
+                                <li class="nav-item ms-lg-1">
+                                    <a class="btn btn-primary" asp-controller="Course" asp-action="Create">Tạo khóa học</a>
+                                </li>
+                            }
+                            <li class="nav-item ms-lg-2 dropdown d-flex align-items-center">
+                                <a class="nav-link dropdown-toggle fw-semibold text-dark"
+                                   href="#"
+                                   id="user-menu-btn"
+                                   role="button"
+                                   data-bs-toggle="dropdown"
+                                   aria-expanded="false">
+                                    @User.Identity.Name
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="user-menu-btn">
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Account" asp-action="Profile">
+                                            Hồ sơ
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                            <button type="submit" class="dropdown-item text-danger" id="logout-btn">
+                                                Đăng xuất
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
                             </li>
                         }
                         else
                         {
-                            <li class="nav-item ms-lg-2">
-                                <a class="btn btn-outline-primary" asp-controller="Account" asp-action="Login">Đăng nhập</a>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Account" asp-action="Register">Đăng ký</a>
+                            </li>
+                            <li class="nav-item ms-lg-1">
+                                <a class="btn btn-primary" asp-controller="Account" asp-action="Login">Đăng nhập</a>
                             </li>
                         }
                     </ul>

@@ -1,0 +1,49 @@
+@model EduPlatform.Web.ViewModels.Account.ProfileViewModel
+@using EduPlatform.BLL.Enums
+@{
+    ViewData["Title"] = "Hồ sơ cá nhân";
+    string roleDisplay = Model.Role switch
+    {
+        UserRole.Admin   => "Quản trị viên",
+        UserRole.Teacher => "Giáo viên",
+        UserRole.Student => "Học sinh",
+        _                => Model.Role.ToString()
+    };
+}
+
+<div class="page-heading">
+    <h1>Hồ sơ cá nhân</h1>
+    <a asp-action="ChangePassword" class="btn btn-outline-secondary" id="change-password-link">
+        Đổi mật khẩu
+    </a>
+</div>
+
+<div class="content-panel profile-card">
+    <dl class="row mb-0">
+        <dt class="col-sm-4 py-2">Họ và tên</dt>
+        <dd class="col-sm-8 py-2">@Model.FullName</dd>
+
+        <dt class="col-sm-4 py-2 border-top">Email</dt>
+        <dd class="col-sm-8 py-2 border-top">@Model.Email</dd>
+
+        <dt class="col-sm-4 py-2 border-top">Vai trò</dt>
+        <dd class="col-sm-8 py-2 border-top">@roleDisplay</dd>
+
+        <dt class="col-sm-4 py-2 border-top">Trạng thái</dt>
+        <dd class="col-sm-8 py-2 border-top">
+            @if (Model.IsActive)
+            {
+                <span class="badge rounded-pill text-white" style="background:var(--edu-accent)">Hoạt động</span>
+            }
+            else
+            {
+                <span class="badge rounded-pill bg-secondary">Vô hiệu hóa</span>
+            }
+        </dd>
+
+        <dt class="col-sm-4 py-2 border-top">Ngày tạo</dt>
+        <dd class="col-sm-8 py-2 border-top">
+            @Model.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+        </dd>
+    </dl>
+</div>

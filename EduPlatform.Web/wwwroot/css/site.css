@@ -66,6 +66,9 @@ h1 {
 }
 
 .site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1030;
   background: rgb(246 248 251 / 94%);
   border-bottom: 1px solid var(--edu-line);
   backdrop-filter: blur(12px);
@@ -430,3 +433,66 @@ h1 {
     backdrop-filter: none;
   }
 }
+
+/* ── Auth pages (Login, Register) ─────────────────────────────────────────── */
+
+.auth-page {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-block: clamp(1.5rem, 5vw, 4rem);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 26rem;
+  border: 1px solid var(--edu-line);
+  border-radius: var(--edu-radius-panel);
+  background: var(--edu-panel);
+  box-shadow: 0 0.75rem 2rem rgb(18 32 51 / 7%);
+  overflow: hidden;
+}
+
+.auth-header {
+  padding: clamp(1.5rem, 5vw, 2.25rem) clamp(1.5rem, 5vw, 2.25rem) 1.5rem;
+  border-bottom: 1px solid var(--edu-line);
+  background: var(--edu-surface);
+}
+
+.auth-title {
+  font-size: clamp(1.35rem, 3.5vw, 1.75rem);
+  line-height: 1.15;
+  margin-bottom: 0.35rem;
+}
+
+.auth-subtitle {
+  margin: 0;
+  color: var(--edu-muted);
+  font-size: 0.95rem;
+}
+
+.auth-card form {
+  padding: clamp(1.5rem, 5vw, 2rem) clamp(1.5rem, 5vw, 2.25rem);
+}
+
+.auth-footer {
+  padding: 1.1rem clamp(1.5rem, 5vw, 2.25rem);
+  border-top: 1px solid var(--edu-line);
+  background: var(--edu-surface);
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--edu-muted);
+}
+
+/* ── Profile / ChangePassword page ──────────────────────────────────────────── */
+
+.profile-card {
+  max-width: 42rem;
+}
+
+.profile-card dt {
+  color: var(--edu-muted);
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
