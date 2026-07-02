@@ -97,7 +97,7 @@ public sealed class CourseService(
 
         var course = new Course
         {
-            OwnerId = actor.UserId,
+            OwnerId = command.OwnerId,
             Title = command.Title.Trim(),
             Description = command.Description.Trim(),
             Type = ToDal(command.Type),
@@ -399,9 +399,9 @@ public sealed class CourseService(
 
     private static void EnsureCanCreate(ActorContext actor)
     {
-        if (actor.Role is not (BllUserRole.Admin or BllUserRole.Teacher or BllUserRole.Student))
+        if (!actor.IsAdmin)
         {
-            throw new ForbiddenOperationException("Bạn không có quyền tạo khóa học.");
+            throw new ForbiddenOperationException("Chỉ Quản trị viên mới có quyền tạo khóa học.");
         }
     }
 

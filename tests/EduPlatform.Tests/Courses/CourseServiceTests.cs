@@ -31,39 +31,41 @@ public sealed class CourseServiceTests
     }
 
     [TestMethod]
-    public async Task CreateAsync_PublicCourse_PersistsAndChecksQuota()
+    public async Task CreateAsync_PublicCourse_PersistsWithCorrectOwner()
     {
-        var actor = new ActorContext(OwnerId, BllUserRole.Teacher);
+        var adminActor = new ActorContext(Guid.NewGuid(), BllUserRole.Admin);
         var command = new CreateCourseCommand(
             "C# căn bản",
             "Nội dung lập trình C# cho người mới.",
             BllCourseType.Public,
             IsVisible: true,
-            EnrollmentPassword: null);
+            EnrollmentPassword: null,
+            OwnerId);
 
-        var id = await _service.CreateAsync(command, actor, CancellationToken.None);
+        var id = await _service.CreateAsync(command, adminActor, CancellationToken.None);
 
         var course = Assert.ContainsSingle(_repository.Courses);
         Assert.AreEqual(id, course.Id);
         Assert.AreEqual(OwnerId, course.OwnerId);
         Assert.AreEqual(DalCourseType.Public, course.Type);
         Assert.IsNull(course.EnrollmentPasswordHash);
-        Assert.AreEqual(1, _quotaService.CallCount);
+        Assert.AreEqual(0, _quotaService.CallCount); // Admin skips quota
         Assert.AreEqual(1, _repository.SaveChangesCallCount);
     }
 
     [TestMethod]
     public async Task CreateAsync_PrivateCourse_HashesEnrollmentPassword()
     {
-        var actor = new ActorContext(OwnerId, BllUserRole.Student);
+        var adminActor = new ActorContext(Guid.NewGuid(), BllUserRole.Admin);
         var command = new CreateCourseCommand(
             "Lớp nội bộ",
             "Khóa học chỉ dành cho thành viên được cấp mật khẩu.",
             BllCourseType.Private,
             IsVisible: true,
-            EnrollmentPassword: "Course@123");
+            EnrollmentPassword: "Course@123",
+            OwnerId);
 
-        await _service.CreateAsync(command, actor, CancellationToken.None);
+        await _service.CreateAsync(command, adminActor, CancellationToken.None);
 
         var course = Assert.ContainsSingle(_repository.Courses);
         Assert.IsNotNull(course.EnrollmentPasswordHash);
@@ -76,40 +78,41 @@ public sealed class CourseServiceTests
     [TestMethod]
     public async Task CreateAsync_PrivateCourseWithoutPassword_ThrowsValidation()
     {
-        var actor = new ActorContext(OwnerId, BllUserRole.Teacher);
+        var adminActor = new ActorContext(Guid.NewGuid(), BllUserRole.Admin);
         var command = new CreateCourseCommand(
             "Lớp nội bộ",
             "Khóa học chỉ dành cho thành viên được cấp mật khẩu.",
             BllCourseType.Private,
             IsVisible: true,
-            EnrollmentPassword: null);
+            EnrollmentPassword: null,
+            OwnerId);
 
         await Assert.ThrowsExactlyAsync<BusinessValidationException>(
             async () => await _service.CreateAsync(
                 command,
-                actor,
+                adminActor,
                 CancellationToken.None));
     }
 
     [TestMethod]
-    public async Task CreateAsync_QuotaExceeded_DoesNotPersistCourse()
+    public async Task CreateAsync_NonAdmin_ThrowsForbidden()
     {
-        _quotaService.ExceptionToThrow = new CourseQuotaExceededException(
-            "Đã hết quota khóa học.");
-        var actor = new ActorContext(OwnerId, BllUserRole.Teacher);
+        var teacherActor = new ActorContext(OwnerId, BllUserRole.Teacher);
         var command = new CreateCourseCommand(
             "C# căn bản",
             "Nội dung lập trình C# cho người mới.",
             BllCourseType.Public,
             IsVisible: true,
-            EnrollmentPassword: null);
+            EnrollmentPassword: null,
+            OwnerId);
 
-        await Assert.ThrowsExactlyAsync<CourseQuotaExceededException>(
+        var exception = await Assert.ThrowsExactlyAsync<ForbiddenOperationException>(
             async () => await _service.CreateAsync(
                 command,
-                actor,
+                teacherActor,
                 CancellationToken.None));
-
+        
+        Assert.AreEqual("Chỉ Quản trị viên mới có quyền tạo khóa học.", exception.Message);
         Assert.IsEmpty(_repository.Courses);
         Assert.AreEqual(0, _repository.SaveChangesCallCount);
     }

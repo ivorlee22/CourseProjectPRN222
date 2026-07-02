@@ -7,6 +7,10 @@ public sealed class CourseFormViewModel
 {
     public Guid? Id { get; init; }
 
+    [Required(ErrorMessage = "Vui lòng chọn Giáo viên phụ trách.")]
+    [Display(Name = "Giáo viên phụ trách")]
+    public Guid OwnerId { get; init; }
+
     [Required(ErrorMessage = "Vui lòng nhập tên khóa học.")]
     [StringLength(200, ErrorMessage = "Tên khóa học không vượt quá 200 ký tự.")]
     [Display(Name = "Tên khóa học")]

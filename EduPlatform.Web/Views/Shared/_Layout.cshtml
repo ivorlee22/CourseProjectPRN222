@@ -42,7 +42,7 @@
                                     <a class="nav-link" asp-controller="Admin" asp-action="Users">Quản trị</a>
                                 </li>
                             }
-                            @if (User.IsInRole("Teacher") || User.IsInRole("Admin"))
+                            @if (User.IsInRole("Admin"))
                             {
                                 <li class="nav-item ms-lg-1">
                                     <a class="btn btn-primary" asp-controller="Course" asp-action="Create">Tạo khóa học</a>

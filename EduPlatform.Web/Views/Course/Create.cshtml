@@ -10,6 +10,13 @@
         <p>Thiết lập thông tin cơ bản. Tài liệu và thành viên có thể thêm sau.</p>
     </div>
     <form asp-action="Create" method="post" class="content-panel">
+        <div class="mb-4">
+            <label asp-for="OwnerId" class="form-label fw-semibold"></label>
+            <select asp-for="OwnerId" class="form-select" asp-items="ViewBag.Teachers">
+                <option value="">-- Chọn Giáo viên phụ trách --</option>
+            </select>
+            <span asp-validation-for="OwnerId" class="text-danger small"></span>
+        </div>
         <partial name="_CourseForm" model="Model" />
         <div class="d-flex flex-wrap gap-2 mt-5">
             <button class="btn btn-primary" type="submit">Tạo khóa học</button>

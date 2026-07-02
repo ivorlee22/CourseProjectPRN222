@@ -41,7 +41,7 @@ builder.Services
     .AddAuthorizationBuilder()
     .AddPolicy(
         AuthorizationPolicies.CanCreateCourse,
-        policy => policy.RequireRole("Admin", "Teacher", "Student"))
+        policy => policy.RequireRole("Admin"))
     .AddPolicy(
         AuthorizationPolicies.AdminOnly,
         policy => policy.RequireRole("Admin"));

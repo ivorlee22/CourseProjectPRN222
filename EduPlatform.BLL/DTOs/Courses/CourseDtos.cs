@@ -38,7 +38,8 @@ public sealed record CreateCourseCommand(
     string Description,
     CourseType Type,
     bool IsVisible,
-    string? EnrollmentPassword);
+    string? EnrollmentPassword,
+    Guid OwnerId);
 
 public sealed record UpdateCourseCommand(
     string Title,
