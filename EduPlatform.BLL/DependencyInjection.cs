@@ -17,6 +17,7 @@ public static class DependencyInjection
 
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<ICourseService, CourseService>();
+        services.AddScoped<IUserService, UserService>();
         // TEMPORARY: Nguyên must replace this registration with the
         // subscription-backed quota service. See AGENTS.md handoff section.
         services.AddScoped<ICourseQuotaService, DeferredCourseQuotaService>();

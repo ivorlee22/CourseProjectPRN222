@@ -66,6 +66,65 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-02 — Task 10: AccountController + Views
+
+**Owner**
+
+- Nguyên (implemented by Codex).
+
+**Completed**
+
+- Created `EduPlatform.Web/ViewModels/Account/AccountViewModels.cs` — view models for Login, Register, Profile, ChangePassword.
+- Created `EduPlatform.Web/Controllers/AccountController.cs` — full auth flow handling cookies, user claims (matching `ClaimsPrincipalExtensions`), login, logout, registration, and profile/password management.
+- Updated `EduPlatform.Web/wwwroot/css/site.css` with centered card layouts for `.auth-page`, `.auth-card`, matching the project's visual density and UI rules.
+- Created `EduPlatform.Web/Views/Account/Login.cshtml` — login form view.
+- Created `EduPlatform.Web/Views/Account/Register.cshtml` — registration form view.
+- Created `EduPlatform.Web/Views/Account/Profile.cshtml` — user profile information view without diacritics.
+- Created `EduPlatform.Web/Views/Account/ChangePassword.cshtml` — change password form.
+- Updated `EduPlatform.Web/Views/Shared/_Layout.cshtml` to add conditional navigation (Dropdown for logged in user, Admin link, Login/Register buttons). 
+
+**Verification**
+
+- `dotnet build` passed 0 errors. Fixed a `CS0019` compatibility issue related to coalescing `RedirectResult?`. 
+- `dotnet test` passed 10/10.
+
+**Remaining**
+
+- Task 11: AdminController — User CRUD + Import.
+
+**Blocked**
+
+- None.
+
+### 2026-07-02 — Task 9: UserService
+
+**Owner**
+
+- Nguyên (implemented by Codex).
+
+**Completed**
+
+- Created `EduPlatform.DAL/Repositories/IUserRepository.cs` — interface: GetByNormalizedEmail, GetById, GetAll (paged), Add, Remove, SaveChanges.
+- Created `EduPlatform.DAL/Repositories/UserRepository.cs` — EF Core implementation with AsNoTracking paged query.
+- Registered `IUserRepository → UserRepository` in `EduPlatform.DAL/DependencyInjection.cs`.
+- Created `EduPlatform.BLL/DTOs/Users/UserDtos.cs` — records: UserSummaryDto, LoginCommand, RegisterCommand, CreateUserCommand, UpdateUserRoleCommand, ChangePasswordCommand.
+- Created `EduPlatform.BLL/Interfaces/IUserService.cs` — 8 operations: Authenticate, Register, Create (admin), GetById, GetAll, UpdateRole, ChangePassword, SetActive.
+- Created `EduPlatform.BLL/Services/UserService.cs` — full implementation with BCrypt auth (same-message for not-found vs wrong-password to prevent user enumeration), role guards, password policy (min 8, upper, lower, digit), email validation, DAL↔BLL enum mapping.
+- Registered `IUserService → UserService` in `EduPlatform.BLL/DependencyInjection.cs`.
+
+**Verification**
+
+- `dotnet build EduPlatform.sln --no-restore`: passed with 0 warnings and 0 errors.
+- `dotnet test EduPlatform.sln --no-build`: 10/10 passed.
+
+**Remaining**
+
+- Task 10: AccountController + Views (Login, Logout, Register, Profile).
+
+**Blocked**
+
+- None.
+
 ### 2026-07-02 — Prepared safe Git configuration
 
 **Owner**
