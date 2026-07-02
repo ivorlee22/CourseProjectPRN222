@@ -1,0 +1,166 @@
+@using EduPlatform.BLL.Enums
+@model EduPlatform.Web.ViewModels.Admin.UserListViewModel
+@{
+    ViewData["Title"] = "Quản lý Người dùng";
+}
+
+<div class="page-heading">
+    <h1>Quản lý người dùng</h1>
+    <div class="d-flex gap-2">
+        <a asp-action="CreateUser" class="btn btn-primary">Thêm mới</a>
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-toggle="modal" data-bs-target="#importModal">
+            Import Excel
+        </button>
+    </div>
+</div>
+
+<div class="content-panel shadow-sm border-0 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="--bs-table-bg: transparent;">
+            <thead class="bg-light text-muted small text-uppercase" style="letter-spacing: 0.5px;">
+                <tr>
+                    <th class="py-3 px-4 fw-semibold border-bottom-0">Họ và tên</th>
+                    <th class="py-3 px-4 fw-semibold border-bottom-0">Email</th>
+                    <th class="py-3 px-4 fw-semibold border-bottom-0">Vai trò</th>
+                    <th class="py-3 px-4 fw-semibold border-bottom-0">Trạng thái</th>
+                    <th class="py-3 px-4 fw-semibold border-bottom-0">Ngày tham gia</th>
+                    <th class="py-3 px-4 fw-semibold border-bottom-0 text-end">Hành động</th>
+                </tr>
+            </thead>
+            <tbody class="border-top-0">
+                @foreach (var user in Model.Users.Items)
+                {
+                    <tr style="transition: background-color 0.2s ease;">
+                        <td class="px-4 py-3 fw-semibold text-dark">@user.FullName</td>
+                        <td class="px-4 py-3 text-muted">@user.Email</td>
+                        <td class="px-4 py-3">
+                            @{
+                                var roleClass = user.Role switch
+                                {
+                                    UserRole.Admin => "bg-danger-subtle text-danger",
+                                    UserRole.Teacher => "bg-info-subtle text-info-emphasis",
+                                    UserRole.Student => "bg-secondary-subtle text-secondary",
+                                    _ => "bg-light text-dark"
+                                };
+                            }
+                            <span class="badge rounded-pill @roleClass fw-medium px-3 py-2">@user.Role.ToString()</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            @if (user.IsActive)
+                            {
+                                <span class="badge rounded-pill bg-success-subtle text-success fw-medium px-3 py-2">Hoạt động</span>
+                            }
+                            else
+                            {
+                                <span class="badge rounded-pill bg-dark-subtle text-dark fw-medium px-3 py-2">Đã khóa</span>
+                            }
+                        </td>
+                        <td class="px-4 py-3 text-muted small">@user.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                        <td class="px-4 py-3 text-end">
+                            @if (user.Role != UserRole.Admin)
+                            {
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-light dropdown-toggle text-muted rounded-pill px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Tùy chọn
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="border-radius: 0.75rem;">
+                                        <li>
+                                            <a class="dropdown-item py-2" asp-action="EditUser" asp-route-id="@user.Id">Đổi vai trò</a>
+                                        </li>
+                                        <li>
+                                            <form asp-action="ToggleUserActive" method="post">
+                                                <input type="hidden" name="id" value="@user.Id" />
+                                                <input type="hidden" name="isActive" value="@(user.IsActive ? "false" : "true")" />
+                                                @if (user.IsActive)
+                                                {
+                                                    <button type="submit" class="dropdown-item text-danger py-2">Khóa tài khoản</button>
+                                                }
+                                                else
+                                                {
+                                                    <button type="submit" class="dropdown-item text-success py-2">Mở khóa tài khoản</button>
+                                                }
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">Mặc định</span>
+                            }
+                        </td>
+                    </tr>
+                }
+                
+                @if (Model.Users.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <div class="d-flex flex-column align-items-center">
+                                <span class="fs-4 mb-2">📭</span>
+                                <p class="mb-0 fw-medium">Không có người dùng nào.</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.Users.TotalPages > 1)
+    {
+        <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+            <span class="text-muted small">
+                Hiển thị @Model.Users.Items.Count trên tổng số @Model.Users.TotalCount người dùng
+            </span>
+            
+            <nav aria-label="Phân trang người dùng">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item @(Model.Users.PageNumber == 1 ? "disabled" : "")">
+                        <a class="page-link" asp-action="Users" asp-route-page="@(Model.Users.PageNumber - 1)">Trước</a>
+                    </li>
+                    @for (int i = 1; i <= Model.Users.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == Model.Users.PageNumber ? "active" : "")">
+                            <a class="page-link" asp-action="Users" asp-route-page="@i">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(Model.Users.PageNumber == Model.Users.TotalPages ? "disabled" : "")">
+                        <a class="page-link" asp-action="Users" asp-route-page="@(Model.Users.PageNumber + 1)">Sau</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    }
+</div>
+
+<!-- Modal Import -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form asp-action="ImportUsers" method="post" enctype="multipart/form-data">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importModalLabel">Import người dùng từ Excel</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">
+                        File Excel cần có định dạng 3 cột (không cần tiêu đề hoặc bỏ qua dòng 1): <br/>
+                        <strong>Cột 1:</strong> Họ và tên<br/>
+                        <strong>Cột 2:</strong> Email<br/>
+                        <strong>Cột 3:</strong> Vai trò (Student, Teacher, Admin - Mặc định là Student)
+                    </p>
+                    
+                    <div class="mb-3">
+                        <label for="ExcelFile" class="form-label">Chọn file (.xlsx)</label>
+                        <input class="form-control" type="file" id="ExcelFile" name="ExcelFile" accept=".xlsx" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Bắt đầu Import</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

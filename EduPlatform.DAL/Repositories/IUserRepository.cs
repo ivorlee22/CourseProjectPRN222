@@ -13,6 +13,8 @@ public interface IUserRepository
         int pageSize,
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<User>> GetByRoleAsync(UserRole role, CancellationToken cancellationToken);
+
     Task AddAsync(User user, CancellationToken cancellationToken);
 
     void Remove(User user);

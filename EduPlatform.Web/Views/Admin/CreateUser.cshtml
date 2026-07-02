@@ -1,0 +1,55 @@
+@using EduPlatform.BLL.Enums
+@model EduPlatform.Web.ViewModels.Admin.CreateUserViewModel
+@{
+    ViewData["Title"] = "Thêm Người Dùng";
+}
+
+<div class="form-page">
+    <div class="form-heading">
+        <p class="section-label">Quản trị</p>
+        <h1>Thêm người dùng mới</h1>
+        <p>Mật khẩu khởi tạo cần đảm bảo an toàn. Vai trò mặc định là Học sinh.</p>
+        <a asp-action="Users" class="btn btn-outline-secondary mt-2">Quay lại danh sách</a>
+    </div>
+
+    <div class="content-panel">
+        <form asp-action="CreateUser" method="post" novalidate>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2" role="alert"></div>
+
+            <div class="mb-3">
+                <label asp-for="FullName" class="form-label fw-semibold"></label>
+                <input asp-for="FullName" class="form-control" autocomplete="name" />
+                <span asp-validation-for="FullName" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label fw-semibold"></label>
+                <input asp-for="Email" type="email" class="form-control" autocomplete="email" />
+                <span asp-validation-for="Email" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label fw-semibold"></label>
+                <input asp-for="Password" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="Password" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="Role" class="form-label fw-semibold"></label>
+                <select asp-for="Role" class="form-select" asp-items="@(Html.GetEnumSelectList<UserRole>().Where(x => x.Text != "Admin"))"></select>
+                <span asp-validation-for="Role" class="text-danger small"></span>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    Tạo tài khoản
+                </button>
+                <a asp-action="Users" class="btn btn-outline-secondary">Hủy</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

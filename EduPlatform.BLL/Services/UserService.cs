@@ -79,6 +79,12 @@ public sealed class UserService(IUserRepository userRepository) : IUserService
         CancellationToken cancellationToken)
     {
         EnsureIsAdmin(actor);
+
+        if (command.Role == BllUserRole.Admin)
+        {
+            throw new BusinessValidationException("Hệ thống chỉ cho phép duy nhất 1 Quản trị viên.");
+        }
+
         ValidateFullName(command.FullName);
         ValidateEmail(command.Email);
         ValidatePassword(command.Password);
@@ -132,6 +138,14 @@ public sealed class UserService(IUserRepository userRepository) : IUserService
             result.TotalCount);
     }
 
+    public async Task<IReadOnlyList<UserSummaryDto>> GetByRoleAsync(
+        BllUserRole role,
+        CancellationToken cancellationToken)
+    {
+        var users = await userRepository.GetByRoleAsync(ToDal(role), cancellationToken);
+        return users.Select(MapSummary).ToArray();
+    }
+
     // ── Admin — Role & Status ─────────────────────────────────────────────────
 
     public async Task UpdateRoleAsync(
@@ -140,6 +154,11 @@ public sealed class UserService(IUserRepository userRepository) : IUserService
         CancellationToken cancellationToken)
     {
         EnsureIsAdmin(actor);
+
+        if (command.NewRole == BllUserRole.Admin)
+        {
+            throw new BusinessValidationException("Hệ thống chỉ cho phép duy nhất 1 Quản trị viên.");
+        }
 
         if (command.UserId == actor.UserId)
         {

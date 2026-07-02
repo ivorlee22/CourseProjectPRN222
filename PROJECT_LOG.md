@@ -66,6 +66,25 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-02 — Task 11: AdminController (User CRUD & Excel Import)
+
+**Owner**
+
+- Nguyên (implemented by Codex).
+
+**Completed**
+
+- Added `EPPlus` to `Directory.Packages.props` and `EduPlatform.BLL.csproj` for Excel import.
+- Created `AdminViewModels.cs` for Create, EditRole, Import and UserList.
+- Created `AdminController.cs` for User CRUD and Excel Import with role `Admin`.
+- Created Views: `Users.cshtml`, `CreateUser.cshtml`, `EditUser.cshtml`.
+- Updated `_Layout.cshtml` to securely check roles before showing UI elements (e.g., hiding "Tạo khóa học" from Students).
+
+**Verification**
+
+- `dotnet build` passed.
+- `dotnet test` passed (10/10).
+
 ### 2026-07-02 — Task 10: AccountController + Views
 
 **Owner**

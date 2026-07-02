@@ -9,7 +9,7 @@
         <h1>@ViewData["Title"]</h1>
         <p class="text-secondary mb-0">@Model.TotalCount khóa học</p>
     </div>
-    @if (User.Identity?.IsAuthenticated == true)
+    @if (User.IsInRole("Admin"))
     {
         <a class="btn btn-primary" asp-action="Create">Tạo khóa học</a>
     }
@@ -30,7 +30,7 @@
     <section class="empty-state">
         <h2>Chưa có khóa học phù hợp</h2>
         <p>Thử từ khóa khác hoặc tạo khóa học mới để bắt đầu.</p>
-        @if (User.Identity?.IsAuthenticated == true)
+        @if (User.IsInRole("Admin"))
         {
             <a class="btn btn-primary" asp-action="Create">Tạo khóa học</a>
         }

@@ -18,6 +18,8 @@ public interface IUserService
 
     Task<PagedResult<UserSummaryDto>> GetAllAsync(int pageNumber, int pageSize, CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<UserSummaryDto>> GetByRoleAsync(EduPlatform.BLL.Enums.UserRole role, CancellationToken cancellationToken);
+
     /// <summary>Admin thay đổi role của người dùng khác.</summary>
     Task UpdateRoleAsync(UpdateUserRoleCommand command, ActorContext actor, CancellationToken cancellationToken);
 

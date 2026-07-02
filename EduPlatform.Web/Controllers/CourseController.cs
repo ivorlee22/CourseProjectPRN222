@@ -6,9 +6,11 @@ using EduPlatform.Web.ViewModels.Courses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 namespace EduPlatform.Web.Controllers;
 
-public sealed class CourseController(ICourseService courseService) : Controller
+public sealed class CourseController(ICourseService courseService, IUserService userService) : Controller
 {
     [AllowAnonymous]
     [HttpGet]
@@ -80,9 +82,20 @@ public sealed class CourseController(ICourseService courseService) : Controller
 
     [Authorize(Policy = AuthorizationPolicies.CanCreateCourse)]
     [HttpGet]
-    public IActionResult Create()
+    public async Task<IActionResult> Create(CancellationToken cancellationToken)
     {
+        await PopulateTeachersViewBagAsync(cancellationToken);
         return View(new CourseFormViewModel());
+    }
+
+    private async Task PopulateTeachersViewBagAsync(CancellationToken cancellationToken)
+    {
+        var teachers = await userService.GetByRoleAsync(EduPlatform.BLL.Enums.UserRole.Teacher, cancellationToken);
+        ViewBag.Teachers = teachers.Select(t => new SelectListItem
+        {
+            Value = t.Id.ToString(),
+            Text = $"{t.FullName} ({t.Email})"
+        });
     }
 
     [Authorize(Policy = AuthorizationPolicies.CanCreateCourse)]
@@ -93,6 +106,7 @@ public sealed class CourseController(ICourseService courseService) : Controller
     {
         if (!ModelState.IsValid)
         {
+            await PopulateTeachersViewBagAsync(cancellationToken);
             return View(model);
         }
 
@@ -104,7 +118,8 @@ public sealed class CourseController(ICourseService courseService) : Controller
                     model.Description,
                     model.Type,
                     model.IsVisible,
-                    model.EnrollmentPassword),
+                    model.EnrollmentPassword,
+                    model.OwnerId),
                 User.GetRequiredActor(),
                 cancellationToken);
 

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\EduPlatform.DAL\EduPlatform.DAL.csproj" />
@@ -9,6 +9,7 @@
     <PackageReference Include="MailKit" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="EPPlus" />
   </ItemGroup>
 
   <PropertyGroup>
