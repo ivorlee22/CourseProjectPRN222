@@ -1,0 +1,87 @@
+@model UploadDocumentViewModel
+@{
+    ViewData["Title"] = "Tải tài liệu";
+}
+
+<nav aria-label="Đường dẫn" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a asp-controller="Course" asp-action="Index">Khóa học</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a asp-controller="Course" asp-action="Details" asp-route-id="@Model.CourseId">
+                @Model.CourseTitle
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a asp-action="Index" asp-route-courseId="@Model.CourseId">Tài liệu</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">Tải lên</li>
+    </ol>
+</nav>
+
+<section class="form-page">
+    <aside class="form-heading">
+        <p class="section-label">Tải tài liệu</p>
+        <h1>Thêm học liệu mới</h1>
+        <p>
+            Hệ thống sẽ trích xuất văn bản, chia đoạn và tạo vector nhúng bằng
+            Gemini để phục vụ hỏi đáp theo ngữ cảnh.
+        </p>
+        <ul class="upload-tips">
+            <li>Định dạng hỗ trợ: PDF, DOCX, TXT, Markdown.</li>
+            <li>Kích thước tối đa: 25 MB.</li>
+            <li>Tài liệu lớn sẽ được xử lý theo nhiều đoạn.</li>
+        </ul>
+    </aside>
+
+    <section class="content-panel">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+        <form asp-action="Upload"
+              method="post"
+              enctype="multipart/form-data"
+              class="upload-form"
+              data-upload-form>
+            <input type="hidden" asp-for="CourseId" />
+
+            <div class="mb-4">
+                <label asp-for="File" class="form-label"></label>
+                <input asp-for="File" class="form-control" type="file"
+                       accept=".pdf,.docx,.txt,.md,.markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
+                       aria-describedby="fileHelp" data-upload-input />
+                <div class="form-text" id="fileHelp">
+                    Chọn một tệp PDF, DOCX, TXT hoặc Markdown. Tệp phải có văn bản
+                    có thể trích xuất để tạo vector.
+                </div>
+                <span asp-validation-for="File" class="text-danger"></span>
+            </div>
+
+            <div class="upload-progress" data-upload-progress hidden>
+                <div class="upload-progress__label" data-upload-progress-label>
+                    Đang tải lên...
+                </div>
+                <div class="progress" role="progressbar"
+                     aria-label="Tiến trình tải lên"
+                     aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <div class="progress-bar" data-upload-progress-bar
+                         style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 mt-4">
+                <button type="submit" class="btn btn-primary" data-upload-submit>
+                    Tải lên và xử lý
+                </button>
+                <a class="btn btn-outline-secondary"
+                   asp-action="Index" asp-route-courseId="@Model.CourseId">
+                    Hủy
+                </a>
+            </div>
+        </form>
+    </section>
+</section>
+
+@section Scripts {
+    <script src="~/js/document-upload.js" asp-append-version="true"></script>
+}

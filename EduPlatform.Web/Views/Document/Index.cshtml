@@ -1,0 +1,126 @@
+@model DocumentIndexViewModel
+@{
+    ViewData["Title"] = "Tài liệu";
+}
+
+<nav aria-label="Đường dẫn" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a asp-controller="Course" asp-action="Index">Khóa học</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a asp-controller="Course" asp-action="Details" asp-route-id="@Model.CourseId">
+                @Model.CourseTitle
+            </a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">Tài liệu</li>
+    </ol>
+</nav>
+
+<section class="page-heading">
+    <div>
+        <p class="section-label">Kho tài liệu</p>
+        <h1>Tài liệu của @Model.CourseTitle</h1>
+        <p class="text-secondary mb-0">@Model.Documents.Count tài liệu</p>
+    </div>
+    @if (Model.CanManage)
+    {
+        <a class="btn btn-primary" asp-action="Upload" asp-route-courseId="@Model.CourseId">
+            Tải tài liệu
+        </a>
+    }
+</section>
+
+@if (Model.Documents.Count == 0)
+{
+    <section class="empty-state">
+        <h2>Chưa có tài liệu nào</h2>
+        <p>
+            @if (Model.CanManage)
+            {
+                <span>Tải lên PDF, DOCX, TXT hoặc Markdown để bắt đầu xây dựng kho học liệu cho khóa học.</span>
+            }
+            else
+            {
+                <span>Giảng viên của khóa học chưa đăng tải tài liệu.</span>
+            }
+        </p>
+        @if (Model.CanManage)
+        {
+            <a class="btn btn-primary" asp-action="Upload" asp-route-courseId="@Model.CourseId">
+                Tải tài liệu đầu tiên
+            </a>
+        }
+    </section>
+}
+else
+{
+    <div class="document-grid">
+        @foreach (var document in Model.Documents)
+        {
+            <article class="document-card" data-status="@document.Status.ToString().ToLowerInvariant()">
+                <div class="d-flex justify-content-between align-items-start gap-3">
+                    <span class="document-type">@FormatFileType(document.FileType)</span>
+                    @DocumentStatusBadge(document.Status)
+                </div>
+                <h2>
+                    <a asp-action="Details" asp-route-id="@document.Id">
+                        @document.OriginalFileName
+                    </a>
+                </h2>
+                <p class="document-meta">
+                    <span>@FormatSize(document.SizeBytes)</span>
+                    <span>@document.ChunkCount đoạn</span>
+                    <span>@document.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                </p>
+                @if (!string.IsNullOrWhiteSpace(document.FailureReason))
+                {
+                    <p class="document-error">@document.FailureReason</p>
+                }
+            </article>
+        }
+    </div>
+}
+
+@functions {
+    private static string FormatFileType(DocumentFileType type)
+    {
+        return type switch
+        {
+            DocumentFileType.Pdf => "PDF",
+            DocumentFileType.Docx => "DOCX",
+            DocumentFileType.Txt => "TXT",
+            DocumentFileType.Md => "Markdown",
+            _ => "Tệp"
+        };
+    }
+
+    private static string FormatSize(long sizeBytes)
+    {
+        if (sizeBytes >= 1024L * 1024L)
+        {
+            return $"{sizeBytes / (1024d * 1024d):0.0} MB";
+        }
+
+        if (sizeBytes >= 1024L)
+        {
+            return $"{sizeBytes / 1024d:0.0} KB";
+        }
+
+        return $"{sizeBytes} B";
+    }
+
+    private static IHtmlContent DocumentStatusBadge(DocumentStatus status)
+    {
+        var (label, cssClass) = status switch
+        {
+            DocumentStatus.Ready => ("Sẵn sàng", "badge text-bg-success"),
+            DocumentStatus.Processing => ("Đang xử lý", "badge text-bg-info"),
+            DocumentStatus.Pending => ("Đang chờ", "badge text-bg-warning"),
+            DocumentStatus.Failed => ("Lỗi", "badge text-bg-danger"),
+            _ => ("Không rõ", "badge text-bg-secondary")
+        };
+
+        return new HtmlString($"<span class=\"{cssClass}\">{label}</span>");
+    }
+}
