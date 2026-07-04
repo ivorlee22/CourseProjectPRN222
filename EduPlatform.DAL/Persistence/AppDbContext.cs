@@ -54,6 +54,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         ConfigureChat(modelBuilder);
         ConfigureCommerce(modelBuilder);
         SeedUsers(modelBuilder);
+        SeedPackages(modelBuilder);
     }
 
     private static void ConfigureUsers(ModelBuilder modelBuilder)
@@ -263,6 +264,65 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 PasswordHash = "$2b$12$g9IkcdaBqqZgjXQNXIboCuqpQ2miyjMXKkylbvTouFuoR0IrcOlUS",
                 FullName = "Demo Student",
                 Role = UserRole.Student,
+                IsActive = true,
+                CreatedAtUtc = seededAt,
+                UpdatedAtUtc = seededAt
+            });
+    }
+
+    private static void SeedPackages(ModelBuilder modelBuilder)
+    {
+        var seededAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+        modelBuilder.Entity<Package>().HasData(
+            new Package
+            {
+                Id = Guid.Parse("20000000-0000-0000-0000-000000000001"),
+                Name = "Free",
+                Description = "Trải nghiệm cơ bản hoàn toàn miễn phí.",
+                Price = 0m,
+                MaxCourses = 2,
+                DailyChats = 10,
+                DurationDays = 36500,
+                IsActive = true,
+                CreatedAtUtc = seededAt,
+                UpdatedAtUtc = seededAt
+            },
+            new Package
+            {
+                Id = Guid.Parse("20000000-0000-0000-0000-000000000002"),
+                Name = "Plus",
+                Description = "Nâng cấp trải nghiệm học tập của bạn.",
+                Price = 99000m,
+                MaxCourses = 10,
+                DailyChats = 50,
+                DurationDays = 30,
+                IsActive = true,
+                CreatedAtUtc = seededAt,
+                UpdatedAtUtc = seededAt
+            },
+            new Package
+            {
+                Id = Guid.Parse("20000000-0000-0000-0000-000000000003"),
+                Name = "Pro",
+                Description = "Dành cho người dùng chuyên nghiệp.",
+                Price = 199000m,
+                MaxCourses = 20,
+                DailyChats = 100,
+                DurationDays = 30,
+                IsActive = true,
+                CreatedAtUtc = seededAt,
+                UpdatedAtUtc = seededAt
+            },
+            new Package
+            {
+                Id = Guid.Parse("20000000-0000-0000-0000-000000000004"),
+                Name = "Max",
+                Description = "Trải nghiệm tối đa không giới hạn.",
+                Price = 399000m,
+                MaxCourses = 200,
+                DailyChats = 200,
+                DurationDays = 30,
                 IsActive = true,
                 CreatedAtUtc = seededAt,
                 UpdatedAtUtc = seededAt
