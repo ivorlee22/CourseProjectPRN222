@@ -41,5 +41,7 @@ public interface IChatRepository
         IEnumerable<RetrievalLog> retrievalLogs,
         CancellationToken cancellationToken);
 
+    void RemoveSession(ChatSession session);
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

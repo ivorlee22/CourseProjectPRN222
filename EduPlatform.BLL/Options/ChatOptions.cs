@@ -6,6 +6,8 @@ public sealed class ChatOptions
 
     public int RetrievalLimit { get; init; } = 5;
 
+    public double MinimumSimilarityScore { get; init; } = 0.5;
+
     public int MaxQuestionLength { get; init; } = 4000;
 
     public int MaxContextCharacters { get; init; } = 12000;

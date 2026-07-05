@@ -148,6 +148,46 @@ public sealed class ChatServiceTests
         Assert.AreEqual(0, _repository.SaveChangesCallCount);
     }
 
+    [TestMethod]
+    public async Task SendMessageAsync_AnswerCitesSecondChunk_PersistsOnlyThatCitation()
+    {
+        var first = CreateSearchResult();
+        var second = new RetrievedDocumentChunk(
+            new DocumentChunk
+            {
+                Id = Guid.Parse("40000000-0000-0000-0000-000000000002"),
+                DocumentId = first.Chunk.DocumentId,
+                Sequence = 3,
+                Content = "Service lifetime có ba loại chính."
+            },
+            "lesson.pdf",
+            0.84);
+        _repository.SearchResults.Add(first);
+        _repository.SearchResults.Add(second);
+        _completionService.Answer = "Có ba service lifetime chính [2].";
+
+        var result = await _service.SendMessageAsync(
+            SessionId,
+            new SendChatMessageCommand("Có những service lifetime nào?"),
+            _actor,
+            CancellationToken.None);
+
+        var citation = Assert.ContainsSingle(result.AssistantMessage.Citations);
+        Assert.AreEqual(second.Chunk.Id, citation.DocumentChunkId);
+        Assert.AreEqual(2, citation.Rank);
+        var log = Assert.ContainsSingle(_repository.AddedRetrievalLogs);
+        Assert.AreEqual(second.Chunk.Id, log.DocumentChunkId);
+    }
+
+    [TestMethod]
+    public async Task DeleteSessionAsync_Owner_RemovesSession()
+    {
+        await _service.DeleteSessionAsync(SessionId, _actor, CancellationToken.None);
+
+        Assert.IsEmpty(_repository.Sessions);
+        Assert.AreEqual(1, _repository.SaveChangesCallCount);
+    }
+
     private static RetrievedDocumentChunk CreateSearchResult()
     {
         return new RetrievedDocumentChunk(
@@ -283,6 +323,11 @@ public sealed class ChatServiceTests
         {
             AddedRetrievalLogs.AddRange(retrievalLogs);
             return Task.CompletedTask;
+        }
+
+        public void RemoveSession(ChatSession session)
+        {
+            Sessions.Remove(session);
         }
 
         public Task<int> SaveChangesAsync(CancellationToken cancellationToken)
