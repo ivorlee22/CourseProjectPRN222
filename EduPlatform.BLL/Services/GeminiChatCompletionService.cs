@@ -14,9 +14,12 @@ namespace EduPlatform.BLL.Services;
 public sealed class GeminiChatCompletionService(
     HttpClient httpClient,
     IOptions<GeminiOptions> options,
+    IOptions<ChatOptions> chatOptions,
     ILogger<GeminiChatCompletionService> logger) : IChatCompletionService
 {
     private readonly GeminiOptions _options = options.Value;
+    private readonly int _maxOutputTokens = Math.Clamp(chatOptions.Value.MaxOutputTokens, 256, 8192);
+    private readonly int _thinkingBudget = Math.Clamp(chatOptions.Value.ThinkingBudget, 0, 1024);
 
     public async Task<string> GenerateAsync(
         string prompt,
@@ -30,8 +33,7 @@ public sealed class GeminiChatCompletionService(
 
         using var request = new HttpRequestMessage(HttpMethod.Post, url);
         request.Headers.TryAddWithoutValidation("x-goog-api-key", _options.ApiKey);
-        request.Content = JsonContent.Create(new GenerateContentRequest(
-            [new GeminiContent("user", [new GeminiPart(prompt)])]));
+        request.Content = JsonContent.Create(CreatePayload(prompt));
 
         using var response = await httpClient.SendAsync(
             request,
@@ -49,6 +51,7 @@ public sealed class GeminiChatCompletionService(
 
         var payload = await response.Content.ReadFromJsonAsync<GenerateContentResponse>(
             cancellationToken: cancellationToken);
+        ThrowIfTruncated(payload);
         var answer = payload?.Candidates?
             .SelectMany(candidate => candidate.Content?.Parts ?? [])
             .Select(part => part.Text)
@@ -108,6 +111,7 @@ public sealed class GeminiChatCompletionService(
             {
                 yield return delta;
             }
+            ThrowIfTruncated(payload);
         }
     }
 
@@ -115,8 +119,7 @@ public sealed class GeminiChatCompletionService(
     {
         var request = new HttpRequestMessage(HttpMethod.Post, url);
         request.Headers.TryAddWithoutValidation("x-goog-api-key", _options.ApiKey);
-        request.Content = JsonContent.Create(new GenerateContentRequest(
-            [new GeminiContent("user", [new GeminiPart(prompt)])]));
+        request.Content = JsonContent.Create(CreatePayload(prompt));
         return request;
     }
 
@@ -126,6 +129,25 @@ public sealed class GeminiChatCompletionService(
             .SelectMany(candidate => candidate.Content?.Parts ?? [])
             .Select(part => part.Text)
             .FirstOrDefault(text => !string.IsNullOrEmpty(text));
+    }
+
+    private GenerateContentRequest CreatePayload(string prompt)
+    {
+        return new GenerateContentRequest(
+            [new GeminiContent("user", [new GeminiPart(prompt)])],
+            new GeminiGenerationConfig(
+                _maxOutputTokens,
+                new GeminiThinkingConfig(_thinkingBudget)));
+    }
+
+    private static void ThrowIfTruncated(GenerateContentResponse? payload)
+    {
+        if (payload?.Candidates?.Any(candidate =>
+                string.Equals(candidate.FinishReason, "MAX_TOKENS", StringComparison.OrdinalIgnoreCase)) == true)
+        {
+            throw new BusinessValidationException(
+                "Câu trả lời vượt quá giới hạn độ dài. Vui lòng chia câu hỏi thành nhiều phần.");
+        }
     }
 
     private void ValidateConfiguration()
@@ -144,7 +166,15 @@ public sealed class GeminiChatCompletionService(
     }
 
     private sealed record GenerateContentRequest(
-        [property: JsonPropertyName("contents")] IReadOnlyList<GeminiContent> Contents);
+        [property: JsonPropertyName("contents")] IReadOnlyList<GeminiContent> Contents,
+        [property: JsonPropertyName("generationConfig")] GeminiGenerationConfig GenerationConfig);
+
+    private sealed record GeminiGenerationConfig(
+        [property: JsonPropertyName("maxOutputTokens")] int MaxOutputTokens,
+        [property: JsonPropertyName("thinkingConfig")] GeminiThinkingConfig ThinkingConfig);
+
+    private sealed record GeminiThinkingConfig(
+        [property: JsonPropertyName("thinkingBudget")] int ThinkingBudget);
 
     private sealed record GeminiContent(
         [property: JsonPropertyName("role")] string Role,
@@ -157,7 +187,8 @@ public sealed class GeminiChatCompletionService(
         [property: JsonPropertyName("candidates")] IReadOnlyList<GeminiCandidate>? Candidates);
 
     private sealed record GeminiCandidate(
-        [property: JsonPropertyName("content")] GeminiResponseContent? Content);
+        [property: JsonPropertyName("content")] GeminiResponseContent? Content,
+        [property: JsonPropertyName("finishReason")] string? FinishReason);
 
     private sealed record GeminiResponseContent(
         [property: JsonPropertyName("parts")] IReadOnlyList<GeminiPart>? Parts);

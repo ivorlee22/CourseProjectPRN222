@@ -116,6 +116,28 @@ public sealed class ChatServiceTests
     }
 
     [TestMethod]
+    public async Task StreamMessageAsync_FailureAfterPartialDelta_DoesNotPersistMessages()
+    {
+        _repository.SearchResults.Add(CreateSearchResult());
+        _completionService.Answer = "Partial";
+        _completionService.ThrowAfterFirstDelta = true;
+
+        await Assert.ThrowsExactlyAsync<BusinessValidationException>(async () =>
+        {
+            await foreach (var _ in _service.StreamMessageAsync(
+                               SessionId,
+                               new SendChatMessageCommand("Câu hỏi hợp lệ"),
+                               _actor,
+                               CancellationToken.None))
+            {
+            }
+        });
+
+        Assert.IsEmpty(_repository.AddedMessages);
+        Assert.AreEqual(0, _repository.SaveChangesCallCount);
+    }
+
+    [TestMethod]
     public async Task SendMessageAsync_WithoutContext_UsesFallbackWithoutCallingGemini()
     {
         var result = await _service.SendMessageAsync(
@@ -226,6 +248,50 @@ public sealed class ChatServiceTests
     }
 
     [TestMethod]
+    public async Task SendMessageAsync_AnswerWithoutCitation_DoesNotInventSource()
+    {
+        _repository.SearchResults.Add(CreateSearchResult());
+        _completionService.Answer = "Dependency injection cung cấp dependency từ bên ngoài.";
+
+        var result = await _service.SendMessageAsync(
+            SessionId,
+            new SendChatMessageCommand("Dependency injection là gì?"),
+            _actor,
+            CancellationToken.None);
+
+        Assert.IsEmpty(result.AssistantMessage.Citations);
+        Assert.IsEmpty(_repository.AddedRetrievalLogs);
+    }
+
+    [TestMethod]
+    public async Task SendMessageAsync_WithHistory_IncludesRecentConversationInPrompt()
+    {
+        _repository.SearchResults.Add(CreateSearchResult());
+        _repository.ExistingMessages.Add(new Message
+        {
+            ChatSessionId = SessionId,
+            Role = MessageRole.User,
+            Content = "SOLID là gì?"
+        });
+        _repository.ExistingMessages.Add(new Message
+        {
+            ChatSessionId = SessionId,
+            Role = MessageRole.Assistant,
+            Content = "SOLID gồm năm nguyên lý."
+        });
+        _completionService.Answer = "Nguyên lý đầu tiên là SRP [1].";
+
+        await _service.SendMessageAsync(
+            SessionId,
+            new SendChatMessageCommand("Nguyên lý đầu tiên là gì?"),
+            _actor,
+            CancellationToken.None);
+
+        Assert.Contains("Người học: SOLID là gì?", _completionService.LastPrompt);
+        Assert.Contains("Trợ lý: SOLID gồm năm nguyên lý.", _completionService.LastPrompt);
+    }
+
+    [TestMethod]
     public async Task DeleteSessionAsync_Owner_RemovesSession()
     {
         await _service.DeleteSessionAsync(SessionId, _actor, CancellationToken.None);
@@ -278,11 +344,16 @@ public sealed class ChatServiceTests
 
         public Exception? ExceptionToThrow { get; set; }
 
+        public bool ThrowAfterFirstDelta { get; set; }
+
         public int CallCount { get; private set; }
+
+        public string LastPrompt { get; private set; } = string.Empty;
 
         public Task<string> GenerateAsync(string prompt, CancellationToken cancellationToken)
         {
             CallCount++;
+            LastPrompt = prompt;
             return ExceptionToThrow is null
                 ? Task.FromResult(Answer)
                 : Task.FromException<string>(ExceptionToThrow);
@@ -302,6 +373,10 @@ public sealed class ChatServiceTests
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 yield return part;
+                if (ThrowAfterFirstDelta)
+                {
+                    throw new BusinessValidationException("Truncated");
+                }
                 await Task.Yield();
             }
         }
@@ -314,6 +389,8 @@ public sealed class ChatServiceTests
         public List<ChatSession> Sessions { get; } = [];
 
         public List<Message> AddedMessages { get; } = [];
+
+        public List<Message> ExistingMessages { get; } = [];
 
         public List<RetrievalLog> AddedRetrievalLogs { get; } = [];
 
@@ -354,6 +431,17 @@ public sealed class ChatServiceTests
         {
             return Task.FromResult<IReadOnlyList<Message>>(AddedMessages
                 .Where(message => message.ChatSessionId == sessionId)
+                .ToArray());
+        }
+
+        public Task<IReadOnlyList<Message>> ListRecentMessagesAsync(
+            Guid sessionId,
+            int limit,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IReadOnlyList<Message>>(ExistingMessages
+                .Where(message => message.ChatSessionId == sessionId)
+                .TakeLast(limit)
                 .ToArray());
         }
 

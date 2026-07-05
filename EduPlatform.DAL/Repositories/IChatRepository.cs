@@ -27,6 +27,11 @@ public interface IChatRepository
         Guid sessionId,
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<Message>> ListRecentMessagesAsync(
+        Guid sessionId,
+        int limit,
+        CancellationToken cancellationToken);
+
     Task<IReadOnlyList<RetrievedDocumentChunk>> SearchChunksAsync(
         Guid courseId,
         Vector queryEmbedding,

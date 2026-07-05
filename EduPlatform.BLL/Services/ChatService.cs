@@ -67,6 +67,16 @@ public sealed partial class ChatService(
         return sessions.Select(MapSession).ToArray();
     }
 
+    public async Task<ChatSessionDto> GetSessionAsync(
+        Guid sessionId,
+        ActorContext actor,
+        CancellationToken cancellationToken)
+    {
+        var session = await GetOwnedSessionAsync(sessionId, actor, cancellationToken);
+        await EnsureCourseAccessAsync(session.CourseId, actor, cancellationToken);
+        return MapSession(session);
+    }
+
     public async Task<IReadOnlyList<ChatMessageDto>> GetMessagesAsync(
         Guid sessionId,
         ActorContext actor,
@@ -89,7 +99,7 @@ public sealed partial class ChatService(
         var answer = prepared.Chunks.Length == 0
             ? _options.EmptyContextMessage
             : await completionService.GenerateAsync(
-                BuildPrompt(prepared.Question, prepared.Chunks),
+                BuildPrompt(prepared.Question, prepared.Chunks, prepared.History),
                 cancellationToken);
         return await PersistResponseAsync(prepared, answer, cancellationToken);
     }
@@ -111,7 +121,7 @@ public sealed partial class ChatService(
         else
         {
             await foreach (var delta in completionService.StreamAsync(
-                               BuildPrompt(prepared.Question, prepared.Chunks),
+                               BuildPrompt(prepared.Question, prepared.Chunks, prepared.History),
                                cancellationToken))
             {
                 if (string.IsNullOrEmpty(delta))
@@ -144,6 +154,11 @@ public sealed partial class ChatService(
         var session = await GetOwnedSessionAsync(sessionId, actor, cancellationToken);
         await EnsureCourseAccessAsync(session.CourseId, actor, cancellationToken);
 
+        var history = await chatRepository.ListRecentMessagesAsync(
+            session.Id,
+            Math.Clamp(_options.HistoryMessageLimit, 0, 20),
+            cancellationToken);
+
         var queryEmbedding = await embeddingService.EmbedQueryAsync(question, cancellationToken);
         if (queryEmbedding.Length != embeddingService.Dimensions)
         {
@@ -160,7 +175,7 @@ public sealed partial class ChatService(
         var chunks = retrievedChunks
             .Where(chunk => chunk.SimilarityScore >= minimumSimilarity)
             .ToArray();
-        return new PreparedMessage(session, question, chunks);
+        return new PreparedMessage(session, question, chunks, history.ToArray());
     }
 
     private async Task<ChatResponseDto> PersistResponseAsync(
@@ -284,14 +299,45 @@ public sealed partial class ChatService(
 
     private string BuildPrompt(
         string question,
-        RetrievedDocumentChunk[] chunks)
+        RetrievedDocumentChunk[] chunks,
+        Message[] history)
     {
         var builder = new StringBuilder();
         builder.AppendLine("Bạn là trợ lý học tập của EduPlatform.");
         builder.AppendLine("Chỉ trả lời dựa trên ngữ cảnh được cung cấp.");
         builder.AppendLine("Nếu ngữ cảnh không đủ, hãy nói rõ rằng tài liệu chưa cung cấp đủ thông tin.");
         builder.AppendLine("Trích dẫn nguồn bằng ký hiệu [1], [2] tương ứng với các đoạn bên dưới.");
+        builder.AppendLine("Trả lời súc tích, đủ ý và không lặp lại toàn bộ tài liệu.");
         builder.AppendLine();
+        if (history.Length > 0)
+        {
+            builder.AppendLine("LỊCH SỬ GẦN ĐÂY (chỉ dùng để hiểu câu hỏi, không dùng làm nguồn):");
+            var remainingHistory = Math.Max(_options.MaxHistoryCharacters, 0);
+            var selectedHistory = new List<(Message Message, string Content)>();
+            foreach (var message in history.Reverse())
+            {
+                if (remainingHistory == 0)
+                {
+                    break;
+                }
+
+                var content = message.Content.Length <= remainingHistory
+                    ? message.Content
+                    : message.Content[..remainingHistory];
+                selectedHistory.Add((message, content));
+                remainingHistory -= content.Length;
+            }
+
+            foreach (var item in selectedHistory.AsEnumerable().Reverse())
+            {
+                var message = item.Message;
+                builder.Append(message.Role == MessageRole.User ? "Người học: " : "Trợ lý: ");
+                builder.AppendLine(item.Content);
+            }
+
+            builder.AppendLine();
+        }
+
         builder.AppendLine("NGỮ CẢNH:");
 
         var remaining = Math.Max(_options.MaxContextCharacters, 1000);
@@ -329,11 +375,6 @@ public sealed partial class ChatService(
             .Where(rank => rank >= 1 && rank <= chunks.Length)
             .Distinct()
             .ToArray();
-
-        if (citedRanks.Length == 0)
-        {
-            return [new CitedChunk(chunks[0], 1)];
-        }
 
         return citedRanks
             .Select(rank => new CitedChunk(chunks[rank - 1], rank))
@@ -392,7 +433,8 @@ public sealed partial class ChatService(
     private sealed record PreparedMessage(
         ChatSession Session,
         string Question,
-        RetrievedDocumentChunk[] Chunks);
+        RetrievedDocumentChunk[] Chunks,
+        Message[] History);
 
     [GeneratedRegex(@"\[(\d+)\]", RegexOptions.CultureInvariant)]
     private static partial Regex CitationPattern();

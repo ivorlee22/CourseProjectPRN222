@@ -67,6 +67,24 @@ public sealed class ChatRepository(AppDbContext dbContext) : IChatRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Message>> ListRecentMessagesAsync(
+        Guid sessionId,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var messages = await dbContext.Messages
+            .AsNoTracking()
+            .Where(message => message.ChatSessionId == sessionId)
+            .OrderByDescending(message => message.CreatedAtUtc)
+            .ThenByDescending(message => message.Role == MessageRole.Assistant ? 1 : 0)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+        return messages
+            .OrderBy(message => message.CreatedAtUtc)
+            .ThenBy(message => message.Role == MessageRole.User ? 0 : 1)
+            .ToArray();
+    }
+
     public async Task<IReadOnlyList<RetrievedDocumentChunk>> SearchChunksAsync(
         Guid courseId,
         Vector queryEmbedding,
