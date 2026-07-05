@@ -83,18 +83,21 @@ public sealed class ChatController(
 
     [HttpPost]
     public async Task<IActionResult> Send(
-        Guid courseId,
         Guid sessionId,
         ChatMessageInputViewModel input,
         CancellationToken cancellationToken)
     {
+        var session = await chatService.GetSessionAsync(
+            sessionId,
+            User.GetRequiredActor(),
+            cancellationToken);
         if (!ModelState.IsValid)
         {
             TempData["ErrorMessage"] = ModelState.Values
                 .SelectMany(value => value.Errors)
                 .Select(error => error.ErrorMessage)
                 .FirstOrDefault() ?? "Câu hỏi chưa hợp lệ.";
-            return RedirectToAction(nameof(Index), new { courseId, sessionId });
+            return RedirectToAction(nameof(Index), new { courseId = session.CourseId, sessionId });
         }
 
         try
@@ -104,27 +107,32 @@ public sealed class ChatController(
                 new SendChatMessageCommand(input.Question),
                 User.GetRequiredActor(),
                 cancellationToken);
-            return RedirectToAction(nameof(Index), new { courseId, sessionId, sent = true });
+            return RedirectToAction(
+                nameof(Index),
+                new { courseId = session.CourseId, sessionId, sent = true });
         }
         catch (Exception exception) when (IsUserFacingException(exception))
         {
             TempData["ErrorMessage"] = exception.Message;
-            return RedirectToAction(nameof(Index), new { courseId, sessionId });
+            return RedirectToAction(nameof(Index), new { courseId = session.CourseId, sessionId });
         }
     }
 
     [HttpPost]
     public async Task<IActionResult> Delete(
-        Guid courseId,
         Guid sessionId,
         CancellationToken cancellationToken)
     {
+        var session = await chatService.GetSessionAsync(
+            sessionId,
+            User.GetRequiredActor(),
+            cancellationToken);
         await chatService.DeleteSessionAsync(
             sessionId,
             User.GetRequiredActor(),
             cancellationToken);
         TempData["SuccessMessage"] = "Đã xóa cuộc trò chuyện.";
-        return RedirectToAction(nameof(Index), new { courseId });
+        return RedirectToAction(nameof(Index), new { courseId = session.CourseId });
     }
 
     private static bool IsUserFacingException(Exception exception)

@@ -66,6 +66,27 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-06 — Chat business-rule hardening after Tasks 19–21
+
+**Owner**
+
+- Bảo (implemented by Codex).
+
+**Completed**
+
+- Removed the fabricated top-result citation fallback; retrieval logs and source cards now represent only citation ranks explicitly present in Gemini's answer.
+- Added up to 10 recent messages, capped at 6,000 characters and biased toward the newest context, to support follow-up questions without treating chat history as a factual source.
+- Limited Gemini output to 2,048 tokens with a 256-token thinking budget for the configured Gemini 2.5 Flash model.
+- Rejects `MAX_TOKENS` responses so incomplete answers are not persisted as successful chat messages.
+- Removed client-supplied `courseId` from send/delete forms and resolves the canonical course through the owned session before redirecting.
+
+**Verification**
+
+- `dotnet build EduPlatform.sln -c Release --no-restore` — passed with 0 warnings and 0 errors.
+- `dotnet test tests/EduPlatform.Tests/EduPlatform.Tests.csproj -c Release --no-build --filter "TestCategory!=LiveGemini"` — 39 tests passed.
+- Live Gemini streaming smoke test — 1 test passed with a complete answer and one persisted citation.
+- No database migration is required.
+
 ### 2026-07-06 — Task 21: SignalR chat streaming
 
 **Owner**

@@ -49,6 +49,7 @@ public sealed class LiveGeminiSmokeTests
         IChatCompletionService completionService = new GeminiChatCompletionService(
             completionHttpClient,
             geminiOptions,
+            Options.Create(new ChatOptions()),
             NullLogger<GeminiChatCompletionService>.Instance);
         var repository = new LiveSmokeChatRepository();
         var service = new ChatService(
@@ -127,6 +128,14 @@ public sealed class LiveGeminiSmokeTests
             CancellationToken cancellationToken)
         {
             return Task.FromResult<IReadOnlyList<Message>>(Messages);
+        }
+
+        public Task<IReadOnlyList<Message>> ListRecentMessagesAsync(
+            Guid sessionId,
+            int limit,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IReadOnlyList<Message>>(Messages.TakeLast(limit).ToArray());
         }
 
         public Task<IReadOnlyList<RetrievedDocumentChunk>> SearchChunksAsync(
