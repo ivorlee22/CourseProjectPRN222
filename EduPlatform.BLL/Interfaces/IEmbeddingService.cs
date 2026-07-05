@@ -10,5 +10,9 @@ public interface IEmbeddingService
         string text,
         CancellationToken cancellationToken);
 
+    Task<float[]> EmbedQueryAsync(
+        string text,
+        CancellationToken cancellationToken);
+
     int Dimensions { get; }
 }

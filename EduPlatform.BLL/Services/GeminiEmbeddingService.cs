@@ -21,6 +21,7 @@ public sealed class GeminiEmbeddingService : IEmbeddingService
 
     private readonly HttpClient _httpClient;
     private readonly DocumentOptions _options;
+    private readonly GeminiOptions _geminiOptions;
     private readonly ILogger<GeminiEmbeddingService> _logger;
 
     public int Dimensions => _options.EmbeddingDimensions;
@@ -28,15 +29,38 @@ public sealed class GeminiEmbeddingService : IEmbeddingService
     public GeminiEmbeddingService(
         HttpClient httpClient,
         IOptions<DocumentOptions> options,
+        IOptions<GeminiOptions> geminiOptions,
         ILogger<GeminiEmbeddingService> logger)
     {
         _httpClient = httpClient;
         _options = options.Value;
+        _geminiOptions = geminiOptions.Value;
         _logger = logger;
     }
 
     public async Task<float[]> EmbedAsync(
         string text,
+        CancellationToken cancellationToken)
+    {
+        return await EmbedCoreAsync(
+            text,
+            EmbeddingTaskType.RetrievalDocument,
+            cancellationToken);
+    }
+
+    public async Task<float[]> EmbedQueryAsync(
+        string text,
+        CancellationToken cancellationToken)
+    {
+        return await EmbedCoreAsync(
+            text,
+            EmbeddingTaskType.RetrievalQuery,
+            cancellationToken);
+    }
+
+    private async Task<float[]> EmbedCoreAsync(
+        string text,
+        string taskType,
         CancellationToken cancellationToken)
     {
         ValidateConfiguration();
@@ -48,10 +72,10 @@ public sealed class GeminiEmbeddingService : IEmbeddingService
         var requestBody = new EmbeddingRequest(
             new EmbeddingContent(
                 [new EmbeddingPart(text ?? string.Empty)]),
-            EmbeddingTaskType.RetrievalDocument);
+            taskType);
 
         using var request = new HttpRequestMessage(HttpMethod.Post, url);
-        request.Headers.TryAddWithoutValidation("x-goog-api-key", _options.GeminiApiKey);
+        request.Headers.TryAddWithoutValidation("x-goog-api-key", GetApiKey());
         request.Content = JsonContent.Create(requestBody);
 
         using var response = await _httpClient.SendAsync(
@@ -93,10 +117,10 @@ public sealed class GeminiEmbeddingService : IEmbeddingService
 
     private void ValidateConfiguration()
     {
-        if (string.IsNullOrWhiteSpace(_options.GeminiApiKey))
+        if (string.IsNullOrWhiteSpace(GetApiKey()))
         {
             throw new InvalidOperationException(
-                "Documents:GeminiApiKey is required for embedding generation.");
+                "Gemini:ApiKey or Documents:GeminiApiKey is required for embedding generation.");
         }
 
         if (string.IsNullOrWhiteSpace(_options.GeminiApiBaseUrl))
@@ -131,5 +155,14 @@ public sealed class GeminiEmbeddingService : IEmbeddingService
     private static class EmbeddingTaskType
     {
         public const string RetrievalDocument = "RETRIEVAL_DOCUMENT";
+
+        public const string RetrievalQuery = "RETRIEVAL_QUERY";
+    }
+
+    private string GetApiKey()
+    {
+        return string.IsNullOrWhiteSpace(_geminiOptions.ApiKey)
+            ? _options.GeminiApiKey
+            : _geminiOptions.ApiKey;
     }
 }

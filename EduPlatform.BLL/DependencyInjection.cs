@@ -27,6 +27,7 @@ public static class DependencyInjection
         // subscription-backed quota service. See AGENTS.md handoff section.
         services.AddScoped<ICourseQuotaService, DeferredCourseQuotaService>();
         services.AddScoped<IEmailService, GmailEmailService>();
+        services.AddScoped<IChatService, ChatService>();
 
         // Document pipeline
         services.AddScoped<IDocumentService, DocumentService>();
@@ -46,11 +47,19 @@ public static class DependencyInjection
         {
             client.Timeout = TimeSpan.FromSeconds(60);
         });
+        services.AddHttpClient<IChatCompletionService, GeminiChatCompletionService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(90);
+        });
 
         services.AddOptions<EmailOptions>()
             .Bind(configuration.GetSection(EmailOptions.SectionName));
         services.AddOptions<DocumentOptions>()
             .Bind(configuration.GetSection(DocumentOptions.SectionName));
+        services.AddOptions<GeminiOptions>()
+            .Bind(configuration.GetSection(GeminiOptions.SectionName));
+        services.AddOptions<ChatOptions>()
+            .Bind(configuration.GetSection(ChatOptions.SectionName));
 
         return services;
     }
