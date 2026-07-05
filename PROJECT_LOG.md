@@ -66,6 +66,35 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-04 — Phase 1: Package & Subscription (Tasks 23, 24, 25)
+
+**Owner**
+
+- Nguyên (implemented by Codex).
+
+**Completed**
+
+- Added `SeedPackages` to `AppDbContext.cs` for Free, Plus, Pro, and Max packages.
+- Created `IPackageRepository.cs` and `PackageRepository.cs`.
+- Created `ISubscriptionRepository.cs` and `SubscriptionRepository.cs`.
+- Created `PackageDtos.cs` and `IPackageService.cs` + `PackageService.cs`.
+- Created `SubscriptionDtos.cs` and `ISubscriptionService.cs` + `SubscriptionService.cs`.
+- Registered new Repositories and Services in their respective `DependencyInjection.cs` files.
+
+**Verification**
+
+- `dotnet build EduPlatform.sln`: passed with 0 warnings and 0 errors.
+- `dotnet test EduPlatform.sln`: 10/10 passed.
+
+**Remaining**
+
+- Implement `SubscriptionCourseQuotaService` (Nguyên Handoff) to replace `DeferredCourseQuotaService`.
+- Task 26, 27, 31: Package and Subscription Web UI controllers and views.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-02 — Task 11: AdminController (User CRUD & Excel Import)
 
 **Owner**
