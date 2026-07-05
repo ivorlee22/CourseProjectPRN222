@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using EduPlatform.BLL.DTOs.Chats;
 using EduPlatform.BLL.Enums;
 using EduPlatform.BLL.Exceptions;
@@ -67,6 +68,51 @@ public sealed class ChatServiceTests
         Assert.AreEqual(1, _repository.SaveChangesCallCount);
         Assert.AreEqual(1, _completionService.CallCount);
         Assert.AreEqual("Dependency injection là gì?", _repository.Sessions[0].Title);
+    }
+
+    [TestMethod]
+    public async Task StreamMessageAsync_WithRetrievedChunks_StreamsThenPersistsCompleteAnswer()
+    {
+        _repository.SearchResults.Add(CreateSearchResult());
+        _completionService.Answer = "Đây là |câu trả lời [1].";
+        var events = new List<ChatStreamEventDto>();
+
+        await foreach (var item in _service.StreamMessageAsync(
+                           SessionId,
+                           new SendChatMessageCommand("Dependency injection là gì?"),
+                           _actor,
+                           CancellationToken.None))
+        {
+            events.Add(item);
+        }
+
+        Assert.AreEqual("Đây là câu trả lời [1].", string.Concat(
+            events.Where(item => item.Type == "delta").Select(item => item.Content)));
+        Assert.AreEqual("completed", events[^1].Type);
+        Assert.AreEqual("Đây là câu trả lời [1].", _repository.AddedMessages[1].Content);
+        Assert.HasCount(1, _repository.AddedRetrievalLogs);
+        Assert.AreEqual(1, _repository.SaveChangesCallCount);
+    }
+
+    [TestMethod]
+    public async Task StreamMessageAsync_GeminiFailure_DoesNotPersistMessages()
+    {
+        _repository.SearchResults.Add(CreateSearchResult());
+        _completionService.ExceptionToThrow = new BusinessValidationException("Gemini unavailable");
+
+        await Assert.ThrowsExactlyAsync<BusinessValidationException>(async () =>
+        {
+            await foreach (var _ in _service.StreamMessageAsync(
+                               SessionId,
+                               new SendChatMessageCommand("Câu hỏi hợp lệ"),
+                               _actor,
+                               CancellationToken.None))
+            {
+            }
+        });
+
+        Assert.IsEmpty(_repository.AddedMessages);
+        Assert.AreEqual(0, _repository.SaveChangesCallCount);
     }
 
     [TestMethod]
@@ -240,6 +286,24 @@ public sealed class ChatServiceTests
             return ExceptionToThrow is null
                 ? Task.FromResult(Answer)
                 : Task.FromException<string>(ExceptionToThrow);
+        }
+
+        public async IAsyncEnumerable<string> StreamAsync(
+            string prompt,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            CallCount++;
+            if (ExceptionToThrow is not null)
+            {
+                throw ExceptionToThrow;
+            }
+
+            foreach (var part in Answer.Split('|'))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                yield return part;
+                await Task.Yield();
+            }
         }
     }
 

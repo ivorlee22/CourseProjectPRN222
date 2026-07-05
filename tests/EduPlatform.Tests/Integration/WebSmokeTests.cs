@@ -59,4 +59,22 @@ public sealed class WebSmokeTests
         Assert.IsNotNull(response.Headers.Location);
         Assert.AreEqual("/Account/Login", response.Headers.Location.AbsolutePath);
     }
+
+    [TestMethod]
+    public async Task ChatHub_AnonymousUser_CannotNegotiateConnection()
+    {
+        await using var factory = new WebApplicationFactory<Program>();
+        using var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false
+            });
+
+        using var response = await client.PostAsync(
+            "/hubs/chat/negotiate?negotiateVersion=1",
+            content: null,
+            _testContext.CancellationToken);
+
+        Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
 }

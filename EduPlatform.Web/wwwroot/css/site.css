@@ -511,7 +511,8 @@ h1 {
 .chat-workspace {
   display: grid;
   grid-template-columns: 17.5rem minmax(0, 1fr) 20rem;
-  min-height: min(76dvh, 52rem);
+  height: clamp(34rem, 76dvh, 52rem);
+  min-height: 0;
   overflow: hidden;
   border: 1px solid rgb(16 42 45 / 14%);
   border-radius: 1.25rem;
@@ -699,8 +700,10 @@ h1 {
 
 .chat-conversation {
   display: flex;
+  min-height: 0;
   min-width: 0;
   flex-direction: column;
+  overflow: hidden;
   background:
     radial-gradient(circle at 50% 0%, rgb(223 244 241 / 70%), transparent 32rem),
     var(--chat-paper);
@@ -751,6 +754,7 @@ h1 {
 
 .chat-message-stream {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: clamp(1.25rem, 3vw, 2.25rem);
   scroll-behavior: smooth;
@@ -1191,7 +1195,7 @@ h1 {
 
   .chat-workspace {
     grid-template-columns: minmax(0, 1fr);
-    min-height: calc(100dvh - 12rem);
+    height: max(34rem, calc(100dvh - 12rem));
   }
 
   .chat-session-rail {
