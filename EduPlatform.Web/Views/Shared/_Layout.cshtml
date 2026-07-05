@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,6 +10,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/EduPlatform.Web.styles.css" asp-append-version="true" />
 </head>
+
 <body>
     <a class="skip-link" href="#main-content">Bỏ qua điều hướng</a>
     <header class="site-header">
@@ -19,8 +21,8 @@
                     <span>EduPlatform</span>
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#primaryNavigation" aria-controls="primaryNavigation"
-                        aria-expanded="false" aria-label="Mở điều hướng">
+                    data-bs-target="#primaryNavigation" aria-controls="primaryNavigation" aria-expanded="false"
+                    aria-label="Mở điều hướng">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="primaryNavigation">
@@ -49,12 +51,8 @@
                                 </li>
                             }
                             <li class="nav-item ms-lg-2 dropdown d-flex align-items-center">
-                                <a class="nav-link dropdown-toggle fw-semibold text-dark"
-                                   href="#"
-                                   id="user-menu-btn"
-                                   role="button"
-                                   data-bs-toggle="dropdown"
-                                   aria-expanded="false">
+                                <a class="nav-link dropdown-toggle fw-semibold text-dark" href="#" id="user-menu-btn"
+                                    role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     @User.Identity.Name
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="user-menu-btn">
@@ -63,7 +61,9 @@
                                             Hồ sơ
                                         </a>
                                     </li>
-                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <hr class="dropdown-divider">
+                                    </li>
                                     <li>
                                         <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
                                             <button type="submit" class="dropdown-item text-danger" id="logout-btn">
@@ -121,4 +121,5 @@
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
+
 </html>

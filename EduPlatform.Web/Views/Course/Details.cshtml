@@ -37,6 +37,10 @@
             <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.Course.Id">Chỉnh sửa</a>
             <a class="btn btn-outline-primary" asp-action="Students" asp-route-id="@Model.Course.Id">Học viên</a>
             <a class="btn btn-outline-primary" asp-action="Invite" asp-route-id="@Model.Course.Id">Mời thành viên</a>
+            <a class="btn btn-outline-primary"
+               asp-controller="Document" asp-action="Index" asp-route-courseId="@Model.Course.Id">
+                Tài liệu
+            </a>
             <form asp-action="SetVisibility" asp-route-id="@Model.Course.Id" method="post">
                 <input type="hidden" name="isVisible" value="@(!Model.Course.IsVisible).ToString().ToLowerInvariant()" />
                 <button class="btn btn-outline-secondary" type="submit">
@@ -63,6 +67,10 @@
                 </div>
             }
             <button class="btn btn-primary" type="submit">Tham gia khóa học</button>
+            <a class="btn btn-outline-primary"
+               asp-controller="Document" asp-action="Index" asp-route-courseId="@Model.Course.Id">
+                Xem tài liệu
+            </a>
         </form>
     }
     else

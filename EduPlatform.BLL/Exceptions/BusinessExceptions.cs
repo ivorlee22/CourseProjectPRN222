@@ -9,3 +9,6 @@ public sealed class ResourceConflictException(string message) : Exception(messag
 public sealed class BusinessValidationException(string message) : Exception(message);
 
 public sealed class CourseQuotaExceededException(string message) : Exception(message);
+
+public sealed class DocumentProcessingException(string message, Exception? innerException = null)
+    : Exception(message, innerException);

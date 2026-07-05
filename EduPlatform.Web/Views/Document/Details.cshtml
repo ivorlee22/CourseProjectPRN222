@@ -1,0 +1,151 @@
+@model DocumentDetailsViewModel
+@{
+    ViewData["Title"] = Model.Document.OriginalFileName;
+}
+
+<nav aria-label="Đường dẫn" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a asp-controller="Course" asp-action="Index">Khóa học</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a asp-controller="Course" asp-action="Details" asp-route-id="@Model.Document.CourseId">
+                @Model.Document.CourseTitle
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a asp-action="Index" asp-route-courseId="@Model.Document.CourseId">Tài liệu</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+            @Model.Document.OriginalFileName
+        </li>
+    </ol>
+</nav>
+
+<section class="document-detail-header">
+    <div>
+        <p class="section-label">Học liệu</p>
+        <h1>@Model.Document.OriginalFileName</h1>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+            <span class="document-type">@FormatFileType(Model.Document.FileType)</span>
+            @StatusBadge(Model.Document.Status)
+            <span class="document-meta-inline">
+                @FormatSize(Model.Document.SizeBytes) • @Model.Document.ChunkCount đoạn
+            </span>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(Model.Document.FailureReason))
+        {
+            <div class="alert alert-danger mt-3" role="alert">
+                @Model.Document.FailureReason
+            </div>
+        }
+    </div>
+</section>
+
+<section class="action-panel mb-4 d-flex gap-2">
+    <a asp-action="Download" asp-route-id="@Model.Document.Id" class="btn btn-primary">Tải xuống tài liệu</a>
+    @if (Model.CanManage)
+    {
+        <form asp-action="Delete" asp-route-id="@Model.Document.Id" method="post"
+              data-confirm="Bạn có chắc muốn xóa tài liệu này? Tất cả đoạn đã tạo sẽ bị xóa.">
+            <button class="btn btn-outline-danger" type="submit">Xóa tài liệu</button>
+        </form>
+    }
+</section>
+
+@if (Model.CanViewChunks)
+{
+    <section class="content-panel">
+        <h2 class="mb-3">Nội dung đã trích xuất</h2>
+        @if (Model.Chunks.Count == 0)
+        {
+            <p class="text-secondary mb-0">
+                Tài liệu chưa có đoạn nội dung nào. Hãy chờ hệ thống xử lý hoặc
+                tải lên lại nếu đang gặp lỗi.
+            </p>
+        }
+        else
+        {
+            <p class="text-secondary">
+                Tài liệu được chia thành @Model.Chunks.Count đoạn để phục vụ
+                truy vấn. Mỗi đoạn đã có vector nhúng khi biểu tượng xanh hiển thị.
+            </p>
+            <div class="chunk-list">
+                @foreach (var chunk in Model.Chunks)
+                {
+                    <article class="chunk-item">
+                        <header class="chunk-item__header">
+                            <span class="chunk-index">Đoạn @(chunk.Sequence + 1)</span>
+                            @if (chunk.PageNumber.HasValue)
+                            {
+                                <span class="chunk-page">Trang @chunk.PageNumber</span>
+                            }
+                            @if (chunk.HasEmbedding)
+                            {
+                                <span class="badge text-bg-success">Đã nhúng vector</span>
+                            }
+                            else
+                            {
+                                <span class="badge text-bg-secondary">Chưa nhúng</span>
+                            }
+                        </header>
+                        <pre class="chunk-content">@chunk.Content</pre>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+}
+else
+{
+    <section class="status-panel">
+        <h2>Chỉ giảng viên mới xem được nội dung trích xuất</h2>
+        <p>
+            Bạn vẫn có thể dùng chatbot của khóa học để đặt câu hỏi liên quan
+            đến tài liệu này.
+        </p>
+    </section>
+}
+
+@functions {
+    private static string FormatFileType(DocumentFileType type)
+    {
+        return type switch
+        {
+            DocumentFileType.Pdf => "PDF",
+            DocumentFileType.Docx => "DOCX",
+            DocumentFileType.Txt => "TXT",
+            DocumentFileType.Md => "Markdown",
+            _ => "Tệp"
+        };
+    }
+
+    private static string FormatSize(long sizeBytes)
+    {
+        if (sizeBytes >= 1024L * 1024L)
+        {
+            return $"{sizeBytes / (1024d * 1024d):0.0} MB";
+        }
+
+        if (sizeBytes >= 1024L)
+        {
+            return $"{sizeBytes / 1024d:0.0} KB";
+        }
+
+        return $"{sizeBytes} B";
+    }
+
+    private static IHtmlContent StatusBadge(DocumentStatus status)
+    {
+        var (label, cssClass) = status switch
+        {
+            DocumentStatus.Ready => ("Sẵn sàng", "badge text-bg-success"),
+            DocumentStatus.Processing => ("Đang xử lý", "badge text-bg-info"),
+            DocumentStatus.Pending => ("Đang chờ", "badge text-bg-warning"),
+            DocumentStatus.Failed => ("Lỗi", "badge text-bg-danger"),
+            _ => ("Không rõ", "badge text-bg-secondary")
+        };
+
+        return new HtmlString($"<span class=\"{cssClass}\">{label}</span>");
+    }
+}

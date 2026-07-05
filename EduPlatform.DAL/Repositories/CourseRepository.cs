@@ -23,32 +23,32 @@ public sealed class CourseRepository(AppDbContext dbContext) : ICourseRepository
         Guid? ownerId,
         CancellationToken cancellationToken)
     {
-        var query = dbContext.Courses
-            .AsNoTracking()
-            .Include(x => x.Owner)
-            .Include(x => x.Enrollments)
-            .AsSplitQuery();
+        var baseQuery = dbContext.Courses.AsNoTracking();
 
         if (visibleOnly)
         {
-            query = query.Where(x => x.IsVisible);
+            baseQuery = baseQuery.Where(x => x.IsVisible);
         }
 
         if (ownerId.HasValue)
         {
-            query = query.Where(x => x.OwnerId == ownerId.Value);
+            baseQuery = baseQuery.Where(x => x.OwnerId == ownerId.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
             var pattern = $"%{keyword.Trim()}%";
-            query = query.Where(x =>
+            baseQuery = baseQuery.Where(x =>
                 EF.Functions.ILike(x.Title, pattern)
                 || EF.Functions.ILike(x.Description, pattern));
         }
 
-        var totalCount = await query.CountAsync(cancellationToken);
-        var items = await query
+        var totalCount = await baseQuery.CountAsync(cancellationToken);
+        
+        var items = await baseQuery
+            .Include(x => x.Owner)
+            .Include(x => x.Enrollments)
+            .AsSplitQuery()
             .OrderByDescending(x => x.CreatedAtUtc)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
