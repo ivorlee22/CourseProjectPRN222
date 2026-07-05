@@ -16,7 +16,7 @@ namespace EduPlatform.BLL.Services
 {
     public sealed class CloudflareR2FileStorageService : IFileStorageService, IDisposable
     {
-        private readonly AmazonS3Client _s3Client;
+        private readonly Lazy<AmazonS3Client> _s3Client;
         private readonly HttpClient _httpClient;
         private readonly string _bucketName;
         private readonly string? _publicUrl;
@@ -53,46 +53,30 @@ namespace EduPlatform.BLL.Services
                 configuration["CloudStorage:R2:Region"],
                 configuration["R2_REGION"]) ?? "auto";
 
-            if (string.IsNullOrWhiteSpace(_endpoint))
-            {
-                throw new InvalidOperationException("Thiếu cấu hình CloudStorage:R2:Endpoint");
-            }
-
-            if (string.IsNullOrWhiteSpace(_accessKeyId))
-            {
-                throw new InvalidOperationException("Thiếu cấu hình CloudStorage:R2:AccessKeyId");
-            }
-
-            if (string.IsNullOrWhiteSpace(_secretAccessKey))
-            {
-                throw new InvalidOperationException("Thiếu cấu hình CloudStorage:R2:SecretAccessKey");
-            }
-
-            if (string.IsNullOrWhiteSpace(_bucketName))
-            {
-                throw new InvalidOperationException("Thiếu cấu hình CloudStorage:R2:BucketName");
-            }
-
             _downloadExpiryMinutes = int.TryParse(
                 configuration["CloudStorage:R2:DownloadExpiryMinutes"],
                 out var expiryMinutes)
                 ? expiryMinutes
                 : 15;
 
-            var s3Config = new AmazonS3Config
+            _s3Client = new Lazy<AmazonS3Client>(() =>
             {
-                ServiceURL = _endpoint,
-                ForcePathStyle = true,
-                AuthenticationRegion = _region
-            };
-
-            var credentials = new BasicAWSCredentials(_accessKeyId, secretAccessKey);
-            _s3Client = new AmazonS3Client(credentials, s3Config);
+                EnsureConfigured();
+                var s3Config = new AmazonS3Config
+                {
+                    ServiceURL = _endpoint,
+                    ForcePathStyle = true,
+                    AuthenticationRegion = _region
+                };
+                var credentials = new BasicAWSCredentials(_accessKeyId, _secretAccessKey);
+                return new AmazonS3Client(credentials, s3Config);
+            });
             _httpClient = httpClient;
         }
 
         public async Task<string> UploadAsync(Stream fileStream, string fileName, string contentType)
         {
+            EnsureConfigured();
             using var buffer = new MemoryStream();
             await fileStream.CopyToAsync(buffer);
             var payload = buffer.ToArray();
@@ -233,7 +217,7 @@ namespace EduPlatform.BLL.Services
                 }
             };
 
-            var presignedUrl = _s3Client.GetPreSignedURL(request);
+            var presignedUrl = _s3Client.Value.GetPreSignedURL(request);
             return Task.FromResult(presignedUrl);
         }
 
@@ -244,7 +228,7 @@ namespace EduPlatform.BLL.Services
                 return;
             }
 
-            await _s3Client.DeleteObjectAsync(new DeleteObjectRequest
+            await _s3Client.Value.DeleteObjectAsync(new DeleteObjectRequest
             {
                 BucketName = _bucketName,
                 Key = storedPath
@@ -256,9 +240,35 @@ namespace EduPlatform.BLL.Services
             return values.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
         }
 
+        private void EnsureConfigured()
+        {
+            if (string.IsNullOrWhiteSpace(_endpoint))
+            {
+                throw new InvalidOperationException("Thiếu cấu hình CloudStorage:R2:Endpoint");
+            }
+
+            if (string.IsNullOrWhiteSpace(_accessKeyId))
+            {
+                throw new InvalidOperationException("Thiếu cấu hình CloudStorage:R2:AccessKeyId");
+            }
+
+            if (string.IsNullOrWhiteSpace(_secretAccessKey))
+            {
+                throw new InvalidOperationException("Thiếu cấu hình CloudStorage:R2:SecretAccessKey");
+            }
+
+            if (string.IsNullOrWhiteSpace(_bucketName))
+            {
+                throw new InvalidOperationException("Thiếu cấu hình CloudStorage:R2:BucketName");
+            }
+        }
+
         public void Dispose()
         {
-            _s3Client?.Dispose();
+            if (_s3Client.IsValueCreated)
+            {
+                _s3Client.Value.Dispose();
+            }
         }
     }
 }
