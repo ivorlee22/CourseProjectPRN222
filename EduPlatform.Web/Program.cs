@@ -1,5 +1,6 @@
 using EduPlatform.BLL;
 using EduPlatform.Web.Filters;
+using EduPlatform.Web.Hubs;
 using EduPlatform.Web.Security;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +15,7 @@ builder.Services
     });
 
 builder.Services.AddBusinessLogic(builder.Configuration);
+builder.Services.AddSignalR();
 
 builder.Services.AddAntiforgery(options =>
 {
@@ -35,6 +37,17 @@ builder.Services
         options.AccessDeniedPath = "/Home/AccessDenied";
         options.SlidingExpiration = true;
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.Events.OnRedirectToLogin = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/hubs"))
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            }
+
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
     });
 
 builder.Services
@@ -54,7 +67,9 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseStatusCodePagesWithReExecute("/Home/Status", "?code={0}");
+app.UseWhen(
+    context => !context.Request.Path.StartsWithSegments("/hubs"),
+    branch => branch.UseStatusCodePagesWithReExecute("/Home/Status", "?code={0}"));
 app.UseHttpsRedirection();
 app.Use(async (context, next) =>
 {
@@ -73,6 +88,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
+app.MapHub<ChatHub>("/hubs/chat");
 
 app.MapControllerRoute(
         name: "default",

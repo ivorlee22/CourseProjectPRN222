@@ -66,6 +66,30 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-06 — Task 21: SignalR chat streaming
+
+**Owner**
+
+- Bảo (implemented by Codex).
+
+**Completed**
+
+- Added an authorized `ChatHub` at `/hubs/chat` with server-to-client streaming through `IAsyncEnumerable`.
+- Required the MVC anti-forgery token for every state-changing SignalR `SendMessage` stream invocation in addition to Cookie Authentication.
+- Added Gemini `streamGenerateContent` SSE handling and streamed RAG orchestration in BLL without crossing the three-layer boundary.
+- Persisted the user message, complete assistant answer, and cited retrieval logs only after a successful stream; interrupted or failed streams do not save partial messages.
+- Added the self-hosted Microsoft SignalR 10.0.0 browser client to remain compatible with the existing CSP and avoid a runtime CDN dependency.
+- Updated the native chat client to render response deltas live, reconnect automatically, prevent duplicate sends per composer, and retain the existing anti-forgery-protected MVC POST as a fallback when SignalR is unavailable.
+- Constrained the chat workspace to the viewport and made the message stream independently scrollable, so long answers no longer push the composer below the conversation.
+- Preserved Enter to send and Shift+Enter for a new line. Separate tabs and sessions use independent SignalR stream invocations.
+
+**Verification**
+
+- `dotnet build EduPlatform.sln -c Release --no-restore` — passed with 0 warnings and 0 errors.
+- `dotnet test tests/EduPlatform.Tests/EduPlatform.Tests.csproj -c Release --no-build --filter "TestCategory!=LiveGemini"` — 33 tests passed after adding streaming success/failure and anonymous hub authorization coverage.
+- `dotnet test tests/EduPlatform.Tests/EduPlatform.Tests.csproj -c Release --filter "TestCategory=LiveGemini" --output Detailed` with local `GEMINI_API_KEY` — 1 live streaming test passed; Gemini returned streamed deltas and the service persisted one citation.
+- Live browser verification still requires Bảo's authenticated local session, a Ready document, Neon configuration, and a valid Gemini API key.
+
 ### 2026-07-06 — Task 20: Chat MVC controller and workspace
 
 **Owner**

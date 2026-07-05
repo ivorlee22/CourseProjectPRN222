@@ -1,4 +1,7 @@
+using System.Runtime.CompilerServices;
 using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using EduPlatform.BLL.Exceptions;
 using EduPlatform.BLL.Interfaces;
@@ -58,6 +61,71 @@ public sealed class GeminiChatCompletionService(
         }
 
         return answer.Trim();
+    }
+
+    public async IAsyncEnumerable<string> StreamAsync(
+        string prompt,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        ValidateConfiguration();
+
+        var url =
+            $"{_options.ApiBaseUrl.TrimEnd('/')}/v1beta/models/"
+            + $"{_options.ChatModel}:streamGenerateContent?alt=sse";
+        using var request = CreateRequest(url, prompt);
+        using var response = await httpClient.SendAsync(
+            request,
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogWarning(
+                "Gemini chat stream failed with status {Status}",
+                response.StatusCode);
+            throw new BusinessValidationException(
+                $"Gemini chat stream failed with status {(int)response.StatusCode}.");
+        }
+
+        await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using var reader = new StreamReader(contentStream, Encoding.UTF8);
+        while (await reader.ReadLineAsync(cancellationToken) is { } line)
+        {
+            if (!line.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var json = line[5..].Trim();
+            if (json.Length == 0 || json == "[DONE]")
+            {
+                continue;
+            }
+
+            var payload = JsonSerializer.Deserialize<GenerateContentResponse>(json);
+            var delta = ExtractText(payload);
+            if (!string.IsNullOrEmpty(delta))
+            {
+                yield return delta;
+            }
+        }
+    }
+
+    private HttpRequestMessage CreateRequest(string url, string prompt)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, url);
+        request.Headers.TryAddWithoutValidation("x-goog-api-key", _options.ApiKey);
+        request.Content = JsonContent.Create(new GenerateContentRequest(
+            [new GeminiContent("user", [new GeminiPart(prompt)])]));
+        return request;
+    }
+
+    private static string? ExtractText(GenerateContentResponse? payload)
+    {
+        return payload?.Candidates?
+            .SelectMany(candidate => candidate.Content?.Parts ?? [])
+            .Select(part => part.Text)
+            .FirstOrDefault(text => !string.IsNullOrEmpty(text));
     }
 
     private void ValidateConfiguration()

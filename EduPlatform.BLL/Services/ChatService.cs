@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Runtime.CompilerServices;
 using EduPlatform.BLL.DTOs.Chats;
 using EduPlatform.BLL.Exceptions;
 using EduPlatform.BLL.Interfaces;
@@ -83,6 +84,62 @@ public sealed partial class ChatService(
         ActorContext actor,
         CancellationToken cancellationToken)
     {
+        var prepared = await PrepareMessageAsync(sessionId, command, actor, cancellationToken);
+
+        var answer = prepared.Chunks.Length == 0
+            ? _options.EmptyContextMessage
+            : await completionService.GenerateAsync(
+                BuildPrompt(prepared.Question, prepared.Chunks),
+                cancellationToken);
+        return await PersistResponseAsync(prepared, answer, cancellationToken);
+    }
+
+    public async IAsyncEnumerable<ChatStreamEventDto> StreamMessageAsync(
+        Guid sessionId,
+        SendChatMessageCommand command,
+        ActorContext actor,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var prepared = await PrepareMessageAsync(sessionId, command, actor, cancellationToken);
+        var answerBuilder = new StringBuilder();
+
+        if (prepared.Chunks.Length == 0)
+        {
+            answerBuilder.Append(_options.EmptyContextMessage);
+            yield return new ChatStreamEventDto("delta", _options.EmptyContextMessage);
+        }
+        else
+        {
+            await foreach (var delta in completionService.StreamAsync(
+                               BuildPrompt(prepared.Question, prepared.Chunks),
+                               cancellationToken))
+            {
+                if (string.IsNullOrEmpty(delta))
+                {
+                    continue;
+                }
+
+                answerBuilder.Append(delta);
+                yield return new ChatStreamEventDto("delta", delta);
+            }
+        }
+
+        var answer = answerBuilder.ToString().Trim();
+        if (answer.Length == 0)
+        {
+            throw new BusinessValidationException("Gemini did not return a usable answer.");
+        }
+
+        await PersistResponseAsync(prepared, answer, cancellationToken);
+        yield return new ChatStreamEventDto("completed");
+    }
+
+    private async Task<PreparedMessage> PrepareMessageAsync(
+        Guid sessionId,
+        SendChatMessageCommand command,
+        ActorContext actor,
+        CancellationToken cancellationToken)
+    {
         var question = ValidateQuestion(command.Question);
         var session = await GetOwnedSessionAsync(sessionId, actor, cancellationToken);
         await EnsureCourseAccessAsync(session.CourseId, actor, cancellationToken);
@@ -103,13 +160,17 @@ public sealed partial class ChatService(
         var chunks = retrievedChunks
             .Where(chunk => chunk.SimilarityScore >= minimumSimilarity)
             .ToArray();
+        return new PreparedMessage(session, question, chunks);
+    }
 
-        var answer = chunks.Length == 0
-            ? _options.EmptyContextMessage
-            : await completionService.GenerateAsync(
-                BuildPrompt(question, chunks),
-                cancellationToken);
-        var citedChunks = SelectCitedChunks(answer, chunks);
+    private async Task<ChatResponseDto> PersistResponseAsync(
+        PreparedMessage prepared,
+        string answer,
+        CancellationToken cancellationToken)
+    {
+        var session = prepared.Session;
+        var question = prepared.Question;
+        var citedChunks = SelectCitedChunks(answer, prepared.Chunks);
 
         var now = timeProvider.GetUtcNow();
         var userMessage = new Message
@@ -327,6 +388,11 @@ public sealed partial class ChatService(
     }
 
     private sealed record CitedChunk(RetrievedDocumentChunk Chunk, int Rank);
+
+    private sealed record PreparedMessage(
+        ChatSession Session,
+        string Question,
+        RetrievedDocumentChunk[] Chunks);
 
     [GeneratedRegex(@"\[(\d+)\]", RegexOptions.CultureInvariant)]
     private static partial Regex CitationPattern();

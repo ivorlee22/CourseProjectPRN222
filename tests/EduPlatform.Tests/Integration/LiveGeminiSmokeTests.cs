@@ -24,7 +24,7 @@ public sealed class LiveGeminiSmokeTests
 
     [TestMethod]
     [TestCategory("LiveGemini")]
-    public async Task ChatService_WithLiveGemini_ReturnsAnswerAndCitation()
+    public async Task ChatServiceStreaming_WithLiveGemini_ReturnsAnswerAndCitation()
     {
         var apiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
         if (string.IsNullOrWhiteSpace(apiKey))
@@ -58,20 +58,25 @@ public sealed class LiveGeminiSmokeTests
             Options.Create(new ChatOptions()),
             TimeProvider.System);
 
-        var result = await service.SendMessageAsync(
-            repository.Session.Id,
-            new SendChatMessageCommand("Dependency injection là gì?"),
-            new ActorContext(repository.Session.UserId, BllUserRole.Student),
-            CancellationToken.None);
+        var streamedAnswer = new System.Text.StringBuilder();
+        await foreach (var item in service.StreamMessageAsync(
+                           repository.Session.Id,
+                           new SendChatMessageCommand("Dependency injection là gì?"),
+                           new ActorContext(repository.Session.UserId, BllUserRole.Student),
+                           _testContext.CancellationToken))
+        {
+            if (item.Type == "delta")
+            {
+                streamedAnswer.Append(item.Content);
+            }
+        }
 
         _testContext.WriteLine($"Embedding dimensions: {embeddingService.Dimensions}");
-        _testContext.WriteLine($"Gemini answer: {result.AssistantMessage.Content}");
+        _testContext.WriteLine($"Gemini streamed answer: {streamedAnswer}");
         _testContext.WriteLine(
-            $"Citation: {result.AssistantMessage.Citations[0].DocumentName} "
-            + $"(score {result.AssistantMessage.Citations[0].SimilarityScore:F2})");
+            $"Persisted citations: {repository.RetrievalLogs.Count}");
 
-        Assert.IsFalse(string.IsNullOrWhiteSpace(result.AssistantMessage.Content));
-        Assert.HasCount(1, result.AssistantMessage.Citations);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(streamedAnswer.ToString()));
         Assert.HasCount(2, repository.Messages);
         Assert.HasCount(1, repository.RetrievalLogs);
         Assert.AreEqual(1, repository.SaveChangesCallCount);

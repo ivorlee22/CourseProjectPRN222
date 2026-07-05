@@ -33,3 +33,7 @@ public sealed record ChatResponseDto(
     Guid SessionId,
     ChatMessageDto UserMessage,
     ChatMessageDto AssistantMessage);
+
+public sealed record ChatStreamEventDto(
+    string Type,
+    string? Content = null);

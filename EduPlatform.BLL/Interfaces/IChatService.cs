@@ -26,6 +26,12 @@ public interface IChatService
         ActorContext actor,
         CancellationToken cancellationToken);
 
+    IAsyncEnumerable<ChatStreamEventDto> StreamMessageAsync(
+        Guid sessionId,
+        SendChatMessageCommand command,
+        ActorContext actor,
+        CancellationToken cancellationToken);
+
     Task DeleteSessionAsync(
         Guid sessionId,
         ActorContext actor,

@@ -10,6 +10,8 @@ if (workspace) {
   const sourcePanel = workspace.querySelector("[data-source-panel]");
   const sourceCount = workspace.querySelector("[data-source-count]");
   const backdrop = workspace.querySelector("[data-chat-backdrop]");
+  let connection;
+  let isStreaming = false;
 
   const resizeInput = () => {
     if (!input) return;
@@ -48,12 +50,119 @@ if (workspace) {
     });
   });
 
-  form?.addEventListener("submit", () => {
+  const setComposerBusy = (busy, message = "") => {
+    isStreaming = busy;
+    if (submit) submit.disabled = busy;
+    if (input) input.readOnly = busy;
+    if (status) status.textContent = message;
+  };
+
+  const createMessage = (role, content) => {
+    if (!stream) return null;
+    stream.querySelector(".chat-welcome")?.remove();
+    const article = document.createElement("article");
+    article.className = `chat-message chat-message--${role}`;
+    const identity = document.createElement("div");
+    identity.className = "chat-message__identity";
+    identity.setAttribute("aria-hidden", "true");
+    identity.textContent = role === "user" ? "B" : "E";
+    const body = document.createElement("div");
+    body.className = "chat-message__body";
+    const meta = document.createElement("div");
+    meta.className = "chat-message__meta";
+    const author = document.createElement("strong");
+    author.textContent = role === "user" ? "Bạn" : "Edu Assistant";
+    const time = document.createElement("time");
+    time.textContent = new Date().toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+    const paragraph = document.createElement("p");
+    paragraph.textContent = content;
+    meta.append(author, time);
+    body.append(meta, paragraph);
+    article.append(identity, body);
+    stream.append(article);
+    stream.scrollTop = stream.scrollHeight;
+    return paragraph;
+  };
+
+  const startConnection = async () => {
+    if (!form || !window.signalR) return;
+    connection = new window.signalR.HubConnectionBuilder()
+      .withUrl("/hubs/chat")
+      .withAutomaticReconnect()
+      .build();
+    connection.onreconnecting(() => {
+      if (!isStreaming && status) status.textContent = "Đang nối lại trợ lý...";
+    });
+    connection.onreconnected(() => {
+      if (!isStreaming && status) status.textContent = "";
+    });
+    connection.onclose(() => {
+      if (!isStreaming && status) {
+        status.textContent = "SignalR đang ngắt. Lần gửi tiếp theo sẽ dùng chế độ thường.";
+      }
+    });
+    try {
+      await connection.start();
+    } catch {
+      connection = null;
+    }
+  };
+
+  form?.addEventListener("submit", (event) => {
     if (!form.checkValidity()) return;
-    if (submit) submit.disabled = true;
-    if (input) input.readOnly = true;
-    if (status) status.textContent = "Đang đọc tài liệu và tạo câu trả lời...";
+    if (!connection || connection.state !== window.signalR.HubConnectionState.Connected) {
+      setComposerBusy(true, "Đang gửi bằng chế độ thường...");
+      return;
+    }
+
+    event.preventDefault();
+    if (isStreaming || !input) return;
+    const question = input.value.trim();
+    const sessionId = form.querySelector('[name="sessionId"]')?.value;
+    const requestVerificationToken = form.querySelector(
+      '[name="__RequestVerificationToken"]'
+    )?.value;
+    if (!question || !sessionId || !requestVerificationToken) return;
+
+    createMessage("user", question);
+    const answer = createMessage("assistant", "");
+    input.value = "";
+    resizeInput();
+    setComposerBusy(true, "Đang đọc tài liệu và tạo câu trả lời...");
+    let completed = false;
+
+    connection.stream(
+      "SendMessage",
+      sessionId,
+      question,
+      requestVerificationToken
+    ).subscribe({
+      next: (item) => {
+        if (item.type === "delta" && answer) {
+          answer.textContent += item.content || "";
+          stream.scrollTop = stream.scrollHeight;
+        }
+        if (item.type === "completed") completed = true;
+      },
+      error: () => {
+        setComposerBusy(false, "Chưa gửi xong. Qb thử lại giúp xha nhen.");
+        input.value = question;
+        resizeInput();
+      },
+      complete: () => {
+        if (completed) {
+          window.location.reload();
+          return;
+        }
+        setComposerBusy(false, "Luồng trả lời kết thúc sớm. Qb thử lại nhen.");
+      }
+    });
   });
+
+  void startConnection();
 
   workspace.querySelector("[data-open-sessions]")?.addEventListener("click", () => {
     openPanel(sessionRail);
