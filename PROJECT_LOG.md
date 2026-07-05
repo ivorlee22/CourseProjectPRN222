@@ -66,6 +66,68 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-05 — Task 19: ChatService RAG core
+
+**Owner**
+
+- Bảo (implemented by Codex).
+
+**Completed**
+
+- Added Chat DTOs and `IChatService` operations for sessions, messages, and RAG responses with citations.
+- Added `IChatRepository` and `ChatRepository` for course access checks, session/message persistence, and course-scoped pgvector cosine search over ready document chunks.
+- Added `ChatService` with ownership/authorization checks, question validation, query embedding, bounded context prompt construction, Gemini answer generation, atomic message/retrieval-log persistence, empty-context fallback, and automatic session titles.
+- Added `IChatCompletionService` and `GeminiChatCompletionService` using the Gemini `generateContent` API.
+- Extended Gemini embedding support with the correct `RETRIEVAL_QUERY` task type while preserving `RETRIEVAL_DOCUMENT` for ingestion.
+- Added `GeminiOptions` and `ChatOptions`, updated dependency injection, and documented safe placeholder configuration in `appsettings.example.json`.
+- Added six focused ChatService tests for RAG success/citations, empty context, foreign sessions, denied course access, Gemini failure, and session authorization.
+- Added an opt-in live Gemini smoke test that exercises ChatService with real query embedding and `generateContent`, while using an in-memory repository boundary to avoid polluting Neon.
+
+**Verification**
+
+- `dotnet build EduPlatform.sln --no-restore`: passed with 0 warnings and 0 errors.
+- `dotnet test --solution EduPlatform.sln --no-build --no-restore -- --output Normal`: 25 succeeded, 0 failed, and the opt-in live Gemini test skipped when its environment flag/key is absent.
+- Live Gemini smoke test with the locally configured API key: 1/1 passed; returned a 3072-dimension query embedding, a non-empty answer, one citation, and persisted the expected in-memory message/retrieval records.
+- Formatting verification passed for all Task 19 files.
+- EF Core reports no pending model changes; Task 19 uses the existing Chat/Message/RetrievalLog schema.
+- No direct Web-to-DAL reference or Razor Pages pattern was introduced.
+
+**Remaining**
+
+- Task 20: Chat MVC controller and views.
+- Task 21: SignalR streaming ChatHub.
+- Task 34: subscription-backed daily chat quota enforcement.
+- Run a Neon-backed end-to-end RAG check after the Document UI has uploaded and processed a real course document.
+
+**Blocked**
+
+- None for Task 19 implementation.
+
+### 2026-07-05 — Added and applied Package seed migration
+
+**Owner**
+
+- Local database setup completed by Codex.
+
+**Completed**
+
+- Added migration `20260705154759_SeedPackages` for the four existing Package seeds.
+- Applied `InitialCreate`, `AddDocumentEmbeddingHnswIndex`, and `SeedPackages` to the configured Neon database.
+
+**Verification**
+
+- EF Core reports all three migrations as applied.
+- `dotnet build EduPlatform.sln --no-restore`: passed with 0 warnings and 0 errors.
+- `dotnet test --solution EduPlatform.sln --no-build --no-restore`: passed.
+
+**Remaining**
+
+- None for initial table creation and Package seed data.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-04 — Phase 1: Package & Subscription (Tasks 23, 24, 25)
 
 **Owner**
