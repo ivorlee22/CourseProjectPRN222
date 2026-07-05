@@ -163,6 +163,10 @@ public sealed class LiveGeminiSmokeTests
             return Task.CompletedTask;
         }
 
+        public void RemoveSession(ChatSession session)
+        {
+        }
+
         public Task<int> SaveChangesAsync(CancellationToken cancellationToken)
         {
             SaveChangesCallCount++;

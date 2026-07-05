@@ -1,0 +1,251 @@
+@model ChatPageViewModel
+@{
+    ViewData["Title"] = $"Trợ lý học tập | {Model.CourseTitle}";
+    var citationMessages = Model.Messages
+        .Where(message => message.Citations.Count > 0)
+        .ToArray();
+    var activeCitationMessage = citationMessages.LastOrDefault();
+}
+
+<div class="chat-page" data-chat-workspace>
+    <header class="chat-page__header">
+        <div>
+            <a class="chat-back-link" asp-controller="Course" asp-action="Details" asp-route-id="@Model.CourseId">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6" /></svg>
+                Quay lại khóa học
+            </a>
+            <h1>Hỏi sâu hơn từ tài liệu</h1>
+            <p>@Model.CourseTitle</p>
+        </div>
+        <form asp-action="Create" method="post" class="chat-new-session-form">
+            <input type="hidden" name="courseId" value="@Model.CourseId" />
+            <button class="btn btn-primary" type="submit">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+                Cuộc trò chuyện mới
+            </button>
+        </form>
+    </header>
+
+    <div class="chat-workspace">
+        <aside class="chat-session-rail" aria-label="Lịch sử trò chuyện">
+            <div class="chat-panel-heading">
+                <div>
+                    <span>Lịch sử</span>
+                    <strong>@Model.Sessions.Count cuộc trò chuyện</strong>
+                </div>
+                <button class="chat-mobile-close" type="button" data-close-sessions aria-label="Đóng lịch sử">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" /></svg>
+                </button>
+            </div>
+
+            @if (Model.Sessions.Count == 0)
+            {
+                <div class="chat-rail-empty">
+                    <p>Chưa có cuộc trò chuyện nào.</p>
+                    <span>Tạo một phiên mới để bắt đầu học cùng tài liệu.</span>
+                </div>
+            }
+            else
+            {
+                <nav class="chat-session-list" aria-label="Các cuộc trò chuyện">
+                    @foreach (var session in Model.Sessions)
+                    {
+                        var isActive = session.Id == Model.ActiveSession?.Id;
+                        <div class="chat-session-row @(isActive ? "is-active" : string.Empty)">
+                            <a class="chat-session-item"
+                               asp-action="Index"
+                               asp-route-courseId="@Model.CourseId"
+                               asp-route-sessionId="@session.Id"
+                               aria-current="@(isActive ? "page" : null)">
+                                <span>@session.Title</span>
+                                <time datetime="@((session.LastMessageAtUtc ?? session.CreatedAtUtc).ToString("O"))">
+                                    @((session.LastMessageAtUtc ?? session.CreatedAtUtc).ToLocalTime().ToString("dd/MM, HH:mm"))
+                                </time>
+                            </a>
+                            <form asp-action="Delete" method="post"
+                                  data-confirm="Bạn có chắc muốn xóa cuộc trò chuyện này?">
+                                <input type="hidden" name="courseId" value="@Model.CourseId" />
+                                <input type="hidden" name="sessionId" value="@session.Id" />
+                                <button class="chat-session-delete" type="submit" aria-label="Xóa @session.Title">
+                                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" /></svg>
+                                </button>
+                            </form>
+                        </div>
+                    }
+                </nav>
+            }
+        </aside>
+
+        <main class="chat-conversation" aria-label="Nội dung trò chuyện">
+            <div class="chat-conversation__toolbar">
+                <button class="chat-toolbar-button" type="button" data-open-sessions aria-label="Mở lịch sử trò chuyện">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10" /></svg>
+                </button>
+                <div>
+                    <strong>@(Model.ActiveSession?.Title ?? "Bắt đầu một cuộc trò chuyện")</strong>
+                    <span>Câu trả lời dựa trên tài liệu của khóa học</span>
+                </div>
+                <button class="chat-toolbar-button" type="button" data-open-sources aria-label="Mở nguồn trích dẫn">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7zM15 3v5h4M10 13h6M10 17h6" /></svg>
+                </button>
+            </div>
+
+            @if (Model.ActiveSession is null)
+            {
+                <section class="chat-zero-state">
+                    <div class="chat-zero-state__mark" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M6 4h12v13H9l-3 3zM9 9h6M9 13h4" /></svg>
+                    </div>
+                    <h2>Biến tài liệu thành cuộc đối thoại</h2>
+                    <p>Tạo một phiên mới để hỏi, đối chiếu và lần theo từng nguồn được dùng trong câu trả lời.</p>
+                    <form asp-action="Create" method="post">
+                        <input type="hidden" name="courseId" value="@Model.CourseId" />
+                        <button class="btn btn-primary" type="submit">Bắt đầu trò chuyện</button>
+                    </form>
+                </section>
+            }
+            else
+            {
+                <div class="chat-message-stream" data-message-stream aria-live="polite">
+                    @if (Model.Messages.Count == 0)
+                    {
+                        <section class="chat-welcome">
+                            <div class="chat-welcome__copy">
+                                <span class="chat-welcome__eyebrow">Sẵn sàng đọc cùng bạn</span>
+                                <h2>Bắt đầu bằng điều bạn đang vướng</h2>
+                                <p>Trợ lý sẽ tìm trong tài liệu khóa học và gắn nguồn ngay dưới câu trả lời.</p>
+                            </div>
+                            <div class="chat-suggestions" aria-label="Câu hỏi gợi ý">
+                                <button type="button" data-chat-suggestion="Tóm tắt những ý chính trong tài liệu.">
+                                    Tóm tắt những ý chính trong tài liệu
+                                </button>
+                                <button type="button" data-chat-suggestion="Giải thích khái niệm quan trọng nhất bằng ví dụ.">
+                                    Giải thích khái niệm bằng ví dụ
+                                </button>
+                                <button type="button" data-chat-suggestion="Tạo ba câu hỏi để tôi tự kiểm tra kiến thức.">
+                                    Tạo câu hỏi tự kiểm tra
+                                </button>
+                            </div>
+                        </section>
+                    }
+
+                    @foreach (var message in Model.Messages)
+                    {
+                        var isUser = string.Equals(message.Role, "User", StringComparison.OrdinalIgnoreCase);
+                        <article class="chat-message @(isUser ? "chat-message--user" : "chat-message--assistant")">
+                            <div class="chat-message__identity" aria-hidden="true">
+                                @(isUser ? "B" : "E")
+                            </div>
+                            <div class="chat-message__body">
+                                <div class="chat-message__meta">
+                                    <strong>@(isUser ? "Bạn" : "Edu Assistant")</strong>
+                                    <time datetime="@message.CreatedAtUtc.ToString("O")">
+                                        @message.CreatedAtUtc.ToLocalTime().ToString("HH:mm")
+                                    </time>
+                                </div>
+                                <p>@message.Content</p>
+                                @if (message.Citations.Count > 0)
+                                {
+                                    <div class="chat-citation-row" aria-label="Nguồn của câu trả lời">
+                                        @foreach (var citation in message.Citations)
+                                        {
+                                            <button type="button"
+                                                    class="chat-citation-chip"
+                                                    data-source-group-target="source-group-@message.Id"
+                                                    data-source-target="source-@message.Id-@citation.DocumentChunkId">
+                                                <span>@citation.Rank</span>
+                                                @citation.DocumentName
+                                            </button>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </article>
+                    }
+                </div>
+
+                <div class="chat-composer-wrap">
+                    <form asp-action="Send" method="post" class="chat-composer" data-chat-form>
+                        <input type="hidden" name="courseId" value="@Model.CourseId" />
+                        <input type="hidden" name="sessionId" value="@Model.ActiveSession.Id" />
+                        <label class="visually-hidden" for="chatQuestion">Nhập câu hỏi</label>
+                        <textarea id="chatQuestion"
+                                  name="Question"
+                                  rows="1"
+                                  maxlength="4000"
+                                  required
+                                  data-chat-input
+                                  placeholder="Hỏi điều gì đó từ tài liệu..."></textarea>
+                        <button type="submit" data-chat-submit aria-label="Gửi câu hỏi">
+                            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m4 4 17 8-17 8 3-8zM7 12h14" /></svg>
+                        </button>
+                        <span class="chat-composer__status" data-chat-status aria-live="polite"></span>
+                    </form>
+                    <p>Gemini có thể trả lời chưa chính xác. Hãy kiểm tra lại nguồn được trích dẫn.</p>
+                </div>
+            }
+        </main>
+
+        <aside class="chat-source-panel" aria-label="Nguồn trích dẫn" data-source-panel>
+            <div class="chat-panel-heading">
+                <div>
+                    <span>Nguồn tham khảo</span>
+                    <strong data-source-count>@(activeCitationMessage?.Citations.Count ?? 0) đoạn được dùng</strong>
+                </div>
+                <button class="chat-mobile-close" type="button" data-close-sources aria-label="Đóng nguồn trích dẫn">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" /></svg>
+                </button>
+            </div>
+
+            @if (citationMessages.Length == 0)
+            {
+                <div class="chat-source-empty">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7zM15 3v5h4M10 13h6M10 17h6" /></svg>
+                    <p>Nguồn sẽ xuất hiện ở đây khi trợ lý trả lời từ tài liệu.</p>
+                </div>
+            }
+            else
+            {
+                <div class="chat-source-list">
+                    @foreach (var citationMessage in citationMessages)
+                    {
+                        <section class="chat-source-group"
+                                 id="source-group-@citationMessage.Id"
+                                 data-source-group
+                                 data-source-group-count="@citationMessage.Citations.Count"
+                                 hidden="@(citationMessage.Id != activeCitationMessage?.Id ? "hidden" : null)">
+                            <p class="chat-source-group__label">
+                                Nguồn cho câu trả lời lúc @citationMessage.CreatedAtUtc.ToLocalTime().ToString("HH:mm")
+                            </p>
+                            @foreach (var citation in citationMessage.Citations)
+                            {
+                                <article class="chat-source-card"
+                                         id="source-@citationMessage.Id-@citation.DocumentChunkId"
+                                         tabindex="-1">
+                                    <div class="chat-source-card__meta">
+                                        <span>[@citation.Rank]</span>
+                                        <span>@Math.Round(citation.SimilarityScore * 100)% phù hợp</span>
+                                    </div>
+                                    <h2>@citation.DocumentName</h2>
+                                    <p class="chat-source-card__location">
+                                        Đoạn @(citation.Sequence + 1)
+                                        @if (citation.PageNumber.HasValue)
+                                        {
+                                            <span> · Trang @citation.PageNumber</span>
+                                        }
+                                    </p>
+                                    <p class="chat-source-card__excerpt">@citation.Content</p>
+                                </article>
+                            }
+                        </section>
+                    }
+                </div>
+            }
+        </aside>
+    </div>
+    <div class="chat-backdrop" data-chat-backdrop hidden></div>
+</div>
+
+@section Scripts {
+    <script src="~/js/chat.js" asp-append-version="true"></script>
+}

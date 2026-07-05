@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using EduPlatform.BLL.DTOs.Chats;
 using EduPlatform.BLL.Exceptions;
 using EduPlatform.BLL.Interfaces;
@@ -11,7 +12,7 @@ using Pgvector;
 
 namespace EduPlatform.BLL.Services;
 
-public sealed class ChatService(
+public sealed partial class ChatService(
     IChatRepository chatRepository,
     IEmbeddingService embeddingService,
     IChatCompletionService completionService,
@@ -93,17 +94,22 @@ public sealed class ChatService(
                 $"Query embedding must contain {embeddingService.Dimensions} values.");
         }
 
-        var chunks = await chatRepository.SearchChunksAsync(
+        var retrievedChunks = await chatRepository.SearchChunksAsync(
             session.CourseId,
             new Vector(queryEmbedding),
             Math.Clamp(_options.RetrievalLimit, 1, 20),
             cancellationToken);
+        var minimumSimilarity = Math.Clamp(_options.MinimumSimilarityScore, -1d, 1d);
+        var chunks = retrievedChunks
+            .Where(chunk => chunk.SimilarityScore >= minimumSimilarity)
+            .ToArray();
 
-        var answer = chunks.Count == 0
+        var answer = chunks.Length == 0
             ? _options.EmptyContextMessage
             : await completionService.GenerateAsync(
                 BuildPrompt(question, chunks),
                 cancellationToken);
+        var citedChunks = SelectCitedChunks(answer, chunks);
 
         var now = timeProvider.GetUtcNow();
         var userMessage = new Message
@@ -124,13 +130,13 @@ public sealed class ChatService(
             CreatedAtUtc = now,
             UpdatedAtUtc = now
         };
-        var retrievalLogs = chunks.Select((chunk, index) => new RetrievalLog
+        var retrievalLogs = citedChunks.Select(citation => new RetrievalLog
         {
             Id = Guid.NewGuid(),
             MessageId = assistantMessage.Id,
-            DocumentChunkId = chunk.Chunk.Id,
-            SimilarityScore = chunk.SimilarityScore,
-            Rank = index + 1,
+            DocumentChunkId = citation.Chunk.Chunk.Id,
+            SimilarityScore = citation.Chunk.SimilarityScore,
+            Rank = citation.Rank,
             CreatedAtUtc = now,
             UpdatedAtUtc = now
         }).ToArray();
@@ -149,7 +155,9 @@ public sealed class ChatService(
 
         await chatRepository.SaveChangesAsync(cancellationToken);
 
-        var citations = chunks.Select((chunk, index) => MapCitation(chunk, index + 1)).ToArray();
+        var citations = citedChunks
+            .Select(citation => MapCitation(citation.Chunk, citation.Rank))
+            .ToArray();
         return new ChatResponseDto(
             session.Id,
             MapMessage(userMessage),
@@ -158,7 +166,17 @@ public sealed class ChatService(
                 assistantMessage.Role.ToString(),
                 assistantMessage.Content,
                 assistantMessage.CreatedAtUtc,
-                citations));
+            citations));
+    }
+
+    public async Task DeleteSessionAsync(
+        Guid sessionId,
+        ActorContext actor,
+        CancellationToken cancellationToken)
+    {
+        var session = await GetOwnedSessionAsync(sessionId, actor, cancellationToken);
+        chatRepository.RemoveSession(session);
+        await chatRepository.SaveChangesAsync(cancellationToken);
     }
 
     private async Task<ChatSession> GetOwnedSessionAsync(
@@ -205,7 +223,7 @@ public sealed class ChatService(
 
     private string BuildPrompt(
         string question,
-        IReadOnlyList<RetrievedDocumentChunk> chunks)
+        RetrievedDocumentChunk[] chunks)
     {
         var builder = new StringBuilder();
         builder.AppendLine("Bạn là trợ lý học tập của EduPlatform.");
@@ -216,7 +234,7 @@ public sealed class ChatService(
         builder.AppendLine("NGỮ CẢNH:");
 
         var remaining = Math.Max(_options.MaxContextCharacters, 1000);
-        for (var index = 0; index < chunks.Count && remaining > 0; index++)
+        for (var index = 0; index < chunks.Length && remaining > 0; index++)
         {
             var chunk = chunks[index];
             var header = $"[{index + 1}] {chunk.DocumentName}"
@@ -233,6 +251,32 @@ public sealed class ChatService(
         builder.AppendLine("CÂU HỎI:");
         builder.AppendLine(question);
         return builder.ToString();
+    }
+
+    private static CitedChunk[] SelectCitedChunks(
+        string answer,
+        RetrievedDocumentChunk[] chunks)
+    {
+        if (chunks.Length == 0)
+        {
+            return [];
+        }
+
+        var citedRanks = CitationPattern()
+            .Matches(answer)
+            .Select(match => int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture))
+            .Where(rank => rank >= 1 && rank <= chunks.Length)
+            .Distinct()
+            .ToArray();
+
+        if (citedRanks.Length == 0)
+        {
+            return [new CitedChunk(chunks[0], 1)];
+        }
+
+        return citedRanks
+            .Select(rank => new CitedChunk(chunks[rank - 1], rank))
+            .ToArray();
     }
 
     private static ChatSessionDto MapSession(ChatSession session)
@@ -281,4 +325,9 @@ public sealed class ChatService(
             chunk.SimilarityScore,
             rank);
     }
+
+    private sealed record CitedChunk(RetrievedDocumentChunk Chunk, int Rank);
+
+    [GeneratedRegex(@"\[(\d+)\]", RegexOptions.CultureInvariant)]
+    private static partial Regex CitationPattern();
 }

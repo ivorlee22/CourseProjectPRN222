@@ -40,4 +40,23 @@ public sealed class WebSmokeTests
         Assert.Contains("EduPlatform", html);
         Assert.DoesNotContain("@page", html);
     }
+
+    [TestMethod]
+    public async Task ChatPage_AnonymousUser_RedirectsToLogin()
+    {
+        await using var factory = new WebApplicationFactory<Program>();
+        using var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false
+            });
+
+        using var response = await client.GetAsync(
+            $"/Chat?courseId={Guid.NewGuid()}",
+            _testContext.CancellationToken);
+
+        Assert.AreEqual(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.IsNotNull(response.Headers.Location);
+        Assert.AreEqual("/Account/Login", response.Headers.Location.AbsolutePath);
+    }
 }

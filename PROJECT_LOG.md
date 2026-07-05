@@ -66,6 +66,52 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-06 — Task 20: Chat MVC controller and workspace
+
+**Owner**
+
+- Bảo (implemented by Codex).
+
+**Completed**
+
+- Added authorized `ChatController` MVC actions for loading course sessions/messages, creating sessions, and sending questions with PRG redirects and user-facing validation errors.
+- Added Chat Web view models and a responsive three-region Razor workspace: session history, message stream/composer, and citation source panel.
+- Added native JavaScript for textarea resizing, prompt suggestions, loading/disabled state, keyboard submit, responsive drawers, citation focus, and latest-message scrolling.
+- Changed the composer interaction so Enter submits and Shift+Enter inserts a new line.
+- Added owner-only conversation deletion with confirmation; database cascade rules remove its messages and retrieval logs.
+- Scoped the source panel to each assistant response, preserved query-specific similarity scores, applied a configurable minimum similarity threshold, and persisted only citation ranks actually referenced by Gemini (with top-result fallback when the model omits citation syntax).
+- Added a course-details entry point for the learning assistant and an anonymous-access integration test.
+- Deferred Cloudflare R2 configuration validation until an upload/download/delete operation actually uses storage, so opening controllers and testing Chat no longer requires R2 credentials.
+- Applied the user-requested `gpt-taste` direction contextually within the fixed MVC, Bootstrap 5, CSP, and native JavaScript stack.
+
+**UI/UX**
+
+- Design Read: focused AI study room with strong reading hierarchy and source-first answers.
+- Dials: `DESIGN_VARIANCE 7`, `MOTION_INTENSITY 4`, `VISUAL_DENSITY 7`.
+- Deterministic direction: editorial split adapted to a product workspace, session rail, inline citations, source drawer, restrained text reveal and card-entry motion.
+- Covered loading, empty, validation/error, disabled, hover, focus, active-session, mobile drawer, keyboard, and reduced-motion states.
+- Desktop grid uses `280px / flexible conversation / 320px`; source drawer collapses below 1200px and session rail collapses below 992px; composer and suggestions become single-column on small mobile screens.
+- `gpt-taste` AIDA, Tailwind, React, external font, and GSAP requirements were not applied because project rules require a product chat workflow, Bootstrap 5, MVC Razor, native JavaScript, and the existing CSP/font system.
+
+**Verification**
+
+- `dotnet build EduPlatform.sln -c Release --no-restore`: passed with 0 warnings and 0 errors.
+- Release test suite: 30 succeeded, 0 failed, and 1 opt-in live Gemini test skipped without its environment key.
+- Added two R2 lifecycle tests proving missing credentials do not break service construction while storage operations still fail with a clear configuration error.
+- Added service tests for cited-chunk selection and owner-authorized conversation deletion.
+- `node --check EduPlatform.Web/wwwroot/js/chat.js`: passed.
+- Razor compilation, anti-forgery coverage, anonymous login redirect, no user-visible en/em dash, focus styling, mobile breakpoints, and reduced-motion fallback verified.
+
+**Remaining**
+
+- Task 21: SignalR streaming ChatHub.
+- Task 34: daily chat quota enforcement.
+- Automated browser screenshot verification could not run because the installed in-app Browser runtime failed to initialize its local kernel assets; perform one manual desktop/mobile visual pass when opening the authenticated Chat page.
+
+**Blocked**
+
+- None for Task 20 implementation.
+
 ### 2026-07-05 — Task 19: ChatService RAG core
 
 **Owner**

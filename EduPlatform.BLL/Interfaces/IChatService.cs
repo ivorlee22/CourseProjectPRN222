@@ -25,4 +25,9 @@ public interface IChatService
         SendChatMessageCommand command,
         ActorContext actor,
         CancellationToken cancellationToken);
+
+    Task DeleteSessionAsync(
+        Guid sessionId,
+        ActorContext actor,
+        CancellationToken cancellationToken);
 }

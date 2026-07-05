@@ -116,6 +116,11 @@ public sealed class ChatRepository(AppDbContext dbContext) : IChatRepository
         return dbContext.RetrievalLogs.AddRangeAsync(retrievalLogs, cancellationToken);
     }
 
+    public void RemoveSession(ChatSession session)
+    {
+        dbContext.ChatSessions.Remove(session);
+    }
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken)
     {
         return dbContext.SaveChangesAsync(cancellationToken);
