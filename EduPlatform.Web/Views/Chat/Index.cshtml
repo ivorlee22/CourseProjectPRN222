@@ -142,7 +142,9 @@
                                         @message.CreatedAtUtc.ToLocalTime().ToString("HH:mm")
                                     </time>
                                 </div>
-                                <p>@message.Content</p>
+                                <div class="chat-message__content">
+                                    @ChatMarkdownRenderer.Render(message.Content)
+                                </div>
                                 @if (message.Citations.Count > 0)
                                 {
                                     <div class="chat-citation-row" aria-label="Nguồn của câu trả lời">

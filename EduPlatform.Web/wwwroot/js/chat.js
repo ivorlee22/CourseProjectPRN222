@@ -61,6 +61,79 @@ if (workspace) {
     if (status) status.textContent = message;
   };
 
+  const escapeHtml = (value) => value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+
+  const renderMarkdownInline = (value) => escapeHtml(value)
+    .replace(/`([^`]+?)`/g, "<code>$1</code>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+
+  const renderMarkdown = (value) => {
+    const lines = value.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+    const parts = [];
+    let activeList = "";
+    let paragraphOpen = false;
+
+    const closeParagraph = () => {
+      if (!paragraphOpen) return;
+      parts.push("</p>");
+      paragraphOpen = false;
+    };
+    const closeList = () => {
+      if (!activeList) return;
+      parts.push(activeList === "ol" ? "</ol>" : "</ul>");
+      activeList = "";
+    };
+    const openList = (kind) => {
+      if (activeList === kind) return;
+      closeList();
+      parts.push(kind === "ol" ? "<ol>" : "<ul>");
+      activeList = kind;
+    };
+
+    lines.forEach((rawLine) => {
+      const line = rawLine.trimEnd();
+      if (!line.trim()) {
+        closeParagraph();
+        closeList();
+        return;
+      }
+
+      const bulletMatch = line.match(/^\s*[-*]\s+(.+)$/);
+      if (bulletMatch) {
+        closeParagraph();
+        openList("ul");
+        parts.push(`<li>${renderMarkdownInline(bulletMatch[1].trim())}</li>`);
+        return;
+      }
+
+      const numberMatch = line.match(/^\s*\d+[.)]\s+(.+)$/);
+      if (numberMatch) {
+        closeParagraph();
+        openList("ol");
+        parts.push(`<li>${renderMarkdownInline(numberMatch[1].trim())}</li>`);
+        return;
+      }
+
+      closeList();
+      if (paragraphOpen) {
+        parts.push("<br>");
+      } else {
+        parts.push("<p>");
+        paragraphOpen = true;
+      }
+      parts.push(renderMarkdownInline(line.trim()));
+    });
+
+    closeParagraph();
+    closeList();
+    return parts.join("");
+  };
+
   const createMessage = (role, content) => {
     if (!stream) return null;
     stream.querySelector(".chat-welcome")?.remove();
@@ -81,14 +154,15 @@ if (workspace) {
       hour: "2-digit",
       minute: "2-digit"
     });
-    const paragraph = document.createElement("p");
-    paragraph.textContent = content;
+    const contentNode = document.createElement("div");
+    contentNode.className = "chat-message__content";
+    contentNode.innerHTML = renderMarkdown(content);
     meta.append(author, time);
-    body.append(meta, paragraph);
+    body.append(meta, contentNode);
     article.append(identity, body);
     stream.append(article);
     stream.scrollTop = stream.scrollHeight;
-    return paragraph;
+    return contentNode;
   };
 
   const startConnection = async () => {
@@ -138,6 +212,7 @@ if (workspace) {
     setComposerBusy(true, "Đang đọc tài liệu và tạo câu trả lời...");
     let completed = false;
     let streamError = "";
+    let streamedAnswer = "";
 
     connection.stream(
       "SendMessage",
@@ -147,13 +222,14 @@ if (workspace) {
     ).subscribe({
       next: (item) => {
         if (item.type === "delta" && answer) {
-          answer.textContent += item.content || "";
+          streamedAnswer += item.content || "";
+          answer.innerHTML = renderMarkdown(streamedAnswer);
           stream.scrollTop = stream.scrollHeight;
         }
         if (item.type === "error") {
           streamError = item.content || "Không thể gửi câu hỏi lúc này.";
           if (answer) {
-            answer.textContent = streamError;
+            answer.innerHTML = renderMarkdown(streamError);
             answer.closest(".chat-message")?.classList.add("chat-message--notice");
             stream.scrollTop = stream.scrollHeight;
           }
