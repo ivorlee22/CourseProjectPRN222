@@ -66,6 +66,86 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-07 — UI/UX Redesign and Role Authorization Fixes
+
+**Owner**
+
+- Codex (Agent).
+
+**Completed**
+
+- Fixed business logic regarding course creation and package purchases: Course creation is Admin-only; Package purchasing is Student-only.
+- Updated `_Layout.cshtml`: Restricted "Gói cước" to Students/Unauthenticated, and "Lịch sử thanh toán" to Students.
+- Updated `Home/Index.cshtml`: Restricted "Tạo khóa học" to Admin, and "Nâng cấp tài khoản" to Students/Unauthenticated.
+- Redesigned `Packages.cshtml` with a premium UI (glassmorphism, gradients, hover effects, dedicated MoMo/VNPay styling).
+- Added `[Authorize(Roles = "Student")]` to `PaymentController.CreatePayment`.
+- Added `UserId` field to `Profile.cshtml` with a copy-to-clipboard button so Students can easily share their ID for manual enrollment.
+
+**Verification**
+
+- `dotnet build EduPlatform.sln`: passed with 0 warnings and 0 errors.
+- Visual inspection of the updated Views.
+
+**Remaining**
+
+- Perform end-to-end sandbox testing for MoMo and VNPay once keys are populated.
+
+**Blocked**
+
+- MoMo sandbox credentials and callback URLs.
+- VNPay sandbox credentials.
+
+### 2026-07-07 — Paused VNPay and Initiated MoMo Integration
+
+**Owner**
+
+- Nhân.
+
+**Completed**
+
+- Verified mathematically that `VNPayService.cs` produces exact URLs and HMAC-SHA512 hashes as the standard VNPay Java SDK.
+- Suspended VNPay debugging as the "Sai chữ ký" error stems from external configuration issues (e.g. invalid `HashSecret` or VNPay backend misconfiguration of the sandbox account algorithm).
+- Refactored `MoMoService.cs` to execute asynchronous HTTP POST calls to MoMo Sandbox endpoint.
+- Updated `IPaymentService` and `PaymentService.cs` to await `MoMoService.CreatePaymentUrlAsync`.
+- Added `AddHttpClient()` to `DependencyInjection.cs` to support MoMo HTTP operations.
+
+**Verification**
+
+- `dotnet build EduPlatform.sln`: passed with 0 warnings and 0 errors.
+
+**Remaining**
+
+- Obtain functioning Sandbox MoMo credentials (`PartnerCode`, `AccessKey`, `SecretKey`).
+- Perform end-to-end sandbox testing for MoMo payment generation and IPN/Return callback validation.
+
+**Blocked**
+
+- MoMo sandbox credentials and callback URLs.
+- VNPay sandbox credentials verification (suspended).
+
+### 2026-07-07 — Fixed VNPay Signature Mismatch
+
+**Owner**
+
+- Nhân.
+
+**Completed**
+
+- Fixed `VNPayService.cs` URL encoding by changing `HttpUtility.UrlEncode` to `System.Net.WebUtility.UrlEncode` to correctly encode space to `+` and generate standard uppercase hex values (`%2F` instead of `%2f`).
+- Fixed `VNPayService.cs` HMAC-SHA512 hash generation by adding `.ToLowerInvariant()` to `Convert.ToHexString(hashValue)` as VNPay requires the signature hash to be lowercase.
+
+**Verification**
+
+- `dotnet build EduPlatform.sln --no-restore`: passed with 0 warnings and 0 errors.
+
+**Remaining**
+
+- Need real sandbox credentials to test VNPay integration fully from end-to-end.
+
+**Blocked**
+
+- VNPay sandbox credentials and callback URLs.
+
 ### 2026-07-07 - Course quota subscription integration
 
 **Owner**
@@ -252,6 +332,36 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 **Blocked**
 
 - None.
+
+### 2026-07-05 — Phase 3: Payment Integration (Tasks 28, 29, 30, 35)
+
+**Owner**
+
+- Nhân (implemented by Codex).
+
+**Completed**
+
+- Created `IPaymentRepository.cs` and `PaymentRepository.cs` in DAL.
+- Created `PaymentDtos.cs` and `IPaymentService.cs` + `PaymentService.cs` in BLL.
+- Implemented `IVNPayService` and `IMoMoService` with HMAC signature validation and URL generation.
+- Created `PaymentController.cs` (MVC) with actions for CreatePayment, VNPayReturn, MoMoReturn, VNPayIpn, MoMoIpn, History, and Detail.
+- Created Razor views for Payment History and Detail (`History.cshtml`, `Detail.cshtml`).
+- Registered all options, services, and repositories in DI containers.
+- Implemented idempotent callback handling and email confirmation in `PaymentService`.
+
+**Verification**
+
+- `dotnet build EduPlatform.sln`: passed with 0 warnings and 0 errors.
+
+**Remaining**
+
+- Keys for VNPay and MoMo are currently missing in `appsettings.json` (left null intentionally as per user request).
+- Full end-to-end sandbox testing needs to be done once the API keys are provided.
+
+**Blocked**
+
+- VNPay sandbox credentials and callback URLs.
+- MoMo sandbox credentials and callback URLs.
 
 ### 2026-07-04 — Phase 1: Package & Subscription (Tasks 23, 24, 25)
 

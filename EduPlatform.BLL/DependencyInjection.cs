@@ -17,6 +17,7 @@ public static class DependencyInjection
         IConfiguration configuration)
     {
         services.AddDataAccess(configuration);
+        services.AddHttpClient();
 
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<ICourseService, CourseService>();
@@ -24,6 +25,14 @@ public static class DependencyInjection
         services.AddScoped<IPackageService, PackageService>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddScoped<ICourseQuotaService, SubscriptionCourseQuotaService>();
+
+        services.Configure<EduPlatform.BLL.Options.VNPayOptions>(configuration.GetSection(EduPlatform.BLL.Options.VNPayOptions.SectionName));
+        services.Configure<EduPlatform.BLL.Options.MoMoOptions>(configuration.GetSection(EduPlatform.BLL.Options.MoMoOptions.SectionName));
+
+        services.AddScoped<IVNPayService, VNPayService>();
+        services.AddScoped<IMoMoService, MoMoService>();
+        services.AddScoped<IPaymentService, PaymentService>();
+
         services.AddScoped<IEmailService, GmailEmailService>();
         services.AddScoped<IChatService, ChatService>();
 

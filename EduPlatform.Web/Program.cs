@@ -19,9 +19,9 @@ builder.Services.AddSignalR();
 
 builder.Services.AddAntiforgery(options =>
 {
-    options.Cookie.Name = "__Host-EduPlatform.Antiforgery";
+    options.Cookie.Name = "EduPlatform.Antiforgery";
     options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
     options.HeaderName = "X-CSRF-TOKEN";
 });
 
@@ -29,10 +29,10 @@ builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.Cookie.Name = "__Host-EduPlatform.Auth";
+        options.Cookie.Name = "EduPlatform.Auth";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/Home/AccessDenied";
         options.SlidingExpiration = true;
@@ -70,7 +70,7 @@ if (!app.Environment.IsDevelopment())
 app.UseWhen(
     context => !context.Request.Path.StartsWithSegments("/hubs"),
     branch => branch.UseStatusCodePagesWithReExecute("/Home/Status", "?code={0}"));
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 app.Use(async (context, next) =>
 {
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
@@ -78,7 +78,7 @@ app.Use(async (context, next) =>
     context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
     context.Response.Headers["Content-Security-Policy"] =
         "default-src 'self'; script-src 'self'; style-src 'self'; "
-        + "img-src 'self' data:; font-src 'self'; form-action 'self'; "
+        + "img-src 'self' data:; font-src 'self'; form-action 'self' https://sandbox.vnpayment.vn https://test-payment.momo.vn; "
         + "frame-ancestors 'none'; base-uri 'self'";
 
     await next();

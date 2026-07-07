@@ -16,8 +16,23 @@
                 </a>
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    <a class="btn btn-outline-primary btn-lg" asp-controller="Course" asp-action="Create">
-                        Tạo khóa học
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a class="btn btn-outline-primary btn-lg" asp-controller="Course" asp-action="Create">
+                            Tạo khóa học
+                        </a>
+                    }
+                    @if (User.IsInRole("Student"))
+                    {
+                        <a class="btn btn-warning btn-lg" asp-controller="Payment" asp-action="Packages">
+                            Nâng cấp tài khoản
+                        </a>
+                    }
+                }
+                else
+                {
+                    <a class="btn btn-warning btn-lg" asp-controller="Payment" asp-action="Packages">
+                        Nâng cấp tài khoản
                     </a>
                 }
             </div>

@@ -30,6 +30,12 @@
                         <li class="nav-item">
                             <a class="nav-link" asp-controller="Course" asp-action="Index">Khóa học</a>
                         </li>
+                        @if (User.Identity?.IsAuthenticated != true || User.IsInRole("Student"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Payment" asp-action="Packages">Gói cước</a>
+                            </li>
+                        }
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             @if (User.IsInRole("Teacher") || User.IsInRole("Student"))
@@ -61,6 +67,14 @@
                                             Hồ sơ
                                         </a>
                                     </li>
+                                    @if (User.IsInRole("Student"))
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Payment" asp-action="History">
+                                                Lịch sử thanh toán
+                                            </a>
+                                        </li>
+                                    }
                                     <li>
                                         <hr class="dropdown-divider">
                                     </li>
