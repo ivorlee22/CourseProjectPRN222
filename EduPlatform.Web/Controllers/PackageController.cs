@@ -1,0 +1,121 @@
+using EduPlatform.BLL.DTOs.Packages;
+using EduPlatform.BLL.DTOs.Subscriptions;
+using EduPlatform.BLL.Enums;
+using EduPlatform.BLL.Exceptions;
+using EduPlatform.BLL.Interfaces;
+using EduPlatform.Web.Security;
+using EduPlatform.Web.ViewModels.Packages;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace EduPlatform.Web.Controllers;
+
+public sealed class PackageController(
+    IPackageService packageService,
+    ISubscriptionService subscriptionService) : Controller
+{
+    [AllowAnonymous]
+    [HttpGet]
+    public async Task<IActionResult> Index(CancellationToken cancellationToken)
+    {
+        var packages = await packageService.GetActivePackagesAsync(cancellationToken);
+        var currentSubscription = await GetCurrentSubscriptionAsync(cancellationToken);
+        var model = new PackagePricingViewModel(
+            packages.Select(package => Map(package, currentSubscription?.PackageId)).ToArray(),
+            currentSubscription);
+
+        return View(model);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("/pricing")]
+    [HttpGet("/bang-gia")]
+    public IActionResult Pricing()
+    {
+        return RedirectToAction(nameof(Index));
+    }
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Buy(Guid packageId, CancellationToken cancellationToken)
+    {
+        var actor = User.GetRequiredActor();
+        if (actor.Role != UserRole.Student)
+        {
+            TempData["ErrorMessage"] = "Chỉ học viên mới có thể mua gói.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        try
+        {
+            await packageService.GetByIdAsync(packageId, cancellationToken);
+            TempData["ErrorMessage"] =
+                "Thanh toán chưa được bật. Vui lòng quay lại sau khi cổng thanh toán sẵn sàng.";
+        }
+        catch (ResourceNotFoundException exception)
+        {
+            TempData["ErrorMessage"] = exception.Message;
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    private async Task<SubscriptionSummaryDto?> GetCurrentSubscriptionAsync(
+        CancellationToken cancellationToken)
+    {
+        var actor = User.GetActorOrDefault();
+        if (actor is null || actor.Role != UserRole.Student)
+        {
+            return null;
+        }
+
+        return await subscriptionService.GetActiveSubscriptionAsync(
+            actor.UserId,
+            cancellationToken);
+    }
+
+    private static PackagePricingItemViewModel Map(PackageDto package, Guid? currentPackageId)
+    {
+        return new PackagePricingItemViewModel(
+            package,
+            currentPackageId == package.Id,
+            GetTagline(package.Name),
+            GetAccentLabel(package.Name),
+            GetHighlights(package));
+    }
+
+    private static string GetTagline(string packageName)
+    {
+        return packageName switch
+        {
+            "Free" => "Bắt đầu học với tài liệu và hỏi đáp có trích dẫn.",
+            "Plus" => "Mở rộng lớp học và tần suất hỏi đáp mỗi ngày.",
+            "Pro" => "Dành cho người học và nhóm lớp cần nhiều không gian hơn.",
+            "Max" => "Dung lượng lớn cho học tập chuyên sâu và nhiều khóa học.",
+            _ => "Gói học tập trên EduPlatform."
+        };
+    }
+
+    private static string GetAccentLabel(string packageName)
+    {
+        return packageName switch
+        {
+            "Free" => "Miễn phí",
+            "Plus" => "Phổ biến",
+            "Pro" => "Nâng cao",
+            "Max" => "Tối đa",
+            _ => "Gói"
+        };
+    }
+
+    private static IReadOnlyList<string> GetHighlights(PackageDto package)
+    {
+        return
+        [
+            $"{package.MaxCourses} khóa học",
+            $"{package.DailyChats} lượt chat mỗi ngày",
+            $"{package.DurationDays} ngày sử dụng"
+        ];
+    }
+}

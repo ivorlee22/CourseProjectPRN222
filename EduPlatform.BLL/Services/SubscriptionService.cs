@@ -1,6 +1,7 @@
 using EduPlatform.BLL.DTOs.Subscriptions;
 using EduPlatform.BLL.Exceptions;
 using EduPlatform.BLL.Interfaces;
+using EduPlatform.BLL.Models;
 using EduPlatform.DAL.Entities;
 using EduPlatform.DAL.Repositories;
 
@@ -28,6 +29,13 @@ public sealed class SubscriptionService(
         return subscriptions.Select(Map).ToArray();
     }
 
+    public async Task<PagedResult<SubscriptionAdminDto>> GetAllSubscriptionsPagedAsync(int page, int pageSize, CancellationToken cancellationToken)
+    {
+        var (items, totalCount) = await subscriptionRepository.GetAllPagedAsync(page, pageSize, cancellationToken);
+        var dtos = items.Select(MapAdmin).ToArray();
+        return new PagedResult<SubscriptionAdminDto>(dtos, page, pageSize, totalCount);
+    }
+
     public async Task<Guid> CreateSubscriptionAsync(CreateSubscriptionCommand command, CancellationToken cancellationToken)
     {
         var package = await packageRepository.GetByIdAsync(command.PackageId, cancellationToken)
@@ -37,10 +45,6 @@ public sealed class SubscriptionService(
         {
             throw new BusinessValidationException("Gói cước này không còn khả dụng.");
         }
-
-        // Logic check if user already has an active or pending subscription for the same package might go here, 
-        // but often we allow creating a new one that starts after the current one, or just replacing it.
-        // For simplicity, we just create a pending one that awaits payment.
 
         var now = timeProvider.GetUtcNow();
         
@@ -92,5 +96,18 @@ public sealed class SubscriptionService(
             subscription.Status.ToString(),
             subscription.StartsAtUtc,
             subscription.EndsAtUtc);
+    }
+
+    private static SubscriptionAdminDto MapAdmin(Subscription subscription)
+    {
+        return new SubscriptionAdminDto(
+            subscription.Id,
+            subscription.User.Email ?? string.Empty,
+            subscription.User.FullName,
+            subscription.Package.Name,
+            subscription.Status.ToString(),
+            subscription.StartsAtUtc,
+            subscription.EndsAtUtc,
+            subscription.CreatedAtUtc);
     }
 }

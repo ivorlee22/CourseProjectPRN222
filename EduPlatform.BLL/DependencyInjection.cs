@@ -33,6 +33,7 @@ public static class DependencyInjection
         services.AddScoped<IMoMoService, MoMoService>();
         services.AddScoped<IPaymentService, PaymentService>();
 
+        services.AddScoped<IChatQuotaService, SubscriptionChatQuotaService>();
         services.AddScoped<IEmailService, GmailEmailService>();
         services.AddScoped<IChatService, ChatService>();
 

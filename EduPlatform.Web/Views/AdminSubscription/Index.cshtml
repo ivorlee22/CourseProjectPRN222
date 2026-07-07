@@ -1,0 +1,103 @@
+@model EduPlatform.Web.ViewModels.AdminSubscription.AdminSubscriptionListViewModel
+
+@{
+    ViewData["Title"] = "Quản lý Đăng ký (Subscriptions)";
+}
+
+<div class="page-heading">
+    <h1>Danh sách Đăng ký (Subscriptions)</h1>
+</div>
+
+<div class="content-panel shadow-sm border-0 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="--bs-table-bg: transparent;">
+            <thead class="bg-light text-muted small text-uppercase" style="letter-spacing: 0.5px;">
+                <tr>
+                    <th class="py-3 px-4 fw-semibold border-bottom-0">Người dùng</th>
+                    <th class="py-3 px-4 fw-semibold border-bottom-0">Gói cước</th>
+                    <th class="py-3 px-4 fw-semibold border-bottom-0">Trạng thái</th>
+                    <th class="py-3 px-4 fw-semibold border-bottom-0">Ngày bắt đầu</th>
+                    <th class="py-3 px-4 fw-semibold border-bottom-0">Ngày kết thúc</th>
+                    <th class="py-3 px-4 fw-semibold border-bottom-0">Ngày tạo</th>
+                </tr>
+            </thead>
+            <tbody class="border-top-0">
+                @foreach (var item in Model.Subscriptions.Items)
+                {
+                    <tr style="transition: background-color 0.2s ease;">
+                        <td class="px-4 py-3">
+                            <div class="fw-semibold text-dark">@item.UserFullName</div>
+                            <div class="text-muted small">@item.UserEmail</div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="badge rounded-pill bg-info-subtle text-info-emphasis fw-medium px-3 py-2">@item.PackageName</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            @if (item.Status == "Active")
+                            {
+                                <span class="badge rounded-pill bg-success-subtle text-success fw-medium px-3 py-2">Đang hoạt động</span>
+                            }
+                            else if (item.Status == "Pending")
+                            {
+                                <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis fw-medium px-3 py-2">Chờ thanh toán</span>
+                            }
+                            else if (item.Status == "Cancelled")
+                            {
+                                <span class="badge rounded-pill bg-danger-subtle text-danger fw-medium px-3 py-2">Đã hủy</span>
+                            }
+                            else if (item.Status == "Expired")
+                            {
+                                <span class="badge rounded-pill bg-secondary-subtle text-secondary fw-medium px-3 py-2">Hết hạn</span>
+                            }
+                            else
+                            {
+                                <span class="badge rounded-pill bg-light text-dark fw-medium px-3 py-2">@item.Status</span>
+                            }
+                        </td>
+                        <td class="px-4 py-3 text-muted small">@item.StartsAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td class="px-4 py-3 text-muted small">@item.EndsAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td class="px-4 py-3 text-muted small">@item.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                    </tr>
+                }
+                
+                @if (Model.Subscriptions.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <div class="d-flex flex-column align-items-center">
+                                <span class="fs-4 mb-2">📭</span>
+                                <p class="mb-0 fw-medium">Chưa có dữ liệu đăng ký nào.</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.Subscriptions.TotalPages > 1)
+    {
+        <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top px-4 pb-3">
+            <span class="text-muted small">
+                Hiển thị @Model.Subscriptions.Items.Count trên tổng số @Model.Subscriptions.TotalCount đăng ký
+            </span>
+            
+            <nav aria-label="Phân trang đăng ký">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item @(Model.Subscriptions.PageNumber == 1 ? "disabled" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-page="@(Model.Subscriptions.PageNumber - 1)">Trước</a>
+                    </li>
+                    @for (int i = 1; i <= Model.Subscriptions.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == Model.Subscriptions.PageNumber ? "active" : "")">
+                            <a class="page-link" asp-action="Index" asp-route-page="@i">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(Model.Subscriptions.PageNumber == Model.Subscriptions.TotalPages ? "disabled" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-page="@(Model.Subscriptions.PageNumber + 1)">Sau</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    }
+</div>

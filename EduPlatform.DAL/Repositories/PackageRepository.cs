@@ -29,4 +29,27 @@ public sealed class PackageRepository(AppDbContext dbContext) : IPackageReposito
         return dbContext.Packages
             .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
+
+    public async Task<IReadOnlyList<Package>> GetAllAsync(CancellationToken cancellationToken)
+    {
+        return await dbContext.Packages
+            .AsNoTracking()
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task AddAsync(Package package, CancellationToken cancellationToken)
+    {
+        await dbContext.Packages.AddAsync(package, cancellationToken);
+    }
+
+    public void Update(Package package)
+    {
+        dbContext.Packages.Update(package);
+    }
+
+    public Task<int> SaveChangesAsync(CancellationToken cancellationToken)
+    {
+        return dbContext.SaveChangesAsync(cancellationToken);
+    }
 }

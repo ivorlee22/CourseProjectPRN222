@@ -1,0 +1,61 @@
+@model EduPlatform.Web.ViewModels.AdminPackage.CreatePackageViewModel
+
+@{
+    ViewData["Title"] = "Tạo Gói cước Mới";
+}
+
+<div class="form-page">
+    <div class="form-heading">
+        <p class="section-label">Quản trị</p>
+        <h1>Tạo gói cước mới</h1>
+        <p>Thêm một gói cước mới vào hệ thống.</p>
+        <a asp-action="Index" class="btn btn-outline-secondary mt-2">Quay lại danh sách</a>
+    </div>
+
+    <div class="content-panel">
+        <form asp-action="Create" method="post" novalidate>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2" role="alert"></div>
+
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label fw-semibold"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Price" class="form-label fw-semibold"></label>
+                <input asp-for="Price" class="form-control" type="number" min="0" step="1000" />
+                <span asp-validation-for="Price" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="MaxCourses" class="form-label fw-semibold"></label>
+                <input asp-for="MaxCourses" class="form-control" type="number" min="0" />
+                <span asp-validation-for="MaxCourses" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="DailyChats" class="form-label fw-semibold"></label>
+                <input asp-for="DailyChats" class="form-control" type="number" min="0" />
+                <span asp-validation-for="DailyChats" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="DurationDays" class="form-label fw-semibold"></label>
+                <input asp-for="DurationDays" class="form-control" type="number" min="1" />
+                <span asp-validation-for="DurationDays" class="text-danger small"></span>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    Tạo gói cước
+                </button>
+                <a asp-action="Index" class="btn btn-outline-secondary">Hủy</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
