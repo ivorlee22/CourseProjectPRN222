@@ -14,7 +14,6 @@ namespace EduPlatform.BLL.Services;
 
 public sealed class CourseService(
     ICourseRepository courseRepository,
-    ICourseQuotaService courseQuotaService,
     TimeProvider timeProvider) : ICourseService
 {
     private const int MaximumPageSize = 50;
@@ -82,18 +81,6 @@ public sealed class CourseService(
     {
         EnsureCanCreate(actor);
         ValidateCourse(command.Title, command.Description, command.Type, command.EnrollmentPassword);
-
-        var currentCourseCount = await courseRepository.CountByOwnerAsync(
-            actor.UserId,
-            cancellationToken);
-
-        if (!actor.IsAdmin)
-        {
-            await courseQuotaService.EnsureCanCreateCourseAsync(
-                actor.UserId,
-                currentCourseCount,
-                cancellationToken);
-        }
 
         var course = new Course
         {
@@ -401,7 +388,8 @@ public sealed class CourseService(
     {
         if (!actor.IsAdmin)
         {
-            throw new ForbiddenOperationException("Chỉ Quản trị viên mới có quyền tạo khóa học.");
+            throw new ForbiddenOperationException(
+                "Chi Quan tri vien moi co quyen tao khoa hoc.");
         }
     }
 

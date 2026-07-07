@@ -23,9 +23,7 @@ public static class DependencyInjection
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IPackageService, PackageService>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
-        // TEMPORARY: Nguyên must replace this registration with the
-        // subscription-backed quota service. See AGENTS.md handoff section.
-        services.AddScoped<ICourseQuotaService, DeferredCourseQuotaService>();
+        services.AddScoped<ICourseQuotaService, SubscriptionCourseQuotaService>();
         services.AddScoped<IEmailService, GmailEmailService>();
         services.AddScoped<IChatService, ChatService>();
 
