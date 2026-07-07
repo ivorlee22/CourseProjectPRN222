@@ -8,6 +8,8 @@ public interface ISubscriptionRepository
 
     Task<IReadOnlyList<Subscription>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken);
     
+    Task<(IReadOnlyList<Subscription> Items, int TotalCount)> GetAllPagedAsync(int page, int pageSize, CancellationToken cancellationToken);
+    
     Task<Subscription?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 
     Task AddAsync(Subscription subscription, CancellationToken cancellationToken);

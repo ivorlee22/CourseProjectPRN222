@@ -66,6 +66,60 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-07 - Task 42: UI/UX Polish (User, Package, Subscription)
+
+**Owner**
+
+- Nguyên (implemented by Codex).
+
+**Completed**
+
+- Replaced TempData inline alerts with Bootstrap Toasts in `_Layout.cshtml` and initialized them in `site.js`.
+- Added form loading state handling in `site.js` (disable button, show spinner, and prevent double submission).
+- Refactored `.field-validation-error` CSS to include a warning icon and softer red text color.
+- Ensured Account views (`Login`, `Register`, `Profile`, `ChangePassword`) are fully responsive on mobile devices using `narrow-content` and card layouts.
+- Verified responsiveness of pricing grid and subscription tables on mobile.
+
+**Verification**
+
+- `dotnet build` passed 0 warnings and 0 errors.
+- Checked responsiveness visually.
+
+**Remaining**
+
+- None for Task 42.
+
+**Blocked**
+
+- None.
+
+### 2026-07-07 - Task 32: Chat Quota Subscription Enforcement
+
+**Owner**
+
+- Nguyên (implemented by Codex).
+
+**Completed**
+
+- Enforced `DailyChats` limit without modifying `Entities`.
+- Created `ChatQuotaExceededException`.
+- Created `IChatQuotaRepository` and `ChatQuotaRepository` with `FOR UPDATE` lock to prevent race conditions during message counting.
+- Created `SubscriptionChatQuotaService` to handle limits, admin bypass, and Free package fallback.
+- Wrote MSTest unit tests `SubscriptionChatQuotaServiceTests` testing 4 core scenarios.
+
+**Verification**
+
+- `dotnet build` passed 0 warnings and 0 errors.
+- `dotnet test` passed (66/66 tests passed).
+
+**Remaining**
+
+- Team Chat (Bảo - Task 34) must call `EnsureCanSendMessageAsync` within their database transaction when saving new messages.
+
+**Blocked**
+
+- Task 34 (Chat API) must be completed to test end-to-end quota enforcement.
+
 ### 2026-07-07 - Subscription management page
 
 **Owner**

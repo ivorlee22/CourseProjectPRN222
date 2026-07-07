@@ -1,0 +1,91 @@
+@using EduPlatform.BLL.DTOs.Packages
+@model IReadOnlyList<PackageAdminDto>
+
+@{
+    ViewData["Title"] = "Quản lý Gói cước";
+}
+
+<div class="page-heading">
+    <h1>Quản lý Gói cước</h1>
+    <div class="d-flex gap-2">
+        <a asp-action="Create" class="btn btn-primary">Tạo gói mới</a>
+    </div>
+</div>
+
+<div class="content-panel shadow-sm border-0 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="--bs-table-bg: transparent;">
+            <thead class="bg-light text-muted small text-uppercase" style="letter-spacing: 0.5px;">
+                <tr>
+                    <th class="py-3 px-4 fw-semibold border-bottom-0">Tên gói</th>
+                    <th class="py-3 px-4 fw-semibold border-bottom-0">Giá (VNĐ)</th>
+                    <th class="py-3 px-4 fw-semibold border-bottom-0">Khóa học</th>
+                    <th class="py-3 px-4 fw-semibold border-bottom-0">Chat/Ngày</th>
+                    <th class="py-3 px-4 fw-semibold border-bottom-0">Thời hạn (Ngày)</th>
+                    <th class="py-3 px-4 fw-semibold border-bottom-0">Trạng thái</th>
+                    <th class="py-3 px-4 fw-semibold border-bottom-0 text-end">Hành động</th>
+                </tr>
+            </thead>
+            <tbody class="border-top-0">
+                @foreach (var item in Model)
+                {
+                    <tr style="transition: background-color 0.2s ease;">
+                        <td class="px-4 py-3 fw-semibold text-dark">@item.Name</td>
+                        <td class="px-4 py-3 text-muted">@item.Price.ToString("N0")</td>
+                        <td class="px-4 py-3 text-muted">@item.MaxCourses</td>
+                        <td class="px-4 py-3 text-muted">@item.DailyChats</td>
+                        <td class="px-4 py-3 text-muted">@item.DurationDays</td>
+                        <td class="px-4 py-3">
+                            @if (item.IsActive)
+                            {
+                                <span class="badge rounded-pill bg-success-subtle text-success fw-medium px-3 py-2">Đang hiển thị</span>
+                            }
+                            else
+                            {
+                                <span class="badge rounded-pill bg-dark-subtle text-dark fw-medium px-3 py-2">Đang ẩn</span>
+                            }
+                        </td>
+                        <td class="px-4 py-3 text-end">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-light dropdown-toggle text-muted rounded-pill px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Tùy chọn
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="border-radius: 0.75rem;">
+                                    <li>
+                                        <a class="dropdown-item py-2" asp-action="Edit" asp-route-id="@item.Id">Sửa gói cước</a>
+                                    </li>
+                                    <li>
+                                        <form asp-action="ToggleStatus" method="post">
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <input type="hidden" name="isActive" value="@((!item.IsActive).ToString().ToLower())" />
+                                            @if (item.IsActive)
+                                            {
+                                                <button type="submit" class="dropdown-item text-danger py-2">Ẩn gói cước</button>
+                                            }
+                                            else
+                                            {
+                                                <button type="submit" class="dropdown-item text-success py-2">Hiện gói cước</button>
+                                            }
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                
+                @if (Model.Count == 0)
+                {
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <div class="d-flex flex-column align-items-center">
+                                <span class="fs-4 mb-2">📭</span>
+                                <p class="mb-0 fw-medium">Chưa có gói cước nào.</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

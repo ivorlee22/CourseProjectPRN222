@@ -125,6 +125,9 @@ public sealed class SubscriptionControllerTests
 
     private sealed class FakeSubscriptionService : ISubscriptionService
     {
+
+        public Task<EduPlatform.BLL.Models.PagedResult<EduPlatform.BLL.DTOs.Subscriptions.SubscriptionAdminDto>> GetAllSubscriptionsPagedAsync(int page, int pageSize, CancellationToken cancellationToken) => throw new NotImplementedException();
+
         public SubscriptionSummaryDto? ActiveSubscription { get; set; }
         public List<SubscriptionSummaryDto> Subscriptions { get; } = [];
         public int GetActiveSubscriptionCallCount { get; private set; }

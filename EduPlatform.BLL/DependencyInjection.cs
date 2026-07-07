@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<IPackageService, PackageService>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddScoped<ICourseQuotaService, SubscriptionCourseQuotaService>();
+        services.AddScoped<IChatQuotaService, SubscriptionChatQuotaService>();
         services.AddScoped<IEmailService, GmailEmailService>();
         services.AddScoped<IChatService, ChatService>();
 

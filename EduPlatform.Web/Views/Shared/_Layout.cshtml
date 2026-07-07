@@ -49,12 +49,16 @@
                             }
                             @if (User.IsInRole("Admin"))
                             {
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-controller="Admin" asp-action="Users">Quản trị</a>
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle fw-semibold text-dark" href="#" id="admin-menu-btn" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Quản trị
+                                    </a>
+                                    <ul class="dropdown-menu shadow-sm" aria-labelledby="admin-menu-btn">
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Users">Người dùng</a></li>
+                                        <li><a class="dropdown-item" asp-controller="AdminPackage" asp-action="Index">Gói cước</a></li>
+                                        <li><a class="dropdown-item" asp-controller="AdminSubscription" asp-action="Index">Subscriptions</a></li>
+                                    </ul>
                                 </li>
-                            }
-                            @if (User.IsInRole("Admin"))
-                            {
                                 <li class="nav-item ms-lg-1">
                                     <a class="btn btn-primary" asp-controller="Course" asp-action="Create">Tạo khóa học</a>
                                 </li>
@@ -100,20 +104,6 @@
 
     <main id="main-content" class="site-main">
         <div class="container">
-            @if (TempData["SuccessMessage"] is string successMessage)
-            {
-                <div class="alert alert-success alert-dismissible fade show" role="status">
-                    @successMessage
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
-                </div>
-            }
-            @if (TempData["ErrorMessage"] is string errorMessage)
-            {
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    @errorMessage
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
-                </div>
-            }
             @RenderBody()
         </div>
     </main>
@@ -124,6 +114,31 @@
             <a asp-controller="Home" asp-action="Privacy">Quyền riêng tư</a>
         </div>
     </footer>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1090;">
+        @if (TempData["SuccessMessage"] is string successMessage)
+        {
+            <div class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="bi bi-check-circle-fill me-2"></i> @successMessage
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Đóng"></button>
+                </div>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] is string errorMessage)
+        {
+            <div class="toast align-items-center text-bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="bi bi-exclamation-circle-fill me-2"></i> @errorMessage
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Đóng"></button>
+                </div>
+            </div>
+        }
+    </div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>

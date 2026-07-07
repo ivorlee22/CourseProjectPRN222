@@ -52,6 +52,12 @@ public sealed class PackageServiceTests
 
     private sealed class FakePackageRepository : IPackageRepository
     {
+
+        public Task<IReadOnlyList<Package>> GetAllAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Package>>(Packages);
+        public Task AddAsync(Package package, CancellationToken cancellationToken) { Packages.Add(package); return Task.CompletedTask; }
+        public void Update(Package package) { }
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken) => Task.FromResult(0);
+
         public List<Package> Packages { get; } = [];
 
         public Task<IReadOnlyList<Package>> GetActivePackagesAsync(CancellationToken cancellationToken)

@@ -128,6 +128,12 @@ public sealed class SubscriptionServiceTests
 
     private sealed class FakePackageRepository : IPackageRepository
     {
+
+        public Task<IReadOnlyList<Package>> GetAllAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Package>>(Packages);
+        public Task AddAsync(Package package, CancellationToken cancellationToken) { Packages.Add(package); return Task.CompletedTask; }
+        public void Update(Package package) { }
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken) => Task.FromResult(0);
+
         public List<Package> Packages { get; } = [];
 
         public Task<IReadOnlyList<Package>> GetActivePackagesAsync(CancellationToken cancellationToken)
@@ -150,6 +156,9 @@ public sealed class SubscriptionServiceTests
 
     private sealed class FakeSubscriptionRepository : ISubscriptionRepository
     {
+
+        public Task<(IReadOnlyList<Subscription> Items, int TotalCount)> GetAllPagedAsync(int page, int pageSize, CancellationToken cancellationToken) => Task.FromResult<(IReadOnlyList<Subscription>, int)>((Subscriptions, Subscriptions.Count));
+
         public List<Subscription> Subscriptions { get; } = [];
         public int SaveChangesCallCount { get; private set; }
         public int UpdateCallCount { get; private set; }
