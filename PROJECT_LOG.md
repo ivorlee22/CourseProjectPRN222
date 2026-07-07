@@ -66,6 +66,26 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-08 - Chat markdown rendering
+
+**Owner**
+
+- Bảo chat scope (implemented by Codex).
+
+**Completed**
+
+- Added safe markdown rendering for chat assistant and user messages in the Chat MVC view.
+- Supported common Gemini output formatting for bold text, inline code, unordered lists, ordered lists, paragraphs, and line breaks.
+- Updated SignalR streaming chat rendering so markdown formatting appears during live responses instead of only after reload.
+- Escaped HTML before applying the small markdown whitelist to avoid rendering unsafe HTML from chat content.
+- Added renderer unit tests for bold markdown, bullet lists, and HTML escaping.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 71 succeeded, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+- `node --check .\EduPlatform.Web\wwwroot\js\chat.js` passed.
+
 ### 2026-07-08 - Task 34 chat limit integration
 
 **Owner**
