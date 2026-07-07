@@ -66,6 +66,35 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-08 - Chat message order and workspace polish
+
+**Owner**
+
+- Bảo chat scope (implemented by Codex).
+
+**Completed**
+
+- Fixed chat message ordering when user and assistant messages share the same timestamp by sorting user messages before assistant messages.
+- Widened the Chat workspace beyond the default Bootstrap container for a less cramped desktop layout.
+- Rebalanced desktop Chat columns so the conversation area gets more width while the history/source panels stay useful but less dominant.
+- Reduced Chat page header and empty-state visual pressure, then gave the conversation/composer wider readable measure.
+- Disabled browser scroll restoration on the Chat page and avoided auto-scrolling empty sessions so the welcome state is not clipped.
+
+**Verification**
+
+- `node --check EduPlatform.Web/wwwroot/js/chat.js`: passed.
+- `dotnet build EduPlatform.sln -c Release --no-restore`: passed with 0 warnings and 0 errors.
+- `dotnet test EduPlatform.sln -c Release --no-build --no-restore`: passed, 65 succeeded and 1 opt-in live Gemini test skipped without `GEMINI_API_KEY`.
+- Debug build was blocked by the currently running Visual Studio/EduPlatform.Web process locking Debug DLLs, so Release build was used for compile verification.
+
+**Remaining**
+
+- Manual browser check on the authenticated Chat page is recommended after restarting the app.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-07 — UI/UX Redesign and Role Authorization Fixes
 
 **Owner**
