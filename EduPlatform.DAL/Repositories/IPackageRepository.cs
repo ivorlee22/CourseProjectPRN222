@@ -6,5 +6,7 @@ public interface IPackageRepository
 {
     Task<IReadOnlyList<Package>> GetActivePackagesAsync(CancellationToken cancellationToken);
 
+    Task<Package?> GetFreePackageAsync(CancellationToken cancellationToken);
+
     Task<Package?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 }

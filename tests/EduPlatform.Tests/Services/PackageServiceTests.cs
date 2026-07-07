@@ -60,6 +60,12 @@ public sealed class PackageServiceTests
             return Task.FromResult<IReadOnlyList<Package>>(active);
         }
 
+        public Task<Package?> GetFreePackageAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult(Packages.SingleOrDefault(
+                x => x.IsActive && x.Name == "Free" && x.Price == 0m));
+        }
+
         public Task<Package?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
         {
             return Task.FromResult(Packages.SingleOrDefault(x => x.Id == id));

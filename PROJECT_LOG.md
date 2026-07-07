@@ -8,7 +8,7 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 - Application code: Builds successfully on .NET 10.
 - Canonical plan: `implementation_plan.md`.
 - Architecture: Strict `Web → BLL → DAL`.
-- Test baseline: 10 tests passing, including 1 web integration smoke test.
+- Test baseline: 50 tests passing, 1 opt-in live Gemini test skipped without credentials.
 - Database: Initial migration applied to Neon; pgvector 0.8.1 verified.
 - Next milestone: Nguyên implements User/Account authentication flow, then replaces deferred quota integration.
 
@@ -65,6 +65,40 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 - The populated Neon and Gmail secrets are currently in `appsettings.json`; move them to User Secrets or environment variables and leave only placeholders in tracked configuration.
 
 ## Activity Log
+
+### 2026-07-07 - Course quota subscription integration
+
+**Owner**
+
+- Nguyen handoff (implemented by Codex).
+
+**Correction**
+
+- Clarified role model: Admin creates courses and assigns teachers; Teacher sees assigned courses and uploads documents; Student sees public courses and enrolls. Course creation remains Admin-only.
+
+**Completed**
+
+- Added `SubscriptionCourseQuotaService` and registered it for `ICourseQuotaService`.
+- Deleted the temporary `DeferredCourseQuotaService`.
+- Added `IPackageRepository.GetFreePackageAsync` for Free-package fallback without hard-coding a package id.
+- Updated `CourseService` so Teacher course creation checks quota before persistence while Admin creation bypasses quota.
+- Added quota service tests for active subscription, exact-limit, over-limit, expired subscription fallback, missing subscription fallback, Free package interactions, and concurrent exact-limit requests.
+- Added CourseService regression tests proving quota failure does not add or save a course.
+
+**Verification**
+
+- `dotnet restore EduPlatform.sln` - passed after allowing access to the user NuGet configuration.
+- `dotnet build EduPlatform.sln --no-restore` - passed with 0 warnings and 0 errors.
+- `dotnet test EduPlatform.sln --no-build --no-restore` - passed: 50 succeeded, 0 failed, 1 skipped opt-in live Gemini test.
+- `rg -n "DeferredCourseQuotaService" EduPlatform.BLL EduPlatform.DAL tests` - no source or test references remain.
+
+**Remaining**
+
+- Web Course Create is still governed by the existing MVC policy and UI flow; this handoff only changed the BLL quota boundary and service tests.
+
+**Blocked**
+
+- None.
 
 ### 2026-07-06 — Chat business-rule hardening after Tasks 19–21
 

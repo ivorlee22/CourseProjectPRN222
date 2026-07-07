@@ -15,6 +15,15 @@ public sealed class PackageRepository(AppDbContext dbContext) : IPackageReposito
             .ToListAsync(cancellationToken);
     }
 
+    public Task<Package?> GetFreePackageAsync(CancellationToken cancellationToken)
+    {
+        return dbContext.Packages
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                x => x.IsActive && x.Name == "Free" && x.Price == 0m,
+                cancellationToken);
+    }
+
     public Task<Package?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         return dbContext.Packages

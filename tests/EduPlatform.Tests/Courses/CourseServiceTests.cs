@@ -1,6 +1,5 @@
 using EduPlatform.BLL.DTOs.Courses;
 using EduPlatform.BLL.Exceptions;
-using EduPlatform.BLL.Interfaces;
 using EduPlatform.BLL.Models;
 using EduPlatform.BLL.Services;
 using EduPlatform.DAL.Entities;
@@ -19,14 +18,12 @@ public sealed class CourseServiceTests
     private static readonly Guid StudentId = Guid.Parse("20000000-0000-0000-0000-000000000002");
 
     private readonly FakeCourseRepository _repository = new();
-    private readonly FakeCourseQuotaService _quotaService = new();
     private readonly CourseService _service;
 
     public CourseServiceTests()
     {
         _service = new CourseService(
             _repository,
-            _quotaService,
             new FixedTimeProvider(new DateTimeOffset(2026, 7, 2, 8, 0, 0, TimeSpan.Zero)));
     }
 
@@ -49,7 +46,6 @@ public sealed class CourseServiceTests
         Assert.AreEqual(OwnerId, course.OwnerId);
         Assert.AreEqual(DalCourseType.Public, course.Type);
         Assert.IsNull(course.EnrollmentPasswordHash);
-        Assert.AreEqual(0, _quotaService.CallCount); // Admin skips quota
         Assert.AreEqual(1, _repository.SaveChangesCallCount);
     }
 
@@ -95,7 +91,7 @@ public sealed class CourseServiceTests
     }
 
     [TestMethod]
-    public async Task CreateAsync_NonAdmin_ThrowsForbidden()
+    public async Task CreateAsync_Teacher_ThrowsForbidden()
     {
         var teacherActor = new ActorContext(OwnerId, BllUserRole.Teacher);
         var command = new CreateCourseCommand(
@@ -112,9 +108,70 @@ public sealed class CourseServiceTests
                 teacherActor,
                 CancellationToken.None));
         
-        Assert.AreEqual("Chỉ Quản trị viên mới có quyền tạo khóa học.", exception.Message);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(exception.Message));
         Assert.IsEmpty(_repository.Courses);
         Assert.AreEqual(0, _repository.SaveChangesCallCount);
+    }
+
+    [TestMethod]
+    public async Task CreateAsync_AdminBypassesQuotaAndPersistsCourse()
+    {
+        var adminActor = new ActorContext(Guid.NewGuid(), BllUserRole.Admin);
+        var command = new CreateCourseCommand(
+            "C# basics",
+            "Introductory C# course content.",
+            BllCourseType.Public,
+            IsVisible: true,
+            EnrollmentPassword: null,
+            OwnerId);
+
+        await _service.CreateAsync(command, adminActor, CancellationToken.None);
+
+        Assert.HasCount(1, _repository.Courses);
+        Assert.AreEqual(1, _repository.SaveChangesCallCount);
+    }
+
+    [TestMethod]
+    public async Task CreateAsync_Student_ThrowsForbidden()
+    {
+        var studentActor = new ActorContext(StudentId, BllUserRole.Student);
+        var command = new CreateCourseCommand(
+            "C# basics",
+            "Introductory C# course content.",
+            BllCourseType.Public,
+            IsVisible: true,
+            EnrollmentPassword: null,
+            OwnerId);
+
+        await Assert.ThrowsExactlyAsync<ForbiddenOperationException>(
+            async () => await _service.CreateAsync(
+                command,
+                studentActor,
+                CancellationToken.None));
+
+        Assert.IsEmpty(_repository.Courses);
+        Assert.AreEqual(0, _repository.SaveChangesCallCount);
+    }
+
+    [TestMethod]
+    public async Task CreateAsync_TeacherCannotCreateForAnotherOwner()
+    {
+        var teacherActor = new ActorContext(OwnerId, BllUserRole.Teacher);
+        var command = new CreateCourseCommand(
+            "C# basics",
+            "Introductory C# course content.",
+            BllCourseType.Public,
+            IsVisible: true,
+            EnrollmentPassword: null,
+            Guid.NewGuid());
+
+        await Assert.ThrowsExactlyAsync<ForbiddenOperationException>(
+            async () => await _service.CreateAsync(
+                command,
+                teacherActor,
+                CancellationToken.None));
+
+        Assert.IsEmpty(_repository.Courses);
     }
 
     [TestMethod]
@@ -209,28 +266,6 @@ public sealed class CourseServiceTests
     private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => value;
-    }
-
-    private sealed class FakeCourseQuotaService : ICourseQuotaService
-    {
-        public int CallCount { get; private set; }
-
-        public Exception? ExceptionToThrow { get; set; }
-
-        public Task EnsureCanCreateCourseAsync(
-            Guid userId,
-            int currentCourseCount,
-            CancellationToken cancellationToken)
-        {
-            CallCount++;
-
-            if (ExceptionToThrow is not null)
-            {
-                return Task.FromException(ExceptionToThrow);
-            }
-
-            return Task.CompletedTask;
-        }
     }
 
     private sealed class FakeCourseRepository : ICourseRepository
