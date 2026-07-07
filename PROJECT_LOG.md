@@ -66,6 +66,34 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-08 - Task 34 chat limit integration
+
+**Owner**
+
+- Bảo chat scope (implemented by Codex).
+
+**Completed**
+
+- Integrated `IChatQuotaService.EnsureCanSendMessageAsync` into both normal chat send and SignalR streaming flows.
+- Added a pre-retrieval quota check so exhausted users do not spend embedding, retrieval, or Gemini calls when they are already over the daily chat limit.
+- Rechecked quota inside the same chat persistence transaction before saving the user message, assistant message, and retrieval logs.
+- Added a chat repository transaction wrapper so the Task 32 `FOR UPDATE` user lock runs on the same scoped `AppDbContext` used to save chat data.
+- Handled `ChatQuotaExceededException` as a user-facing error in MVC fallback posts and SignalR streams.
+- Added client-side handling for SignalR `error` events so quota exhaustion is shown as a friendly assistant notice and the question stays in the composer.
+- Added unit coverage for quota exhaustion before Gemini and quota exhaustion during persistence.
+- Fixed daily quota start-of-day calculation to always pass UTC `DateTimeOffset` values to PostgreSQL/Npgsql.
+- Added unit coverage for timezone-offset servers so the quota query does not pass `+07:00` offsets into `timestamp with time zone`.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 68 succeeded, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+
+**Notes**
+
+- No migrations or database shape changes were needed for Task 34.
+- Live UI quota prompt still needs manual browser verification with a package/user whose `DailyChats` limit is exhausted.
+
 ### 2026-07-08 - Chat message order and workspace polish
 
 **Owner**

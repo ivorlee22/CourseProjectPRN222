@@ -17,6 +17,7 @@ public sealed partial class ChatService(
     IChatRepository chatRepository,
     IEmbeddingService embeddingService,
     IChatCompletionService completionService,
+    IChatQuotaService chatQuotaService,
     IOptions<ChatOptions> options,
     TimeProvider timeProvider) : IChatService
 {
@@ -101,7 +102,7 @@ public sealed partial class ChatService(
             : await completionService.GenerateAsync(
                 BuildPrompt(prepared.Question, prepared.Chunks, prepared.History),
                 cancellationToken);
-        return await PersistResponseAsync(prepared, answer, cancellationToken);
+        return await PersistResponseAsync(prepared, answer, actor.UserId, cancellationToken);
     }
 
     public async IAsyncEnumerable<ChatStreamEventDto> StreamMessageAsync(
@@ -140,7 +141,7 @@ public sealed partial class ChatService(
             throw new BusinessValidationException("Gemini did not return a usable answer.");
         }
 
-        await PersistResponseAsync(prepared, answer, cancellationToken);
+        await PersistResponseAsync(prepared, answer, actor.UserId, cancellationToken);
         yield return new ChatStreamEventDto("completed");
     }
 
@@ -153,6 +154,7 @@ public sealed partial class ChatService(
         var question = ValidateQuestion(command.Question);
         var session = await GetOwnedSessionAsync(sessionId, actor, cancellationToken);
         await EnsureCourseAccessAsync(session.CourseId, actor, cancellationToken);
+        await EnsureCanSendMessageAsync(actor.UserId, cancellationToken);
 
         var history = await chatRepository.ListRecentMessagesAsync(
             session.Id,
@@ -181,6 +183,7 @@ public sealed partial class ChatService(
     private async Task<ChatResponseDto> PersistResponseAsync(
         PreparedMessage prepared,
         string answer,
+        Guid userId,
         CancellationToken cancellationToken)
     {
         var session = prepared.Session;
@@ -217,19 +220,24 @@ public sealed partial class ChatService(
             UpdatedAtUtc = now
         }).ToArray();
 
-        session.LastMessageAtUtc = now;
-        if (session.Title == "Cuộc trò chuyện mới")
+        await chatRepository.ExecuteInTransactionAsync(async transactionToken =>
         {
-            session.Title = question.Length <= 80 ? question : $"{question[..77]}...";
-        }
+            await chatQuotaService.EnsureCanSendMessageAsync(userId, transactionToken);
 
-        await chatRepository.AddMessagesAsync([userMessage, assistantMessage], cancellationToken);
-        if (retrievalLogs.Length > 0)
-        {
-            await chatRepository.AddRetrievalLogsAsync(retrievalLogs, cancellationToken);
-        }
+            session.LastMessageAtUtc = now;
+            if (session.Title == "Cuộc trò chuyện mới")
+            {
+                session.Title = question.Length <= 80 ? question : $"{question[..77]}...";
+            }
 
-        await chatRepository.SaveChangesAsync(cancellationToken);
+            await chatRepository.AddMessagesAsync([userMessage, assistantMessage], transactionToken);
+            if (retrievalLogs.Length > 0)
+            {
+                await chatRepository.AddRetrievalLogsAsync(retrievalLogs, transactionToken);
+            }
+
+            await chatRepository.SaveChangesAsync(transactionToken);
+        }, cancellationToken);
 
         var citations = citedChunks
             .Select(citation => MapCitation(citation.Chunk, citation.Rank))
@@ -253,6 +261,13 @@ public sealed partial class ChatService(
         var session = await GetOwnedSessionAsync(sessionId, actor, cancellationToken);
         chatRepository.RemoveSession(session);
         await chatRepository.SaveChangesAsync(cancellationToken);
+    }
+
+    private Task EnsureCanSendMessageAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        return chatRepository.ExecuteInTransactionAsync(
+            transactionToken => chatQuotaService.EnsureCanSendMessageAsync(userId, transactionToken),
+            cancellationToken);
     }
 
     private async Task<ChatSession> GetOwnedSessionAsync(

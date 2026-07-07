@@ -850,6 +850,16 @@ h1 {
   border-radius: 1rem 0.35rem 1rem 1rem;
 }
 
+.chat-message--notice .chat-message__body {
+  border-color: rgb(245 158 11 / 28%);
+  background: #fffbeb;
+  color: #7c2d12;
+}
+
+.chat-message--notice .chat-message__meta strong {
+  color: #92400e;
+}
+
 .chat-message__meta {
   display: flex;
   align-items: center;

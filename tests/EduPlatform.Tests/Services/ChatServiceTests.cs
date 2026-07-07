@@ -26,6 +26,7 @@ public sealed class ChatServiceTests
     private readonly FakeChatRepository _repository = new();
     private readonly FakeEmbeddingService _embeddingService = new();
     private readonly FakeChatCompletionService _completionService = new();
+    private readonly FakeChatQuotaService _chatQuotaService = new();
     private readonly ChatService _service;
     private readonly ActorContext _actor = new(UserId, BllUserRole.Student);
 
@@ -42,6 +43,7 @@ public sealed class ChatServiceTests
             _repository,
             _embeddingService,
             _completionService,
+            _chatQuotaService,
             Options.Create(new ChatOptions()),
             new FixedTimeProvider(Now));
     }
@@ -67,7 +69,52 @@ public sealed class ChatServiceTests
         Assert.HasCount(1, _repository.AddedRetrievalLogs);
         Assert.AreEqual(1, _repository.SaveChangesCallCount);
         Assert.AreEqual(1, _completionService.CallCount);
+        Assert.AreEqual(2, _chatQuotaService.CallCount);
         Assert.AreEqual("Dependency injection là gì?", _repository.Sessions[0].Title);
+    }
+
+    [TestMethod]
+    public async Task SendMessageAsync_QuotaExceeded_DoesNotCallGeminiOrPersistMessages()
+    {
+        _repository.SearchResults.Add(CreateSearchResult());
+        _chatQuotaService.ExceptionToThrow =
+            new ChatQuotaExceededException("Bạn đã sử dụng hết 1 tin nhắn trong ngày. Hãy nâng cấp gói để tiếp tục.");
+
+        var exception = await Assert.ThrowsExactlyAsync<ChatQuotaExceededException>(
+            () => _service.SendMessageAsync(
+                SessionId,
+                new SendChatMessageCommand("Câu hỏi hợp lệ"),
+                _actor,
+                CancellationToken.None));
+
+        Assert.Contains("nâng cấp", exception.Message);
+        Assert.AreEqual(0, _embeddingService.QueryCallCount);
+        Assert.AreEqual(0, _completionService.CallCount);
+        Assert.IsEmpty(_repository.AddedMessages);
+        Assert.IsEmpty(_repository.AddedRetrievalLogs);
+        Assert.AreEqual(0, _repository.SaveChangesCallCount);
+        Assert.AreEqual(1, _chatQuotaService.CallCount);
+    }
+
+    [TestMethod]
+    public async Task SendMessageAsync_QuotaExceededDuringSave_DoesNotPersistMessages()
+    {
+        _repository.SearchResults.Add(CreateSearchResult());
+        _completionService.Answer = "Câu trả lời [1].";
+        _chatQuotaService.ThrowOnCallNumber = 2;
+
+        await Assert.ThrowsExactlyAsync<ChatQuotaExceededException>(
+            () => _service.SendMessageAsync(
+                SessionId,
+                new SendChatMessageCommand("Câu hỏi hợp lệ"),
+                _actor,
+                CancellationToken.None));
+
+        Assert.AreEqual(1, _completionService.CallCount);
+        Assert.IsEmpty(_repository.AddedMessages);
+        Assert.IsEmpty(_repository.AddedRetrievalLogs);
+        Assert.AreEqual(0, _repository.SaveChangesCallCount);
+        Assert.AreEqual(2, _chatQuotaService.CallCount);
     }
 
     [TestMethod]
@@ -382,6 +429,29 @@ public sealed class ChatServiceTests
         }
     }
 
+    private sealed class FakeChatQuotaService : IChatQuotaService
+    {
+        public Exception? ExceptionToThrow { get; set; }
+
+        public int? ThrowOnCallNumber { get; set; }
+
+        public int CallCount { get; private set; }
+
+        public Task EnsureCanSendMessageAsync(Guid userId, CancellationToken cancellationToken)
+        {
+            CallCount++;
+            if (ThrowOnCallNumber == CallCount)
+            {
+                return Task.FromException(new ChatQuotaExceededException(
+                    "Bạn đã sử dụng hết 1 tin nhắn trong ngày. Hãy nâng cấp gói để tiếp tục."));
+            }
+
+            return ExceptionToThrow is null
+                ? Task.CompletedTask
+                : Task.FromException(ExceptionToThrow);
+        }
+    }
+
     private sealed class FakeChatRepository : IChatRepository
     {
         public bool CanAccessCourse { get; set; } = true;
@@ -397,6 +467,8 @@ public sealed class ChatServiceTests
         public List<RetrievedDocumentChunk> SearchResults { get; } = [];
 
         public int SaveChangesCallCount { get; private set; }
+
+        public int TransactionCallCount { get; private set; }
 
         public Task<bool> CanAccessCourseAsync(
             Guid courseId,
@@ -475,6 +547,14 @@ public sealed class ChatServiceTests
         {
             AddedRetrievalLogs.AddRange(retrievalLogs);
             return Task.CompletedTask;
+        }
+
+        public Task ExecuteInTransactionAsync(
+            Func<CancellationToken, Task> operation,
+            CancellationToken cancellationToken)
+        {
+            TransactionCallCount++;
+            return operation(cancellationToken);
         }
 
         public void RemoveSession(ChatSession session)

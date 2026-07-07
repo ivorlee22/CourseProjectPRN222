@@ -138,6 +138,7 @@ public sealed class ChatController(
     private static bool IsUserFacingException(Exception exception)
     {
         return exception is BusinessValidationException
+            or ChatQuotaExceededException
             or ResourceConflictException;
     }
 }
