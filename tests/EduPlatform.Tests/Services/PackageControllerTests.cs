@@ -189,6 +189,12 @@ public sealed class PackageControllerTests
 
     private sealed class FakePackageService : IPackageService
     {
+
+        public Task<IReadOnlyList<EduPlatform.BLL.DTOs.Packages.PackageAdminDto>> GetAllPackagesAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<Guid> CreatePackageAsync(EduPlatform.BLL.DTOs.Packages.CreatePackageCommand command, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task UpdatePackageAsync(EduPlatform.BLL.DTOs.Packages.UpdatePackageCommand command, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task TogglePackageStatusAsync(Guid id, bool isActive, CancellationToken cancellationToken) => throw new NotImplementedException();
+
         public List<PackageDto> Packages { get; } = [];
         public int GetByIdCallCount { get; private set; }
 
@@ -206,6 +212,9 @@ public sealed class PackageControllerTests
 
     private sealed class FakeSubscriptionService : ISubscriptionService
     {
+
+        public Task<EduPlatform.BLL.Models.PagedResult<EduPlatform.BLL.DTOs.Subscriptions.SubscriptionAdminDto>> GetAllSubscriptionsPagedAsync(int page, int pageSize, CancellationToken cancellationToken) => throw new NotImplementedException();
+
         public SubscriptionSummaryDto? ActiveSubscription { get; set; }
         public int GetActiveSubscriptionCallCount { get; private set; }
         public Guid? LastUserId { get; private set; }

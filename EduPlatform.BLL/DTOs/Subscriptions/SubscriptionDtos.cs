@@ -11,3 +11,13 @@ public record SubscriptionSummaryDto(
     DateTimeOffset EndsAtUtc);
 
 public record CreateSubscriptionCommand(Guid UserId, Guid PackageId);
+
+public record SubscriptionAdminDto(
+    Guid Id,
+    string UserEmail,
+    string UserFullName,
+    string PackageName,
+    string Status,
+    DateTimeOffset StartsAtUtc,
+    DateTimeOffset EndsAtUtc,
+    DateTimeOffset CreatedAtUtc);

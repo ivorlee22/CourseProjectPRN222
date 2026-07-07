@@ -29,6 +29,23 @@ public sealed class SubscriptionRepository(AppDbContext dbContext) : ISubscripti
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<(IReadOnlyList<Subscription> Items, int TotalCount)> GetAllPagedAsync(int page, int pageSize, CancellationToken cancellationToken)
+    {
+        var query = dbContext.Subscriptions
+            .AsNoTracking()
+            .Include(x => x.Package)
+            .Include(x => x.User);
+            
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+            
+        return (items, totalCount);
+    }
+
     public Task<Subscription?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         return dbContext.Subscriptions

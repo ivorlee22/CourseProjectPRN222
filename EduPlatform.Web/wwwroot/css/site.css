@@ -162,6 +162,29 @@ h1 {
   box-shadow: 0 0 0 0.25rem rgb(15 118 110 / 22%);
 }
 
+.btn-loading {
+  position: relative;
+  opacity: 0.9;
+  cursor: not-allowed;
+}
+
+.field-validation-error {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--edu-danger);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.field-validation-error::before {
+  content: "⚠ ";
+  margin-right: 2px;
+}
+
+.input-validation-error {
+  border-color: var(--edu-danger);
+  box-shadow: 0 0 0 0.15rem rgba(180, 35, 24, 0.15);
+}
+
 .hero-section {
   padding-block: clamp(3rem, 8vw, 6rem);
 }
