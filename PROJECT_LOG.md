@@ -66,6 +66,82 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-07 - Subscription management page
+
+**Owner**
+
+- Nguyen subscription scope (implemented by Codex).
+
+**Completed**
+
+- Added MVC `SubscriptionController` for Student subscription management.
+- Added Subscription Web view models and `Views/Subscription/Index.cshtml`.
+- Displayed the current active subscription, quota details, subscription dates, and full subscription history.
+- Added Student-only `Gói của tôi` navigation while keeping Teacher and Admin out of this personal purchase-management flow.
+- Added Renew and Cancel post actions with anti-forgery validation. Renew creates a pending subscription request for the same package until payment gateways are implemented; Cancel delegates to `ISubscriptionService.CancelSubscriptionAsync`.
+- Added scoped responsive subscription-management styles in `site.css`.
+- Added controller tests for current subscription display, history-only display, Renew, and Cancel.
+
+**UI/UX**
+
+- Design Read: Student subscription management page with clear current-plan status, dense history table, and restrained action controls.
+- Dials: `DESIGN_VARIANCE 4`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 7`.
+- `fk` skill context script reported `NO_PRODUCT_MD`, but its referenced `init.md` was not present in the installed skill; the EduPlatform MVC/Bootstrap rules and `fk` product-register guidance were applied as fallback.
+- Covered empty current-subscription state, empty history state, active/pending/cancelled/expired badges, disabled-free layout constraints through responsive collapse, focus/hover inherited from Bootstrap buttons, and mobile table scrolling.
+
+**Verification**
+
+- `dotnet build EduPlatform.sln -c Release --no-restore` - passed with 0 warnings and 0 errors.
+- `dotnet test EduPlatform.sln -c Release --no-build --no-restore` - passed: 61 succeeded, 0 failed, 1 skipped opt-in live Gemini test.
+- Debug build was not used for final verification because local `EduPlatform.Web` and Visual Studio processes were locking Debug output DLLs; the initial sandboxed build also could not read the user NuGet configuration.
+- Checked new Subscription UI files for en dash and em dash characters.
+
+**Remaining**
+
+- Real Renew payment flow waits for VNPay/MoMo payment integration.
+- Admin global subscription management remains Task 31 and is intentionally separate from this Student page.
+
+**Blocked**
+
+- VNPay/MoMo payment integration is required for real checkout and renewal payment.
+
+### 2026-07-07 - Package price table page
+
+**Owner**
+
+- Nguyen package scope (implemented by Codex).
+
+**Completed**
+
+- Added MVC `PackageController` with public Pricing page and authenticated `Buy` post placeholder.
+- Added Package pricing view models under Web.
+- Added `Views/Package/Index.cshtml` to display Free, Plus, Pro, and Max packages, compare MaxCourses, DailyChats, DurationDays, and show the current active subscription.
+- Added the `Bảng giá` navigation link for anonymous users, Students, and Admins while keeping Teachers out of the package purchase surface.
+- Added responsive pricing styles in `site.css`.
+- Added controller tests for anonymous package display, current-package highlight, Admin pricing access, and safe Buy redirect behavior.
+
+**UI/UX**
+
+- Design Read: public price table page with clear package comparison, current-plan emphasis, and direct purchase intent for Students.
+- Dials: `DESIGN_VARIANCE 6`, `MOTION_INTENSITY 2`, `VISUAL_DENSITY 6`.
+- Taste-skill local file was not available, so the shared EduPlatform MVC/Bootstrap frontend rules were applied.
+- Covered anonymous, Student, Teacher, and Admin states, including Student purchase access, Admin pricing access without purchase, Teacher exclusion from pricing navigation, current-package disabled state, hover/focus inherited from Bootstrap buttons, responsive 4/2/1-column pricing grid, and mobile table scrolling.
+
+**Verification**
+
+- `dotnet build EduPlatform.sln --no-restore` - passed with 0 warnings and 0 errors.
+- `dotnet test EduPlatform.sln --no-build --no-restore` - passed: 57 succeeded, 0 failed, 1 skipped opt-in live Gemini test.
+- Checked new Package UI files for en dash and em dash characters.
+- Local HTTPS run is blocked by missing or untrusted ASP.NET dev certificate; HTTP-only run starts in foreground, but the tool cannot keep it running in the background because Windows `Start-Process` fails on duplicate `Path`/`PATH` environment entries.
+
+**Remaining**
+
+- Payment gateways are not implemented yet, so `Mua ngay` validates the package and returns a clear pending-payment message instead of creating a real payment.
+
+**Blocked**
+
+- VNPay/MoMo payment integration is required for real checkout.
+
 ### 2026-07-07 - Course quota subscription integration
 
 **Owner**

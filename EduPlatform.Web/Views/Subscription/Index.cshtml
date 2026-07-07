@@ -1,0 +1,128 @@
+@model SubscriptionManagementViewModel
+@{
+    ViewData["Title"] = "Gói của tôi";
+}
+
+<section class="subscription-header">
+    <div>
+        <p class="section-label">Gói học tập</p>
+        <h1>Gói của tôi</h1>
+        <p>
+            Theo dõi gói đang dùng, lịch sử đăng ký và thao tác gia hạn hoặc hủy gói khi cần.
+        </p>
+    </div>
+    <a class="btn btn-outline-primary" asp-controller="Package" asp-action="Index">Xem bảng giá</a>
+</section>
+
+@if (Model.CurrentSubscription is null)
+{
+    <section class="empty-state">
+        <h2>Chưa có gói đang hiệu lực</h2>
+        <p>Chọn một gói phù hợp để mở quota khóa học và lượt chat theo ngày.</p>
+        <a class="btn btn-primary" asp-controller="Package" asp-action="Index">Chọn gói</a>
+    </section>
+}
+else
+{
+    var current = Model.CurrentSubscription;
+    <section class="subscription-current content-panel">
+        <div>
+            <span class="subscription-kicker">Gói hiện tại</span>
+            <h2>@current.PackageName</h2>
+            <p>Còn hiệu lực đến @current.EndsAtUtc.ToLocalTime().ToString("dd/MM/yyyy")</p>
+        </div>
+        <dl>
+            <div>
+                <dt>Khóa học tối đa</dt>
+                <dd>@current.MaxCourses</dd>
+            </div>
+            <div>
+                <dt>Lượt chat mỗi ngày</dt>
+                <dd>@current.DailyChats</dd>
+            </div>
+            <div>
+                <dt>Bắt đầu</dt>
+                <dd>@current.StartsAtUtc.ToLocalTime().ToString("dd/MM/yyyy")</dd>
+            </div>
+        </dl>
+        <div class="subscription-actions">
+            <form asp-action="Renew" method="post">
+                <input type="hidden" name="packageId" value="@current.PackageId" />
+                <button type="submit" class="btn btn-primary">Gia hạn</button>
+            </form>
+            <form asp-action="Cancel" method="post">
+                <input type="hidden" name="subscriptionId" value="@current.Id" />
+                <button type="submit" class="btn btn-outline-danger">Hủy gói</button>
+            </form>
+        </div>
+    </section>
+}
+
+<section class="subscription-history" aria-labelledby="subscriptionHistoryTitle">
+    <div class="page-heading">
+        <div>
+            <p class="section-label">Lịch sử</p>
+            <h2 id="subscriptionHistoryTitle">Các gói đã mua</h2>
+        </div>
+    </div>
+
+    @if (Model.History.Count == 0)
+    {
+        <section class="empty-state">
+            <h2>Chưa có lịch sử đăng ký</h2>
+            <p>Các gói bạn mua hoặc gia hạn sẽ xuất hiện tại đây.</p>
+        </section>
+    }
+    else
+    {
+        <div class="table-responsive content-panel p-0">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col">Gói</th>
+                        <th scope="col">Trạng thái</th>
+                        <th scope="col">Bắt đầu</th>
+                        <th scope="col">Kết thúc</th>
+                        <th scope="col" class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.History)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@item.Subscription.PackageName</strong>
+                                <div class="text-secondary small">
+                                    @item.Subscription.MaxCourses khóa học, @item.Subscription.DailyChats lượt chat mỗi ngày
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge @item.StatusBadgeClass">@item.StatusLabel</span>
+                            </td>
+                            <td>@item.Subscription.StartsAtUtc.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                            <td>@item.Subscription.EndsAtUtc.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                            <td>
+                                <div class="subscription-row-actions">
+                                    @if (item.CanRenew)
+                                    {
+                                        <form asp-action="Renew" method="post">
+                                            <input type="hidden" name="packageId" value="@item.Subscription.PackageId" />
+                                            <button type="submit" class="btn btn-sm btn-outline-primary">Gia hạn</button>
+                                        </form>
+                                    }
+                                    @if (item.CanCancel)
+                                    {
+                                        <form asp-action="Cancel" method="post">
+                                            <input type="hidden" name="subscriptionId" value="@item.Subscription.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Hủy</button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

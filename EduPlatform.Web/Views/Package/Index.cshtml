@@ -1,0 +1,146 @@
+@model PackagePricingViewModel
+@{
+    ViewData["Title"] = "Bảng giá";
+}
+
+<section class="pricing-hero">
+    <div>
+        <p class="section-label">Bảng giá</p>
+        <h1>Chọn gói học tập phù hợp</h1>
+        <p class="pricing-lead">
+            Mỗi gói mở khóa quota khóa học và lượt chat theo ngày để bạn học từ tài liệu có ngữ cảnh rõ ràng.
+        </p>
+    </div>
+    @if (Model.CurrentSubscription is not null)
+    {
+        <aside class="pricing-current-summary" aria-label="Gói hiện tại">
+            <span>Gói hiện tại</span>
+            <strong>@Model.CurrentSubscription.PackageName</strong>
+            <small>Còn hiệu lực đến @Model.CurrentSubscription.EndsAtUtc.ToLocalTime().ToString("dd/MM/yyyy")</small>
+        </aside>
+    }
+</section>
+
+<section class="pricing-grid" aria-label="Danh sách gói cước">
+    @foreach (var item in Model.Packages)
+    {
+        var package = item.Package;
+        <article class="pricing-card @(item.IsCurrent ? "is-current" : null)">
+            <div class="pricing-card__header">
+                <span class="pricing-badge">@item.AccentLabel</span>
+                @if (item.IsCurrent)
+                {
+                    <span class="pricing-current-badge">Gói hiện tại</span>
+                }
+            </div>
+            <h2>@package.Name</h2>
+            <p>@item.Tagline</p>
+            <div class="pricing-price">
+                @if (package.Price == 0)
+                {
+                    <strong>Miễn phí</strong>
+                }
+                else
+                {
+                    <strong>@package.Price.ToString("N0") đ</strong>
+                    <span>/ @package.DurationDays ngày</span>
+                }
+            </div>
+            <ul class="pricing-feature-list">
+                @foreach (var highlight in item.Highlights)
+                {
+                    <li>@highlight</li>
+                }
+            </ul>
+            @if (item.IsCurrent)
+            {
+                <button class="btn btn-outline-primary w-100" type="button" disabled>Đang sử dụng</button>
+            }
+            else if (User.IsInRole("Student"))
+            {
+                <form asp-action="Buy" method="post">
+                    <input type="hidden" name="packageId" value="@package.Id" />
+                    <button class="btn btn-primary w-100" type="submit">Mua ngay</button>
+                </form>
+            }
+            else if (User.Identity?.IsAuthenticated == true)
+            {
+                <button class="btn btn-outline-primary w-100" type="button" disabled>Không áp dụng</button>
+            }
+            else
+            {
+                <a class="btn btn-primary w-100"
+                   asp-controller="Account"
+                   asp-action="Login"
+                   asp-route-returnUrl="@Url.Action("Index", "Package")">
+                    Mua ngay
+                </a>
+            }
+        </article>
+    }
+</section>
+
+<section class="pricing-comparison" aria-labelledby="pricingComparisonTitle">
+    <div class="page-heading">
+        <div>
+            <p class="section-label">So sánh tính năng</p>
+            <h2 id="pricingComparisonTitle">Quota theo từng gói</h2>
+        </div>
+    </div>
+    <div class="table-responsive content-panel p-0">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th scope="col">Tính năng</th>
+                    @foreach (var item in Model.Packages)
+                    {
+                        <th scope="col" class="text-center">@item.Package.Name</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <th scope="row">Số khóa học tối đa</th>
+                    @foreach (var item in Model.Packages)
+                    {
+                        <td class="text-center">@item.Package.MaxCourses</td>
+                    }
+                </tr>
+                <tr>
+                    <th scope="row">Lượt chat mỗi ngày</th>
+                    @foreach (var item in Model.Packages)
+                    {
+                        <td class="text-center">@item.Package.DailyChats</td>
+                    }
+                </tr>
+                <tr>
+                    <th scope="row">Thời hạn gói</th>
+                    @foreach (var item in Model.Packages)
+                    {
+                        <td class="text-center">@item.Package.DurationDays ngày</td>
+                    }
+                </tr>
+                <tr>
+                    <th scope="row">Trạng thái của bạn</th>
+                    @foreach (var item in Model.Packages)
+                    {
+                        <td class="text-center">
+                            @if (item.IsCurrent)
+                            {
+                                <span class="badge text-bg-success">Đang dùng</span>
+                            }
+                            else if (User.IsInRole("Student") || User.Identity?.IsAuthenticated != true)
+                            {
+                                <span class="text-secondary">Có thể mua</span>
+                            }
+                            else
+                            {
+                                <span class="text-secondary">Không áp dụng</span>
+                            }
+                        </td>
+                    }
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>

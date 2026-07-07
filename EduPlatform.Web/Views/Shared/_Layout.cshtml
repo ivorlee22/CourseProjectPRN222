@@ -30,12 +30,21 @@
                         <li class="nav-item">
                             <a class="nav-link" asp-controller="Course" asp-action="Index">Khóa học</a>
                         </li>
+                        @if (User.Identity?.IsAuthenticated != true || User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Package" asp-action="Index">Bảng giá</a>
+                            </li>
+                        }
                         @if (User.Identity?.IsAuthenticated == true)
                         {
-                            @if (User.IsInRole("Teacher") || User.IsInRole("Student"))
+                            @if (User.IsInRole("Student"))
                             {
                                 <li class="nav-item">
                                     <a class="nav-link" asp-controller="Course" asp-action="Mine">Khóa học của tôi</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-controller="Subscription" asp-action="Index">Gói của tôi</a>
                                 </li>
                             }
                             @if (User.IsInRole("Admin"))
