@@ -1,6 +1,10 @@
 const workspace = document.querySelector("[data-chat-workspace]");
 
 if (workspace) {
+  if ("scrollRestoration" in window.history) {
+    window.history.scrollRestoration = "manual";
+  }
+
   const input = workspace.querySelector("[data-chat-input]");
   const form = workspace.querySelector("[data-chat-form]");
   const submit = workspace.querySelector("[data-chat-submit]");
@@ -208,7 +212,11 @@ if (workspace) {
     if (event.key === "Escape") closePanels();
   });
 
-  if (stream) {
+  if (stream?.querySelector(".chat-message")) {
     stream.scrollTop = stream.scrollHeight;
   }
+
+  window.requestAnimationFrame(() => {
+    window.scrollTo(0, 0);
+  });
 }

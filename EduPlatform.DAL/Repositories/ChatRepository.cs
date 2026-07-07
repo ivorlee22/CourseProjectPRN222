@@ -64,6 +64,7 @@ public sealed class ChatRepository(AppDbContext dbContext) : IChatRepository
                     .ThenInclude(chunk => chunk.Document)
             .AsSplitQuery()
             .OrderBy(message => message.CreatedAtUtc)
+            .ThenBy(message => message.Role == MessageRole.User ? 0 : 1)
             .ToListAsync(cancellationToken);
     }
 
