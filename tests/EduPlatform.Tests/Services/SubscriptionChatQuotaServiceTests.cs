@@ -82,6 +82,26 @@ public sealed class SubscriptionChatQuotaServiceTests
         Assert.AreEqual(1, _chatQuotaRepository.LockCallCount);
     }
 
+    [TestMethod]
+    public async Task EnsureCanSendMessageAsync_UsesUtcStartOfDay_WhenServerTimezoneHasOffset()
+    {
+        var userId = Guid.NewGuid();
+        var quotaRepository = new FakeChatQuotaRepository();
+        var service = new SubscriptionChatQuotaService(
+            _subscriptionRepository,
+            _packageRepository,
+            quotaRepository,
+            _userRepository,
+            new FixedTimeProvider(new DateTimeOffset(2026, 7, 8, 2, 0, 0, TimeSpan.FromHours(7))));
+        _userRepository.Users.Add(new User { Id = userId, Role = EduPlatform.DAL.Entities.UserRole.Student });
+        _packageRepository.Packages.Add(new Package { Name = "Free", Price = 0, IsActive = true, DailyChats = 5 });
+
+        await service.EnsureCanSendMessageAsync(userId, CancellationToken.None);
+
+        Assert.AreEqual(TimeSpan.Zero, quotaRepository.LastStartOfDay.Offset);
+        Assert.AreEqual(new DateTimeOffset(2026, 7, 7, 0, 0, 0, TimeSpan.Zero), quotaRepository.LastStartOfDay);
+    }
+
     private sealed class FakeSubscriptionRepository : ISubscriptionRepository
     {
         public List<Subscription> Subscriptions { get; } = [];
@@ -121,9 +141,11 @@ public sealed class SubscriptionChatQuotaServiceTests
     {
         public int LockCallCount { get; private set; }
         public int MessageCount { get; set; }
+        public DateTimeOffset LastStartOfDay { get; private set; }
 
         public Task<int> CountMessagesTodayAsync(Guid userId, DateTimeOffset startOfDay, CancellationToken cancellationToken)
         {
+            LastStartOfDay = startOfDay;
             return Task.FromResult(MessageCount);
         }
 
@@ -132,6 +154,11 @@ public sealed class SubscriptionChatQuotaServiceTests
             LockCallCount++;
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
     }
 
     private sealed class FakeUserRepository : IUserRepository

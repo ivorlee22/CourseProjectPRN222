@@ -46,6 +46,10 @@ public interface IChatRepository
         IEnumerable<RetrievalLog> retrievalLogs,
         CancellationToken cancellationToken);
 
+    Task ExecuteInTransactionAsync(
+        Func<CancellationToken, Task> operation,
+        CancellationToken cancellationToken);
+
     void RemoveSession(ChatSession session);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);

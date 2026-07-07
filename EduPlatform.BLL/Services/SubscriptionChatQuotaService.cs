@@ -31,7 +31,8 @@ public sealed class SubscriptionChatQuotaService(
         await chatQuotaRepository.LockUserRowAsync(userId, cancellationToken);
 
         // 3. Count messages sent today
-        var startOfDay = timeProvider.GetUtcNow().Date;
+        var utcNow = timeProvider.GetUtcNow();
+        var startOfDay = new DateTimeOffset(utcNow.UtcDateTime.Date, TimeSpan.Zero);
         var messageCount = await chatQuotaRepository.CountMessagesTodayAsync(userId, startOfDay, cancellationToken);
 
         // 4. Get active subscription or fallback to Free package

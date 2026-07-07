@@ -56,6 +56,7 @@ public sealed class LiveGeminiSmokeTests
             repository,
             embeddingService,
             completionService,
+            new AllowAllChatQuotaService(),
             Options.Create(new ChatOptions()),
             TimeProvider.System);
 
@@ -177,6 +178,13 @@ public sealed class LiveGeminiSmokeTests
             return Task.CompletedTask;
         }
 
+        public Task ExecuteInTransactionAsync(
+            Func<CancellationToken, Task> operation,
+            CancellationToken cancellationToken)
+        {
+            return operation(cancellationToken);
+        }
+
         public void RemoveSession(ChatSession session)
         {
         }
@@ -185,6 +193,14 @@ public sealed class LiveGeminiSmokeTests
         {
             SaveChangesCallCount++;
             return Task.FromResult(1);
+        }
+    }
+
+    private sealed class AllowAllChatQuotaService : IChatQuotaService
+    {
+        public Task EnsureCanSendMessageAsync(Guid userId, CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
         }
     }
 }

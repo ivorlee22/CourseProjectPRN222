@@ -137,6 +137,7 @@ if (workspace) {
     resizeInput();
     setComposerBusy(true, "Đang đọc tài liệu và tạo câu trả lời...");
     let completed = false;
+    let streamError = "";
 
     connection.stream(
       "SendMessage",
@@ -149,6 +150,14 @@ if (workspace) {
           answer.textContent += item.content || "";
           stream.scrollTop = stream.scrollHeight;
         }
+        if (item.type === "error") {
+          streamError = item.content || "Không thể gửi câu hỏi lúc này.";
+          if (answer) {
+            answer.textContent = streamError;
+            answer.closest(".chat-message")?.classList.add("chat-message--notice");
+            stream.scrollTop = stream.scrollHeight;
+          }
+        }
         if (item.type === "completed") completed = true;
       },
       error: () => {
@@ -157,6 +166,12 @@ if (workspace) {
         resizeInput();
       },
       complete: () => {
+        if (streamError) {
+          setComposerBusy(false, streamError);
+          input.value = question;
+          resizeInput();
+          return;
+        }
         if (completed) {
           window.location.reload();
           return;
