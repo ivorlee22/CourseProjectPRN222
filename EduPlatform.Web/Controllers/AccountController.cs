@@ -162,6 +162,7 @@ public sealed class AccountController(IUserService userService) : Controller
 
         return View(new ProfileViewModel
         {
+            UserId = user.Id,
             FullName = user.FullName,
             Email = user.Email,
             Role = user.Role,

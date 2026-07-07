@@ -30,10 +30,10 @@
                         <li class="nav-item">
                             <a class="nav-link" asp-controller="Course" asp-action="Index">Khóa học</a>
                         </li>
-                        @if (User.Identity?.IsAuthenticated != true || User.IsInRole("Admin"))
+                        @if (User.Identity?.IsAuthenticated != true || User.IsInRole("Student"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Package" asp-action="Index">Bảng giá</a>
+                                <a class="nav-link" asp-controller="Payment" asp-action="Packages">Gói cước</a>
                             </li>
                         }
                         @if (User.Identity?.IsAuthenticated == true)
@@ -50,13 +50,17 @@
                             @if (User.IsInRole("Admin"))
                             {
                                 <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle fw-semibold text-dark" href="#" id="admin-menu-btn" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <a class="nav-link dropdown-toggle fw-semibold text-dark" href="#" id="admin-menu-btn"
+                                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         Quản trị
                                     </a>
                                     <ul class="dropdown-menu shadow-sm" aria-labelledby="admin-menu-btn">
-                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Users">Người dùng</a></li>
-                                        <li><a class="dropdown-item" asp-controller="AdminPackage" asp-action="Index">Gói cước</a></li>
-                                        <li><a class="dropdown-item" asp-controller="AdminSubscription" asp-action="Index">Subscriptions</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Users">Người dùng</a>
+                                        </li>
+                                        <li><a class="dropdown-item" asp-controller="AdminPackage" asp-action="Index">Gói
+                                                cước</a></li>
+                                        <li><a class="dropdown-item" asp-controller="AdminSubscription"
+                                                asp-action="Index">Subscriptions</a></li>
                                     </ul>
                                 </li>
                                 <li class="nav-item ms-lg-1">
@@ -74,6 +78,14 @@
                                             Hồ sơ
                                         </a>
                                     </li>
+                                    @if (User.IsInRole("Student"))
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Payment" asp-action="History">
+                                                Lịch sử thanh toán
+                                            </a>
+                                        </li>
+                                    }
                                     <li>
                                         <hr class="dropdown-divider">
                                     </li>
@@ -118,23 +130,27 @@
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1090;">
         @if (TempData["SuccessMessage"] is string successMessage)
         {
-            <div class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive"
+                aria-atomic="true">
                 <div class="d-flex">
                     <div class="toast-body">
                         <i class="bi bi-check-circle-fill me-2"></i> @successMessage
                     </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Đóng"></button>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                        aria-label="Đóng"></button>
                 </div>
             </div>
         }
         @if (TempData["ErrorMessage"] is string errorMessage)
         {
-            <div class="toast align-items-center text-bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast align-items-center text-bg-danger border-0" role="alert" aria-live="assertive"
+                aria-atomic="true">
                 <div class="d-flex">
                     <div class="toast-body">
                         <i class="bi bi-exclamation-circle-fill me-2"></i> @errorMessage
                     </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Đóng"></button>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                        aria-label="Đóng"></button>
                 </div>
             </div>
         }

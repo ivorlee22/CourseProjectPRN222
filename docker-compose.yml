@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: eduplatform-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: eduplatform
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      # Host port differs from the in-cluster port so we can run side-by-side
+      # with any local Postgres installation on 5432.
+      - "5466:5432"
+    volumes:
+      - eduplatform-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U postgres -d eduplatform
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  eduplatform-postgres-data:
+    driver: local
