@@ -66,6 +66,38 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-09 - Task 41 Student Usage Report
+
+**Owner**
+
+- Bảo report scope (implemented by Codex).
+
+**Design Read**
+
+- Student usage is a self-service dashboard, so the UI emphasizes quota clarity, active subscription status, and quick links back to courses and package management.
+- Dials: design variance low-medium, motion intensity light, visual density medium.
+
+**Completed**
+
+- Added Student-only `/Reports/StudentUsage` backed by `IReportService.GetStudentUsageAsync` for the signed-in student.
+- Added summary cards for enrolled courses, chat sessions, chat messages, and remaining daily chat quota.
+- Added progress bars for daily chat quota and course usage against the active package limit when available.
+- Added active subscription detail panel with package, course limit, daily chat quota, start date, and end date.
+- Added Student navigation link for "Sử dụng".
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+
+**Remaining**
+
+- Task 44 Chat UI Polish remains separate branch.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-09 - Task 40 Teacher Statistics
 
 **Owner**

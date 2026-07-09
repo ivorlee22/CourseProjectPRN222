@@ -72,6 +72,19 @@ public sealed class ReportsController(IReportService reportService) : Controller
         });
     }
 
+    [Authorize(Roles = "Student")]
+    [HttpGet]
+    public async Task<IActionResult> StudentUsage(CancellationToken cancellationToken)
+    {
+        var actor = User.GetRequiredActor();
+        var report = await reportService.GetStudentUsageAsync(actor.UserId, cancellationToken);
+
+        return View(new StudentUsageViewModel
+        {
+            Report = report
+        });
+    }
+
     [Authorize(Roles = "Admin")]
     [HttpGet]
     public async Task<IActionResult> ExportRevenue(

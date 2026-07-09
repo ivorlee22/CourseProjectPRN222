@@ -29,3 +29,8 @@ public sealed class TeacherStatisticsViewModel
 {
     public TeacherStatisticsReportDto Report { get; set; } = null!;
 }
+
+public sealed class StudentUsageViewModel
+{
+    public StudentUsageReportDto Report { get; set; } = null!;
+}
