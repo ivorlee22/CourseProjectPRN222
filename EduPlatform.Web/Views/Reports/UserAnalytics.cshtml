@@ -1,17 +1,15 @@
 @using System.Globalization
-@using System.Text.Json
 @using EduPlatform.BLL.Enums
 @model EduPlatform.Web.ViewModels.Reports.UserAnalyticsViewModel
 @{
     ViewData["Title"] = "Phân tích người dùng";
     var culture = CultureInfo.GetCultureInfo("vi-VN");
     var report = Model.Report;
-    var userLabels = JsonSerializer.Serialize(report.UserGrowth.Select(point => point.Label));
-    var userValues = JsonSerializer.Serialize(report.UserGrowth.Select(point => point.Count));
-    var roleLabels = JsonSerializer.Serialize(report.UsersByRole.Select(point => point.Category));
-    var roleValues = JsonSerializer.Serialize(report.UsersByRole.Select(point => point.Count));
-    var subscriptionLabels = JsonSerializer.Serialize(report.SubscriptionDistribution.Select(point => point.Category));
-    var subscriptionValues = JsonSerializer.Serialize(report.SubscriptionDistribution.Select(point => point.Count));
+    var maxUserGrowth = Math.Max(report.UserGrowth.Select(point => (decimal)point.Count).DefaultIfEmpty(0m).Max(), 1m);
+    var maxRoleUsers = Math.Max(report.UsersByRole.Select(point => point.Count).DefaultIfEmpty(0).Max(), 1);
+    var maxSubscriptions = Math.Max(report.SubscriptionDistribution.Select(point => point.Count).DefaultIfEmpty(0).Max(), 1);
+    var totalRoleUsers = report.UsersByRole.Sum(r => r.Count);
+    var totalSubUsers = report.SubscriptionDistribution.Sum(s => s.Count);
 }
 
 <div class="report-page">
@@ -81,7 +79,45 @@
                 </div>
                 <small>@Model.StartDate.ToString("dd/MM/yyyy") - @Model.EndDate.ToString("dd/MM/yyyy")</small>
             </div>
-            <canvas id="userGrowthChart" height="120" aria-label="Biểu đồ user mới theo kỳ" role="img"></canvas>
+            @if (report.UserGrowth.Count == 0)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Chưa có user mới.</strong>
+                    <span>Dữ liệu sẽ xuất hiện khi có đăng ký mới.</span>
+                </div>
+            }
+            else
+            {
+                <div class="report-column-chart" role="img" aria-label="Biểu đồ user mới theo kỳ">
+                    <div class="report-column-chart__summary">
+                        <span>Đỉnh kỳ</span>
+                        <strong>@maxUserGrowth.ToString("N0", culture)</strong>
+                    </div>
+                    <div class="report-column-chart__body">
+                        <div class="report-column-chart__axis" aria-hidden="true">
+                            <span>@maxUserGrowth.ToString("N0", culture)</span>
+                            <span>@(maxUserGrowth / 2m).ToString("N0", culture)</span>
+                            <span>0</span>
+                        </div>
+                        <div class="report-column-chart__plot">
+                            @for (var i = 0; i < report.UserGrowth.Count; i++)
+                            {
+                                var point = report.UserGrowth[i];
+                                <div class="report-column-chart__group" style="--chart-index: @i;">
+                                    <div class="report-column-chart__bar-wrap">
+                                        <span class="report-column-chart__bar report-column-chart__bar--sky"
+                                              data-height="@Height(point.Count, maxUserGrowth)"
+                                              title="@point.Label: @point.Count.ToString("N0", culture) user">
+                                            <strong>@point.Count.ToString("N0", culture)</strong>
+                                        </span>
+                                    </div>
+                                    <span class="report-column-chart__label">@point.Label</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
         </article>
 
         <article class="content-panel admin-chart-card">
@@ -100,7 +136,21 @@
             }
             else
             {
-                <canvas id="roleChart" height="180" aria-label="Biểu đồ phân bố role" role="img"></canvas>
+                <div class="report-distribution" role="img" aria-label="Phân bố vai trò">
+                    @foreach (var item in report.UsersByRole)
+                    {
+                        <div class="report-distribution__row">
+                            <span class="report-distribution__label">@item.Category</span>
+                            <span class="report-distribution__track" aria-hidden="true">
+                                <span class="report-distribution__fill @FillClass(item.Category)" data-width="@Width(item.Count, maxRoleUsers)"></span>
+                            </span>
+                            <div class="report-distribution__value">
+                                <strong>@item.Count.ToString("N0", culture)</strong>
+                                <small>@Percent(item.Count, totalRoleUsers)</small>
+                            </div>
+                        </div>
+                    }
+                </div>
             }
         </article>
 
@@ -120,7 +170,21 @@
             }
             else
             {
-                <canvas id="subscriptionChart" height="180" aria-label="Biểu đồ phân bố subscription" role="img"></canvas>
+                <div class="report-distribution" role="img" aria-label="Phân bố subscription">
+                    @foreach (var item in report.SubscriptionDistribution)
+                    {
+                        <div class="report-distribution__row">
+                            <span class="report-distribution__label">@item.Category</span>
+                            <span class="report-distribution__track" aria-hidden="true">
+                                <span class="report-distribution__fill @FillClass(item.Category)" data-width="@Width(item.Count, maxSubscriptions)"></span>
+                            </span>
+                            <div class="report-distribution__value">
+                                <strong>@item.Count.ToString("N0", culture)</strong>
+                                <small>@Percent(item.Count, totalSubUsers)</small>
+                            </div>
+                        </div>
+                    }
+                </div>
             }
         </article>
     </section>
@@ -151,99 +215,60 @@
     </section>
 </div>
 
-@section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-    <script>
-        (() => {
-            if (typeof Chart === "undefined") {
-                return;
-            }
+@functions {
+    private static string Height(decimal value, decimal max)
+    {
+        if (max <= 0 || value <= 0)
+        {
+            return "0";
+        }
 
-            const css = getComputedStyle(document.documentElement);
-            const accent = css.getPropertyValue("--edu-accent").trim() || "#0f766e";
-            const ink = css.getPropertyValue("--edu-ink").trim() || "#122033";
-            const muted = css.getPropertyValue("--edu-muted").trim() || "#5f6f82";
-            const grid = "rgba(18, 32, 51, 0.08)";
+        var percent = value / max * 100m;
+        percent = Math.Max(6m, Math.Min(100m, percent));
+        return percent.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+    }
 
-            Chart.defaults.color = muted;
-            Chart.defaults.font.family = "'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif";
-            Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    private static string Width(decimal value, decimal max)
+    {
+        if (max <= 0 || value <= 0)
+        {
+            return "0";
+        }
 
-            const formatCount = value => Number(value).toLocaleString("vi-VN");
-            const canvas = document.getElementById("userGrowthChart");
-            if (canvas) {
-                new Chart(canvas, {
-                    type: "line",
-                    data: {
-                        labels: @Html.Raw(userLabels),
-                        datasets: [{
-                            label: "User mới",
-                            data: @Html.Raw(userValues),
-                            borderColor: accent,
-                            backgroundColor: "rgba(15, 118, 110, 0.12)",
-                            fill: true,
-                            tension: 0.35,
-                            pointRadius: 2.5,
-                            pointHoverRadius: 5
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: { mode: "index", intersect: false },
-                        plugins: {
-                            tooltip: {
-                                callbacks: {
-                                    label: context => `${context.dataset.label}: ${formatCount(context.parsed.y)}`
-                                }
-                            }
-                        },
-                        scales: {
-                            x: { grid: { display: false } },
-                            y: {
-                                beginAtZero: true,
-                                grid: { color: grid },
-                                ticks: { precision: 0, callback: value => formatCount(value) }
-                            }
-                        }
-                    }
-                });
-            }
+        var percent = value / max * 100m;
+        percent = Math.Max(5m, Math.Min(100m, percent));
+        return percent.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+    }
 
-            const buildDoughnut = (id, labels, values) => {
-                const doughnut = document.getElementById(id);
-                if (!doughnut) {
-                    return;
-                }
+    private static string Percent(int value, int total)
+    {
+        if (total <= 0 || value <= 0)
+        {
+            return "0%";
+        }
 
-                new Chart(doughnut, {
-                    type: "doughnut",
-                    data: {
-                        labels,
-                        datasets: [{
-                            data: values,
-                            backgroundColor: [accent, ink, "#38bdf8", "#f59e0b", "#a78bfa"],
-                            borderColor: "#fff",
-                            borderWidth: 3
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        cutout: "64%",
-                        plugins: {
-                            tooltip: {
-                                callbacks: {
-                                    label: context => `${context.label}: ${formatCount(context.parsed)}`
-                                }
-                            }
-                        }
-                    }
-                });
-            };
+        var pct = (decimal)value / total * 100m;
+        return pct.ToString("0.#", CultureInfo.InvariantCulture) + "%";
+    }
 
-            buildDoughnut("roleChart", @Html.Raw(roleLabels), @Html.Raw(roleValues));
-            buildDoughnut("subscriptionChart", @Html.Raw(subscriptionLabels), @Html.Raw(subscriptionValues));
-        })();
-    </script>
+    private static string FillClass(string value)
+    {
+        var normalized = value.ToLowerInvariant();
+        if (normalized.Contains("student") || normalized.Contains("free"))
+        {
+            return "report-distribution__fill--sky";
+        }
+
+        if (normalized.Contains("admin") || normalized.Contains("pro") || normalized.Contains("max"))
+        {
+            return "report-distribution__fill--ink";
+        }
+
+        if (normalized.Contains("teacher") || normalized.Contains("plus"))
+        {
+            return "report-distribution__fill--amber";
+        }
+
+        return "report-distribution__fill--violet";
+    }
 }

@@ -51,110 +51,104 @@
     </section>
 
     <section class="admin-dashboard-grid" aria-label="Biểu đồ giảng viên">
-        <article class="card border-0 shadow-sm admin-chart-card--wide">
-            <div class="card-body p-4">
-                <div class="d-flex align-items-start justify-content-between mb-4">
-                    <div>
-                        <span class="text-uppercase fw-bold small text-muted">Hoạt động theo khóa</span>
-                        <h2 class="h4 fw-bold text-dark mt-1 mb-0">Enrollment, tài liệu và lượt hỏi</h2>
-                    </div>
-                    <span class="badge bg-light text-dark border px-3 py-2 rounded-pill fw-semibold">
-                        @report.Courses.Count.ToString("N0", culture) khóa học
-                    </span>
+        <article class="content-panel chart-card chart-card--wide">
+            <div class="chart-card__header">
+                <div>
+                    <span class="chart-card__header-label">Hoạt động theo khóa</span>
+                    <h2>Enrollment, tài liệu và lượt hỏi</h2>
                 </div>
-                @if (report.Courses.Count == 0)
-                {
-                    <div class="admin-empty-mini text-center py-5">
-                        <strong class="d-block mb-2 text-muted">Bạn chưa có khóa học nào.</strong>
-                        <span class="text-muted small">Tạo khóa học đầu tiên để dashboard bắt đầu có số liệu.</span>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="teacher-stat-chart__legend" aria-hidden="true">
+                        <span>
+                            <i class="teacher-stat-chart__dot teacher-stat-chart__dot--students"></i>
+                            Học viên
+                        </span>
+                        <span>
+                            <i class="teacher-stat-chart__dot teacher-stat-chart__dot--documents"></i>
+                            Tài liệu
+                        </span>
+                        <span>
+                            <i class="teacher-stat-chart__dot teacher-stat-chart__dot--chats"></i>
+                            Lượt hỏi
+                        </span>
                     </div>
-                }
-                else
-                {
-                    <div class="teacher-stat-chart" role="img" aria-label="Biểu đồ cột nhóm so sánh học viên, tài liệu và lượt hỏi theo khóa học">
-                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-3 border-bottom">
-                            <div class="d-flex flex-wrap align-items-center gap-3" aria-hidden="true">
-                                <span class="d-inline-flex align-items-center gap-2 text-muted small fw-bold">
-                                    <i class="teacher-stat-chart__dot teacher-stat-chart__dot--students"></i>
-                                    Học viên
-                                </span>
-                                <span class="d-inline-flex align-items-center gap-2 text-muted small fw-bold">
-                                    <i class="teacher-stat-chart__dot teacher-stat-chart__dot--documents"></i>
-                                    Tài liệu
-                                </span>
-                                <span class="d-inline-flex align-items-center gap-2 text-muted small fw-bold">
-                                    <i class="teacher-stat-chart__dot teacher-stat-chart__dot--chats"></i>
-                                    Lượt hỏi
-                                </span>
-                            </div>
-                            <span class="badge bg-light text-secondary border px-3 py-2 fw-semibold">Đỉnh: @maxChartValue.ToString("N0", culture)</span>
+                    <span class="chart-card__badge">Đỉnh: @maxChartValue.ToString("N0", culture)</span>
+                </div>
+            </div>
+            @if (report.Courses.Count == 0)
+            {
+                <div class="admin-empty-mini text-center py-5">
+                    <strong class="d-block mb-2 text-muted">Bạn chưa có khóa học nào.</strong>
+                    <span class="text-muted small">Tạo khóa học đầu tiên để dashboard bắt đầu có số liệu.</span>
+                </div>
+            }
+            else
+            {
+                <div class="teacher-stat-chart" role="img" aria-label="Biểu đồ cột nhóm so sánh học viên, tài liệu và lượt hỏi theo khóa học">
+                    <div class="teacher-stat-chart__body">
+                        <div class="teacher-stat-chart__axis" aria-hidden="true">
+                            <span>@maxChartValue.ToString("N0", culture)</span>
+                            <span>@(Math.Ceiling(maxChartValue / 2m).ToString("N0", culture))</span>
+                            <span>0</span>
                         </div>
-
-                        <div class="teacher-stat-chart__body">
-                            <div class="teacher-stat-chart__axis" aria-hidden="true">
-                                <span>@maxChartValue.ToString("N0", culture)</span>
-                                <span>@(Math.Ceiling(maxChartValue / 2m).ToString("N0", culture))</span>
-                                <span>0</span>
-                            </div>
-                            <div class="teacher-stat-chart__plot">
-                                @for (var index = 0; index < report.Courses.Count; index++)
-                                {
-                                    var course = report.Courses[index];
-                                    var enrollmentHeight = course.EnrolledStudents == 0
-                                        ? minBarHeightRem
-                                        : Math.Max(lowValueBarHeightRem, Math.Round(course.EnrolledStudents * chartHeightRem / chartScale, 2));
-                                    var documentHeight = course.DocumentCount == 0
-                                        ? minBarHeightRem
-                                        : Math.Max(lowValueBarHeightRem, Math.Round(course.DocumentCount * chartHeightRem / chartScale, 2));
-                                    var chatHeight = course.ChatMessageCount == 0
-                                        ? minBarHeightRem
-                                        : Math.Max(lowValueBarHeightRem, Math.Round(course.ChatMessageCount * chartHeightRem / chartScale, 2));
-                                    var enrollmentHeightStyle = enrollmentHeight.ToString("0.##", CultureInfo.InvariantCulture);
-                                    var documentHeightStyle = documentHeight.ToString("0.##", CultureInfo.InvariantCulture);
-                                    var chatHeightStyle = chatHeight.ToString("0.##", CultureInfo.InvariantCulture);
-
-                                    <article class="teacher-stat-chart__group" style="--chart-index: @index;">
-                                        <div class="teacher-stat-chart__bars" aria-hidden="true">
-                                            <span class="teacher-stat-chart__bar teacher-stat-chart__bar--students"
-                                                  data-height="@(enrollmentHeightStyle)rem">
-                                                <strong>@course.EnrolledStudents.ToString("N0", culture) học viên</strong>
-                                            </span>
-                                            <span class="teacher-stat-chart__bar teacher-stat-chart__bar--documents"
-                                                  data-height="@(documentHeightStyle)rem">
-                                                <strong>@course.DocumentCount.ToString("N0", culture) tài liệu</strong>
-                                            </span>
-                                            <span class="teacher-stat-chart__bar teacher-stat-chart__bar--chats"
-                                                  data-height="@(chatHeightStyle)rem">
-                                                <strong>@course.ChatMessageCount.ToString("N0", culture) lượt hỏi</strong>
-                                            </span>
-                                        </div>
-                                        <h3 title="@course.Title">@course.Title</h3>
-                                        <dl class="teacher-stat-chart__sr">
-                                            <dt>Học viên</dt>
-                                            <dd>@course.EnrolledStudents.ToString("N0", culture)</dd>
-                                            <dt>Tài liệu</dt>
-                                            <dd>@course.DocumentCount.ToString("N0", culture)</dd>
-                                            <dt>Lượt hỏi</dt>
-                                            <dd>@course.ChatMessageCount.ToString("N0", culture)</dd>
-                                        </dl>
-                                    </article>
-                                }
-                            </div>
-                        </div>
-
-                        <div class="teacher-stat-chart__cards" aria-label="Tóm tắt khóa học">
-                            @foreach (var course in report.Courses.OrderByDescending(course => course.ChatMessageCount).ThenByDescending(course => course.EnrolledStudents).Take(3))
+                        <div class="teacher-stat-chart__plot">
+                            @for (var index = 0; index < report.Courses.Count; index++)
                             {
-                                <article>
-                                    <span>@course.Title</span>
-                                    <strong>@course.ChatMessageCount.ToString("N0", culture)</strong>
-                                    <small>lượt hỏi</small>
+                                var course = report.Courses[index];
+                                var enrollmentHeight = course.EnrolledStudents == 0
+                                    ? minBarHeightRem
+                                    : Math.Max(lowValueBarHeightRem, Math.Round(course.EnrolledStudents * chartHeightRem / chartScale, 2));
+                                var documentHeight = course.DocumentCount == 0
+                                    ? minBarHeightRem
+                                    : Math.Max(lowValueBarHeightRem, Math.Round(course.DocumentCount * chartHeightRem / chartScale, 2));
+                                var chatHeight = course.ChatMessageCount == 0
+                                    ? minBarHeightRem
+                                    : Math.Max(lowValueBarHeightRem, Math.Round(course.ChatMessageCount * chartHeightRem / chartScale, 2));
+                                var enrollmentHeightStyle = enrollmentHeight.ToString("0.##", CultureInfo.InvariantCulture);
+                                var documentHeightStyle = documentHeight.ToString("0.##", CultureInfo.InvariantCulture);
+                                var chatHeightStyle = chatHeight.ToString("0.##", CultureInfo.InvariantCulture);
+
+                                <article class="teacher-stat-chart__group" style="--chart-index: @index;">
+                                    <div class="teacher-stat-chart__bars" aria-hidden="true">
+                                        <span class="teacher-stat-chart__bar teacher-stat-chart__bar--students"
+                                              data-height="@(enrollmentHeightStyle)rem">
+                                            <strong>@course.EnrolledStudents.ToString("N0", culture) học viên</strong>
+                                        </span>
+                                        <span class="teacher-stat-chart__bar teacher-stat-chart__bar--documents"
+                                              data-height="@(documentHeightStyle)rem">
+                                            <strong>@course.DocumentCount.ToString("N0", culture) tài liệu</strong>
+                                        </span>
+                                        <span class="teacher-stat-chart__bar teacher-stat-chart__bar--chats"
+                                              data-height="@(chatHeightStyle)rem">
+                                            <strong>@course.ChatMessageCount.ToString("N0", culture) lượt hỏi</strong>
+                                        </span>
+                                    </div>
+                                    <h3 title="@course.Title">@course.Title</h3>
+                                    <dl class="teacher-stat-chart__sr">
+                                        <dt>Học viên</dt>
+                                        <dd>@course.EnrolledStudents.ToString("N0", culture)</dd>
+                                        <dt>Tài liệu</dt>
+                                        <dd>@course.DocumentCount.ToString("N0", culture)</dd>
+                                        <dt>Lượt hỏi</dt>
+                                        <dd>@course.ChatMessageCount.ToString("N0", culture)</dd>
+                                    </dl>
                                 </article>
                             }
                         </div>
                     </div>
-                }
-            </div>
+
+                    <div class="teacher-stat-chart__cards" aria-label="Tóm tắt khóa học">
+                        @foreach (var course in report.Courses.OrderByDescending(course => course.ChatMessageCount).ThenByDescending(course => course.EnrolledStudents).Take(3))
+                        {
+                            <article>
+                                <span>@course.Title</span>
+                                <strong>@course.ChatMessageCount.ToString("N0", culture)</strong>
+                                <small>lượt hỏi</small>
+                            </article>
+                        }
+                    </div>
+                </div>
+            }
         </article>
     </section>
 
