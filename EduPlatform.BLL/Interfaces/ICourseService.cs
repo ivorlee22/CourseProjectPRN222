@@ -40,15 +40,29 @@ public interface ICourseService
         ActorContext actor,
         CancellationToken cancellationToken);
 
-    Task InviteAsync(
+    Task<Guid> InviteAsync(
         Guid id,
-        Guid userId,
+        string studentLookup,
         ActorContext actor,
         CancellationToken cancellationToken);
 
     Task RespondToInvitationAsync(
         Guid id,
         bool accept,
+        ActorContext actor,
+        CancellationToken cancellationToken);
+
+    Task CancelInvitationAsync(
+        Guid courseId,
+        Guid userId,
+        ActorContext actor,
+        CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<CourseInvitationDto>> GetPendingInvitationsAsync(
+        ActorContext actor,
+        CancellationToken cancellationToken);
+
+    Task<int> CountPendingInvitationsAsync(
         ActorContext actor,
         CancellationToken cancellationToken);
 

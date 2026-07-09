@@ -21,16 +21,26 @@ public sealed class UserRepository(AppDbContext dbContext) : IUserRepository
     }
 
     public async Task<(IReadOnlyList<User> Items, int TotalCount)> GetAllAsync(
+        string? keyword,
         int pageNumber,
         int pageSize,
         CancellationToken cancellationToken)
     {
         var query = dbContext.Users.AsNoTracking();
 
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            var pattern = $"%{keyword.Trim()}%";
+            query = query.Where(x =>
+                EF.Functions.ILike(x.FullName, pattern)
+                || EF.Functions.ILike(x.Email, pattern));
+        }
+
         var totalCount = await query.CountAsync(cancellationToken);
 
         var items = await query
-            .OrderBy(x => x.FullName)
+            .OrderBy(x => x.CreatedAtUtc)
+            .ThenBy(x => x.FullName)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);

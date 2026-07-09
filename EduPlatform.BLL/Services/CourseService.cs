@@ -25,10 +25,27 @@ public sealed class CourseService(
     {
         var pageNumber = Math.Max(1, query.PageNumber);
         var pageSize = Math.Clamp(query.PageSize, 1, MaximumPageSize);
-        Guid? ownerId = query.MineOnly
-            ? actor?.UserId
-                ?? throw new ForbiddenOperationException("Bạn cần đăng nhập để xem khóa học của mình.")
-            : null;
+        
+        Guid? ownerId = null;
+        Guid? enrolledUserId = null;
+        
+        if (query.MineOnly)
+        {
+            if (actor is null)
+            {
+                throw new ForbiddenOperationException("Bạn cần đăng nhập để xem khóa học của mình.");
+            }
+
+            if (actor.Role == EduPlatform.BLL.Enums.UserRole.Student)
+            {
+                enrolledUserId = actor.UserId;
+            }
+            else
+            {
+                ownerId = actor.UserId;
+            }
+        }
+        
         var visibleOnly = !query.IncludeHidden || actor is null || !actor.IsAdmin;
 
         if (query.MineOnly)
@@ -42,6 +59,7 @@ public sealed class CourseService(
             pageSize,
             visibleOnly,
             ownerId,
+            enrolledUserId,
             cancellationToken);
 
         return new PagedResult<CourseSummaryDto>(
@@ -58,20 +76,20 @@ public sealed class CourseService(
     {
         var course = await GetCourseAsync(id, cancellationToken);
 
+        var isEnrolled = actor is not null
+            && course.Enrollments.Any(x =>
+                x.UserId == actor.UserId
+                && x.Status == DalEnrollmentStatus.Active);
+
         if (!course.IsVisible && !CanManage(course, actor))
         {
-            var isEnrolled = actor is not null
-                && course.Enrollments.Any(x =>
-                    x.UserId == actor.UserId
-                    && x.Status == DalEnrollmentStatus.Active);
-
             if (!isEnrolled)
             {
                 throw new ResourceNotFoundException("Không tìm thấy khóa học.");
             }
         }
 
-        return MapDetails(course);
+        return MapDetails(course, isEnrolled);
     }
 
     public async Task<Guid> CreateAsync(
@@ -84,7 +102,7 @@ public sealed class CourseService(
 
         var course = new Course
         {
-            OwnerId = command.OwnerId,
+            OwnerId = command.OwnerId ?? actor.UserId,
             Title = command.Title.Trim(),
             Description = command.Description.Trim(),
             Type = ToDal(command.Type),
@@ -113,6 +131,11 @@ public sealed class CourseService(
         course.Description = command.Description.Trim();
         course.Type = ToDal(command.Type);
         course.IsVisible = command.IsVisible;
+
+        if (actor.IsAdmin && command.OwnerId.HasValue)
+        {
+            course.OwnerId = command.OwnerId.Value;
+        }
 
         if (command.Type == BllCourseType.Private && command.RemoveEnrollmentPassword)
         {
@@ -212,19 +235,35 @@ public sealed class CourseService(
         await courseRepository.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task InviteAsync(
+    public async Task<Guid> InviteAsync(
         Guid id,
-        Guid userId,
+        string studentLookup,
         ActorContext actor,
         CancellationToken cancellationToken)
     {
         var course = await GetCourseAsync(id, cancellationToken);
         EnsureCanManage(course, actor);
 
-        if (!await courseRepository.UserExistsAsync(userId, cancellationToken))
+        if (string.IsNullOrWhiteSpace(studentLookup))
         {
-            throw new ResourceNotFoundException("Không tìm thấy người dùng.");
+            throw new BusinessValidationException("Vui lòng nhập email hoặc tên học viên.");
         }
+
+        var students = await courseRepository.FindActiveStudentsByEmailOrNameAsync(
+            studentLookup,
+            cancellationToken);
+
+        if (students.Count == 0)
+        {
+            throw new ResourceNotFoundException("Không tìm thấy học viên theo email hoặc tên đã nhập.");
+        }
+
+        if (students.Count > 1)
+        {
+            throw new BusinessValidationException("Có nhiều học viên trùng tên. Vui lòng mời bằng email.");
+        }
+
+        var userId = students[0].Id;
 
         if (userId == course.OwnerId)
         {
@@ -253,6 +292,7 @@ public sealed class CourseService(
             cancellationToken);
 
         await courseRepository.SaveChangesAsync(cancellationToken);
+        return userId;
     }
 
     public async Task RespondToInvitationAsync(
@@ -277,6 +317,52 @@ public sealed class CourseService(
         enrollment.EnrolledAtUtc = accept ? timeProvider.GetUtcNow() : null;
 
         await courseRepository.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task CancelInvitationAsync(
+        Guid courseId,
+        Guid userId,
+        ActorContext actor,
+        CancellationToken cancellationToken)
+    {
+        var course = await GetCourseAsync(courseId, cancellationToken);
+        EnsureCanManage(course, actor);
+
+        var enrollment = await courseRepository.GetEnrollmentAsync(
+            courseId,
+            userId,
+            cancellationToken);
+
+        if (enrollment is null || enrollment.Status != DalEnrollmentStatus.Pending)
+        {
+            throw new ResourceNotFoundException("Không tìm thấy lời mời đang chờ.");
+        }
+
+        courseRepository.RemoveEnrollment(enrollment);
+        await courseRepository.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<CourseInvitationDto>> GetPendingInvitationsAsync(
+        ActorContext actor,
+        CancellationToken cancellationToken)
+    {
+        var invitations = await courseRepository.GetPendingInvitationsAsync(
+            actor.UserId,
+            cancellationToken);
+
+        return invitations
+            .Select(x => new CourseInvitationDto(
+                x.CourseId,
+                x.CourseTitle,
+                x.InviterName))
+            .ToArray();
+    }
+
+    public Task<int> CountPendingInvitationsAsync(
+        ActorContext actor,
+        CancellationToken cancellationToken)
+    {
+        return courseRepository.CountPendingInvitationsAsync(actor.UserId, cancellationToken);
     }
 
     public async Task<IReadOnlyList<CourseStudentDto>> GetStudentsAsync(
@@ -315,11 +401,12 @@ public sealed class CourseService(
             course.IsVisible,
             course.OwnerId,
             course.Owner.FullName,
+            ToBll(course.Owner.Role),
             course.Enrollments.Count(x => x.Status == DalEnrollmentStatus.Active),
             course.CreatedAtUtc);
     }
 
-    private static CourseDetailsDto MapDetails(Course course)
+    private static CourseDetailsDto MapDetails(Course course, bool isEnrolled)
     {
         return new CourseDetailsDto(
             course.Id,
@@ -330,9 +417,11 @@ public sealed class CourseService(
             course.EnrollmentPasswordHash is not null,
             course.OwnerId,
             course.Owner.FullName,
+            ToBll(course.Owner.Role),
             course.Enrollments.Count(x => x.Status == DalEnrollmentStatus.Active),
             course.CreatedAtUtc,
-            course.UpdatedAtUtc);
+            course.UpdatedAtUtc,
+            isEnrolled);
     }
 
     private static void ValidateCourse(
@@ -448,6 +537,17 @@ public sealed class CourseService(
             DalCourseType.Public => BllCourseType.Public,
             DalCourseType.Private => BllCourseType.Private,
             _ => throw new InvalidOperationException("Unsupported persisted course type.")
+        };
+    }
+
+    private static BllUserRole ToBll(UserRole role)
+    {
+        return role switch
+        {
+            UserRole.Student => BllUserRole.Student,
+            UserRole.Teacher => BllUserRole.Teacher,
+            UserRole.Admin => BllUserRole.Admin,
+            _ => throw new InvalidOperationException("Unsupported persisted user role.")
         };
     }
 

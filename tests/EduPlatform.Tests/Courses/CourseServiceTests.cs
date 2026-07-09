@@ -8,6 +8,7 @@ using BllCourseType = EduPlatform.BLL.Enums.CourseType;
 using BllUserRole = EduPlatform.BLL.Enums.UserRole;
 using DalCourseType = EduPlatform.DAL.Entities.CourseType;
 using DalEnrollmentStatus = EduPlatform.DAL.Entities.EnrollmentStatus;
+using DalUserRole = EduPlatform.DAL.Entities.UserRole;
 
 namespace EduPlatform.Tests.Courses;
 
@@ -47,6 +48,24 @@ public sealed class CourseServiceTests
         Assert.AreEqual(DalCourseType.Public, course.Type);
         Assert.IsNull(course.EnrollmentPasswordHash);
         Assert.AreEqual(1, _repository.SaveChangesCallCount);
+    }
+
+    [TestMethod]
+    public async Task CreateAsync_WithoutTeacher_UsesAdminAsTemporaryOwner()
+    {
+        var adminActor = new ActorContext(Guid.Parse("20000000-0000-0000-0000-000000000099"), BllUserRole.Admin);
+        var command = new CreateCourseCommand(
+            "C# basics",
+            "Introductory C# course content.",
+            BllCourseType.Public,
+            IsVisible: true,
+            EnrollmentPassword: null,
+            OwnerId: null);
+
+        await _service.CreateAsync(command, adminActor, CancellationToken.None);
+
+        var course = Assert.ContainsSingle(_repository.Courses);
+        Assert.AreEqual(adminActor.UserId, course.OwnerId);
     }
 
     [TestMethod]
@@ -231,6 +250,131 @@ public sealed class CourseServiceTests
     }
 
     [TestMethod]
+    public async Task InviteAsync_EmailLookup_AddsPendingEnrollment()
+    {
+        var course = CreateCourse();
+        _repository.Courses.Add(course);
+        _repository.Users.Add(new User
+        {
+            Id = StudentId,
+            FullName = "Demo Student",
+            Email = "student@example.test",
+            NormalizedEmail = "STUDENT@EXAMPLE.TEST",
+            Role = DalUserRole.Student,
+            IsActive = true
+        });
+
+        await _service.InviteAsync(
+            course.Id,
+            "student@example.test",
+            new ActorContext(OwnerId, BllUserRole.Teacher),
+            CancellationToken.None);
+
+        var enrollment = Assert.ContainsSingle(_repository.Enrollments);
+        Assert.AreEqual(StudentId, enrollment.UserId);
+        Assert.AreEqual(DalEnrollmentStatus.Pending, enrollment.Status);
+    }
+
+    [TestMethod]
+    public async Task InviteAsync_DuplicateName_ThrowsValidation()
+    {
+        var course = CreateCourse();
+        _repository.Courses.Add(course);
+        _repository.Users.Add(new User
+        {
+            Id = Guid.NewGuid(),
+            FullName = "Demo Student",
+            Email = "one@example.test",
+            NormalizedEmail = "ONE@EXAMPLE.TEST",
+            Role = DalUserRole.Student,
+            IsActive = true
+        });
+        _repository.Users.Add(new User
+        {
+            Id = Guid.NewGuid(),
+            FullName = "Demo Student",
+            Email = "two@example.test",
+            NormalizedEmail = "TWO@EXAMPLE.TEST",
+            Role = DalUserRole.Student,
+            IsActive = true
+        });
+
+        await Assert.ThrowsExactlyAsync<BusinessValidationException>(
+            async () => await _service.InviteAsync(
+                course.Id,
+                "Demo Student",
+                new ActorContext(OwnerId, BllUserRole.Teacher),
+                CancellationToken.None));
+
+        Assert.IsEmpty(_repository.Enrollments);
+    }
+    [TestMethod]
+    public async Task CancelInvitationAsync_ValidInvitation_RemovesEnrollment()
+    {
+        var course = CreateCourse();
+        _repository.Courses.Add(course);
+        _repository.Enrollments.Add(new CourseEnrollment
+        {
+            CourseId = course.Id,
+            UserId = StudentId,
+            Status = DalEnrollmentStatus.Pending,
+            InvitedById = OwnerId
+        });
+
+        await _service.CancelInvitationAsync(
+            course.Id,
+            StudentId,
+            new ActorContext(OwnerId, BllUserRole.Teacher),
+            CancellationToken.None);
+
+        Assert.IsEmpty(_repository.Enrollments);
+        Assert.AreEqual(1, _repository.SaveChangesCallCount);
+    }
+
+    [TestMethod]
+    public async Task CancelInvitationAsync_NonPendingInvitation_ThrowsNotFound()
+    {
+        var course = CreateCourse();
+        _repository.Courses.Add(course);
+        _repository.Enrollments.Add(new CourseEnrollment
+        {
+            CourseId = course.Id,
+            UserId = StudentId,
+            Status = DalEnrollmentStatus.Active
+        });
+
+        await Assert.ThrowsExactlyAsync<ResourceNotFoundException>(
+            async () => await _service.CancelInvitationAsync(
+                course.Id,
+                StudentId,
+                new ActorContext(OwnerId, BllUserRole.Teacher),
+                CancellationToken.None));
+    }
+
+    [TestMethod]
+    public async Task CancelInvitationAsync_NotAuthorized_ThrowsForbidden()
+    {
+        var course = CreateCourse();
+        _repository.Courses.Add(course);
+        _repository.Enrollments.Add(new CourseEnrollment
+        {
+            CourseId = course.Id,
+            UserId = StudentId,
+            Status = DalEnrollmentStatus.Pending,
+            InvitedById = OwnerId
+        });
+
+        var anotherTeacher = Guid.NewGuid();
+
+        await Assert.ThrowsExactlyAsync<ForbiddenOperationException>(
+            async () => await _service.CancelInvitationAsync(
+                course.Id,
+                StudentId,
+                new ActorContext(anotherTeacher, BllUserRole.Teacher),
+                CancellationToken.None));
+    }
+
+    [TestMethod]
     public async Task SearchAsync_AnonymousUser_RequestsVisibleCoursesOnly()
     {
         _repository.Courses.Add(CreateCourse());
@@ -274,6 +418,8 @@ public sealed class CourseServiceTests
 
         public List<CourseEnrollment> Enrollments { get; } = [];
 
+        public List<User> Users { get; } = [];
+
         public int SaveChangesCallCount { get; private set; }
 
         public bool LastVisibleOnly { get; private set; }
@@ -289,12 +435,15 @@ public sealed class CourseServiceTests
             int pageSize,
             bool visibleOnly,
             Guid? ownerId,
+            Guid? enrolledUserId,
             CancellationToken cancellationToken)
         {
             LastVisibleOnly = visibleOnly;
             var items = Courses
                 .Where(x => !visibleOnly || x.IsVisible)
                 .Where(x => !ownerId.HasValue || x.OwnerId == ownerId.Value)
+                .Where(x => !enrolledUserId.HasValue || x.Enrollments.Any(
+                    e => e.UserId == enrolledUserId.Value && e.Status == DalEnrollmentStatus.Active))
                 .ToArray();
             return Task.FromResult<(IReadOnlyList<Course>, int)>((items, items.Length));
         }
@@ -309,6 +458,21 @@ public sealed class CourseServiceTests
             return Task.FromResult(true);
         }
 
+        public Task<IReadOnlyList<User>> FindActiveStudentsByEmailOrNameAsync(
+            string lookup,
+            CancellationToken cancellationToken)
+        {
+            var normalizedLookup = lookup.Trim().ToUpperInvariant();
+            var nameLookup = lookup.Trim();
+            var users = Users
+                .Where(x =>
+                    x.IsActive
+                    && x.Role == DalUserRole.Student
+                    && (x.NormalizedEmail == normalizedLookup || x.FullName == nameLookup))
+                .ToArray();
+            return Task.FromResult<IReadOnlyList<User>>(users);
+        }
+
         public Task<CourseEnrollment?> GetEnrollmentAsync(
             Guid courseId,
             Guid userId,
@@ -316,6 +480,33 @@ public sealed class CourseServiceTests
         {
             return Task.FromResult(Enrollments.SingleOrDefault(
                 x => x.CourseId == courseId && x.UserId == userId));
+        }
+
+        public Task<IReadOnlyList<PendingCourseInvitation>> GetPendingInvitationsAsync(
+            Guid userId,
+            CancellationToken cancellationToken)
+        {
+            var items = Enrollments
+                .Where(x =>
+                    x.UserId == userId
+                    && x.Status == DalEnrollmentStatus.Pending
+                    && x.InvitedById != null)
+                .Select(x => new PendingCourseInvitation(
+                    x.CourseId,
+                    Courses.FirstOrDefault(c => c.Id == x.CourseId)?.Title ?? string.Empty,
+                    "Quan tri vien"))
+                .ToArray();
+            return Task.FromResult<IReadOnlyList<PendingCourseInvitation>>(items);
+        }
+
+        public Task<int> CountPendingInvitationsAsync(
+            Guid userId,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(Enrollments.Count(x =>
+                x.UserId == userId
+                && x.Status == DalEnrollmentStatus.Pending
+                && x.InvitedById != null));
         }
 
         public Task<IReadOnlyList<CourseEnrollment>> GetStudentsAsync(
@@ -343,6 +534,11 @@ public sealed class CourseServiceTests
         public void Remove(Course course)
         {
             Courses.Remove(course);
+        }
+
+        public void RemoveEnrollment(CourseEnrollment enrollment)
+        {
+            Enrollments.Remove(enrollment);
         }
 
         public Task<int> SaveChangesAsync(CancellationToken cancellationToken)

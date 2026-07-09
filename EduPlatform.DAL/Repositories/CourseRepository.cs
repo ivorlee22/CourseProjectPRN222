@@ -21,6 +21,7 @@ public sealed class CourseRepository(AppDbContext dbContext) : ICourseRepository
         int pageSize,
         bool visibleOnly,
         Guid? ownerId,
+        Guid? enrolledUserId,
         CancellationToken cancellationToken)
     {
         var baseQuery = dbContext.Courses.AsNoTracking();
@@ -35,6 +36,14 @@ public sealed class CourseRepository(AppDbContext dbContext) : ICourseRepository
             baseQuery = baseQuery.Where(x => x.OwnerId == ownerId.Value);
         }
 
+        if (enrolledUserId.HasValue)
+        {
+            // Filter courses where the user has an Active enrollment.
+            // Uses FK via Enrollments collection — no nav property needed on enrollment.
+            baseQuery = baseQuery.Where(x => x.Enrollments.Any(
+                e => e.UserId == enrolledUserId.Value && e.Status == EnrollmentStatus.Active));
+        }
+
         if (!string.IsNullOrWhiteSpace(keyword))
         {
             var pattern = $"%{keyword.Trim()}%";
@@ -44,7 +53,7 @@ public sealed class CourseRepository(AppDbContext dbContext) : ICourseRepository
         }
 
         var totalCount = await baseQuery.CountAsync(cancellationToken);
-        
+
         var items = await baseQuery
             .Include(x => x.Owner)
             .Include(x => x.Enrollments)
@@ -65,6 +74,58 @@ public sealed class CourseRepository(AppDbContext dbContext) : ICourseRepository
     public Task<bool> UserExistsAsync(Guid userId, CancellationToken cancellationToken)
     {
         return dbContext.Users.AnyAsync(x => x.Id == userId && x.IsActive, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<User>> FindActiveStudentsByEmailOrNameAsync(
+        string lookup,
+        CancellationToken cancellationToken)
+    {
+        var normalizedLookup = lookup.Trim().ToUpperInvariant();
+        var nameLookup = lookup.Trim();
+
+        return await dbContext.Users
+            .AsNoTracking()
+            .Where(x =>
+                x.IsActive
+                && x.Role == UserRole.Student
+                && (x.NormalizedEmail == normalizedLookup || x.FullName == nameLookup))
+            .OrderBy(x => x.Email)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<PendingCourseInvitation>> GetPendingInvitationsAsync(
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        // Use a LINQ join to retrieve inviter name without a navigation property on
+        // CourseEnrollment. InvitedById is a raw FK — we join Users directly.
+        var results = await (
+            from enrollment in dbContext.CourseEnrollments.AsNoTracking()
+            join course in dbContext.Courses on enrollment.CourseId equals course.Id
+            join inviter in dbContext.Users on enrollment.InvitedById equals inviter.Id into inviterGroup
+            from inviter in inviterGroup.DefaultIfEmpty()
+            where enrollment.UserId == userId
+                && enrollment.Status == EnrollmentStatus.Pending
+                && enrollment.InvitedById != null
+            orderby course.CreatedAtUtc descending
+            select new PendingCourseInvitation(
+                enrollment.CourseId,
+                course.Title,
+                inviter != null ? inviter.FullName : "Quan tri vien")
+        ).ToListAsync(cancellationToken);
+
+        return results;
+    }
+
+    public Task<int> CountPendingInvitationsAsync(
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        return dbContext.CourseEnrollments.CountAsync(
+            x => x.UserId == userId
+                 && x.Status == EnrollmentStatus.Pending
+                 && x.InvitedById != null,
+            cancellationToken);
     }
 
     public Task<CourseEnrollment?> GetEnrollmentAsync(
@@ -105,6 +166,11 @@ public sealed class CourseRepository(AppDbContext dbContext) : ICourseRepository
     public void Remove(Course course)
     {
         dbContext.Courses.Remove(course);
+    }
+
+    public void RemoveEnrollment(CourseEnrollment enrollment)
+    {
+        dbContext.CourseEnrollments.Remove(enrollment);
     }
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken)

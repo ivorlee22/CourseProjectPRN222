@@ -24,7 +24,7 @@
         <h1>@Model.Course.Title</h1>
         <p class="lead">@Model.Course.Description</p>
         <div class="course-meta mt-4">
-            <span>Giảng viên: @Model.Course.OwnerName</span>
+            <span>Giảng viên: @(Model.Course.OwnerRole == UserRole.Teacher ? Model.Course.OwnerName : "Chưa chọn giáo viên")</span>
             <span>@Model.Course.EnrollmentCount học viên</span>
         </div>
     </div>
@@ -41,10 +41,13 @@
                asp-controller="Document" asp-action="Index" asp-route-courseId="@Model.Course.Id">
                 Tài liệu
             </a>
-            <a class="btn btn-outline-primary"
-               asp-controller="Chat" asp-action="Index" asp-route-courseId="@Model.Course.Id">
-                Hỏi từ tài liệu
-            </a>
+            @if (!User.IsInRole("Admin"))
+            {
+                <a class="btn btn-outline-primary"
+                   asp-controller="Chat" asp-action="Index" asp-route-courseId="@Model.Course.Id">
+                    Hỏi từ tài liệu
+                </a>
+            }
             <form asp-action="SetVisibility" asp-route-id="@Model.Course.Id" method="post">
                 <input type="hidden" name="isVisible" value="@(!Model.Course.IsVisible).ToString().ToLowerInvariant()" />
                 <button class="btn btn-outline-secondary" type="submit">
@@ -59,27 +62,41 @@
     }
     else if (Model.IsAuthenticated)
     {
-        <form asp-action="Enroll" asp-route-id="@Model.Course.Id" method="post"
-              class="enroll-form">
-            @if (Model.Course.RequiresEnrollmentPassword)
-            {
-                <div>
-                    <label class="form-label" for="enrollmentPassword">Mật khẩu tham gia</label>
-                    <input class="form-control" id="enrollmentPassword"
-                           name="EnrollmentPassword" type="password"
-                           autocomplete="current-password" required />
-                </div>
-            }
-            <button class="btn btn-primary" type="submit">Tham gia khóa học</button>
-            <a class="btn btn-outline-primary"
-               asp-controller="Document" asp-action="Index" asp-route-courseId="@Model.Course.Id">
-                Xem tài liệu
-            </a>
-            <a class="btn btn-outline-primary"
-               asp-controller="Chat" asp-action="Index" asp-route-courseId="@Model.Course.Id">
-                Mở trợ lý học tập
-            </a>
-        </form>
+        @if (!Model.Course.IsEnrolled)
+        {
+            <form asp-action="Enroll" asp-route-id="@Model.Course.Id" method="post"
+                  class="enroll-form d-flex flex-wrap gap-3 align-items-end mb-4">
+                @if (Model.Course.RequiresEnrollmentPassword)
+                {
+                    <div>
+                        <label class="form-label" for="enrollmentPassword">Mật khẩu tham gia</label>
+                        <div class="input-group">
+                            <input class="form-control" id="enrollmentPassword"
+                                   name="EnrollmentPassword" type="password"
+                                   autocomplete="current-password" required style="max-width: 200px;" />
+                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#enrollmentPassword">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                }
+                <button class="btn btn-primary" type="submit">Tham gia khóa học</button>
+            </form>
+        }
+
+        @if (Model.CanViewDocuments)
+        {
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-outline-primary"
+                   asp-controller="Document" asp-action="Index" asp-route-courseId="@Model.Course.Id">
+                    Xem tài liệu
+                </a>
+                <a class="btn btn-outline-primary"
+                   asp-controller="Chat" asp-action="Index" asp-route-courseId="@Model.Course.Id">
+                    Mở trợ lý học tập
+                </a>
+            </div>
+        }
     }
     else
     {

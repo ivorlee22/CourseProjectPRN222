@@ -21,7 +21,7 @@
 
             <div class="mb-4">
                 <label asp-for="Role" class="form-label fw-semibold"></label>
-                <select asp-for="Role" class="form-select" asp-items="@(Html.GetEnumSelectList<UserRole>().Where(x => x.Text != "Admin"))"></select>
+                <select asp-for="Role" class="form-select" asp-items="@(Html.GetEnumSelectList<UserRole>())"></select>
                 <span asp-validation-for="Role" class="text-danger small"></span>
             </div>
 

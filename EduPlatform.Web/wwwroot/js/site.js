@@ -7,19 +7,22 @@ document.querySelectorAll("form[data-confirm]").forEach((form) => {
   });
 });
 
-const courseType = document.querySelector("#courseType");
-const passwordField = document.querySelector("#coursePasswordField");
-
-function updatePasswordVisibility() {
-  if (!courseType || !passwordField) {
-    return;
+// Password visibility toggle
+document.addEventListener('click', function (e) {
+  if (e.target.closest('.toggle-password')) {
+    const btn = e.target.closest('.toggle-password');
+    const input = document.querySelector(btn.dataset.target);
+    if (input) {
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.innerHTML = '<i class="bi bi-eye-slash"></i>';
+      } else {
+        input.type = 'password';
+        btn.innerHTML = '<i class="bi bi-eye"></i>';
+      }
+    }
   }
-
-  passwordField.hidden = courseType.value !== "Private";
-}
-
-courseType?.addEventListener("change", updatePasswordVisibility);
-updatePasswordVisibility();
+});
 
 // Initialize Toasts
 document.addEventListener("DOMContentLoaded", function () {

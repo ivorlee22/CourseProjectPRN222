@@ -9,6 +9,7 @@ public interface IUserRepository
     Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 
     Task<(IReadOnlyList<User> Items, int TotalCount)> GetAllAsync(
+        string? keyword,
         int pageNumber,
         int pageSize,
         CancellationToken cancellationToken);

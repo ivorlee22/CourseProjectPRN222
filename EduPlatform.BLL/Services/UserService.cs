@@ -85,11 +85,6 @@ public sealed class UserService(
     {
         EnsureIsAdmin(actor);
 
-        if (command.Role == BllUserRole.Admin)
-        {
-            throw new BusinessValidationException("Hệ thống chỉ cho phép duy nhất 1 Quản trị viên.");
-        }
-
         ValidateFullName(command.FullName);
         ValidateEmail(command.Email);
         ValidatePassword(command.Password);
@@ -128,6 +123,7 @@ public sealed class UserService(
     }
 
     public async Task<PagedResult<UserSummaryDto>> GetAllAsync(
+        string? keyword,
         int pageNumber,
         int pageSize,
         CancellationToken cancellationToken)
@@ -135,7 +131,7 @@ public sealed class UserService(
         var page = Math.Max(1, pageNumber);
         var size = Math.Clamp(pageSize, 1, MaximumPageSize);
 
-        var result = await userRepository.GetAllAsync(page, size, cancellationToken);
+        var result = await userRepository.GetAllAsync(keyword, page, size, cancellationToken);
 
         return new PagedResult<UserSummaryDto>(
             result.Items.Select(MapSummary).ToArray(),
@@ -160,11 +156,6 @@ public sealed class UserService(
         CancellationToken cancellationToken)
     {
         EnsureIsAdmin(actor);
-
-        if (command.NewRole == BllUserRole.Admin)
-        {
-            throw new BusinessValidationException("Hệ thống chỉ cho phép duy nhất 1 Quản trị viên.");
-        }
 
         if (command.UserId == actor.UserId)
         {

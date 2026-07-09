@@ -13,8 +13,9 @@
         <div class="mb-4">
             <label asp-for="OwnerId" class="form-label fw-semibold"></label>
             <select asp-for="OwnerId" class="form-select" asp-items="ViewBag.Teachers">
-                <option value="">-- Chọn Giáo viên phụ trách --</option>
+                <option value="">Chưa chọn giáo viên</option>
             </select>
+            <div class="form-text">Có thể gán giáo viên sau khi tạo khóa học.</div>
             <span asp-validation-for="OwnerId" class="text-danger small"></span>
         </div>
         <partial name="_CourseForm" model="Model" />

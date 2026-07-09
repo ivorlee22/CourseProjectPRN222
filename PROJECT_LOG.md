@@ -66,6 +66,74 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-09 - Admin search, course realtime, and student document access
+
+**Owner**
+
+- Admin/User, Course, and Document access scope (implemented by Codex).
+
+**Completed**
+
+- Added keyword search to Admin user management, filtering accounts by full name or email while preserving oldest-account-first ordering.
+- Synchronized visible Admin subscription UI labels to Vietnamese, including replacing mixed "Subscriptions" copy with "Đăng ký gói" / "Quản lý đăng ký gói".
+- Removed the global header shortcut for course creation so "Tạo khóa học" lives in the Course screen flow.
+- Added `CourseHub`, course list fragment rendering, and `course-live.js` so Course create/update/delete/visibility changes broadcast through SignalR and refresh open Teacher/Student/Admin course lists without manual reload.
+- Updated document access rules so authenticated students can view/download documents for visible public courses, while hidden courses and password/private courses still require allowed access.
+- Added document access regression tests for visible public, visible private, and hidden public course cases.
+
+**UI/UX**
+
+- Design Read: Admin/product workflow needs fast table scanning, clear form controls, and minimal decoration.
+- Dials: `DESIGN_VARIANCE 3`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 8`.
+- Local `taste-skill/skills/taste-skill/SKILL.md` was not available, so shared Bootstrap/MVC product workflow rules were applied.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 80 succeeded, 1 skipped live Gemini credential test.
+- `node --check .\EduPlatform.Web\wwwroot\js\course-live.js` passed.
+
+**Remaining / Blockers**
+
+- No database migration required.
+- SignalR refresh applies to users currently viewing the rendered Course list pages; disconnected clients receive the updated list on normal navigation.
+
+### 2026-07-09 - Admin role and course workflow fixes
+
+**Owner**
+
+- Admin/User and Course scope (implemented by Codex).
+
+**Completed**
+
+- Allowed Admin user creation and role updates to assign the Admin role from both BLL validation and Admin Razor views.
+- Kept safeguards for admins changing or disabling their own account and surfaced those errors cleanly in Admin UI.
+- Sorted Admin user list by oldest account first using `CreatedAtUtc`.
+- Allowed course creation without selecting a teacher by making `OwnerId` optional and temporarily assigning the creating Admin as owner.
+- Added Admin course edit support for assigning or changing the teacher later.
+- Changed course invitation from user ID input to email or student name lookup, with duplicate-name protection that asks the admin to use email.
+- Hid and blocked "Hỏi từ tài liệu" access for Admin in MVC Chat routes and SignalR streaming.
+- Added CourseService regression tests for creating without a teacher and inviting by email/name.
+
+**UI/UX**
+
+- Design Read: Admin/product workflow needs fast table scanning, clear form controls, and minimal decoration.
+- Dials: `DESIGN_VARIANCE 3`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 8`.
+- Local `taste-skill/skills/taste-skill/SKILL.md` was not available, so the shared MVC/Bootstrap Admin workflow rules were applied.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 77 succeeded, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+
+**Remaining**
+
+- No database migration was needed because optional teacher creation is implemented by temporarily assigning the Admin owner until a teacher is selected.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-09 - Account creation email notification
 
 **Owner**

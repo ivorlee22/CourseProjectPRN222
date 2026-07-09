@@ -87,6 +87,7 @@ public sealed class UserServiceEmailTests
         }
 
         public Task<(IReadOnlyList<User> Items, int TotalCount)> GetAllAsync(
+            string? keyword,
             int pageNumber,
             int pageSize,
             CancellationToken cancellationToken)

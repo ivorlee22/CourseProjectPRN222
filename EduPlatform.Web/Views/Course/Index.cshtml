@@ -7,7 +7,7 @@
     <div>
         <p class="section-label">Không gian học tập</p>
         <h1>@ViewData["Title"]</h1>
-        <p class="text-secondary mb-0">@Model.TotalCount khóa học</p>
+        <p class="text-secondary mb-0"><span data-course-total>@Model.TotalCount</span> khóa học</p>
     </div>
     @if (User.IsInRole("Admin"))
     {
@@ -20,63 +20,18 @@
     <form class="search-bar" method="get" asp-action="Index" role="search">
         <label class="visually-hidden" for="courseKeyword">Tìm khóa học</label>
         <input id="courseKeyword" class="form-control" type="search" name="keyword" value="@Model.Keyword"
-            placeholder="Tìm theo tên hoặc mô tả" />
+               placeholder="Tìm theo tên hoặc mô tả" />
         <button class="btn btn-primary" type="submit">Tìm kiếm</button>
     </form>
 }
 
-@if (Model.Courses.Count == 0)
-{
-    <section class="empty-state">
-        <h2>Chưa có khóa học phù hợp</h2>
-        <p>Thử từ khóa khác hoặc tạo khóa học mới để bắt đầu.</p>
-        @if (User.IsInRole("Admin"))
-        {
-            <a class="btn btn-primary" asp-action="Create">Tạo khóa học</a>
-        }
-    </section>
-}
-else
-{
-    <div class="course-grid">
-        @foreach (var course in Model.Courses)
-        {
-            <article class="course-card">
-                <div class="d-flex justify-content-between align-items-start gap-3">
-                    <span class="course-type">@(
-                course.Type == CourseType.Private ? "Riêng tư" : "Công khai"
-                )</span>
-                    @if (!course.IsVisible)
-                    {
-                        <span class="badge text-bg-secondary">Đang ẩn</span>
-                    }
-                </div>
-                <h2>
-                    <a asp-action="Details" asp-route-id="@course.Id">@course.Title</a>
-                </h2>
-                <p class="course-description">@course.Description</p>
-                <div class="course-meta">
-                    <span>@course.OwnerName</span>
-                    <span>@course.EnrollmentCount học viên</span>
-                </div>
-            </article>
-        }
-    </div>
-}
+<div id="course-list-region"
+     data-course-live
+     data-course-list-url="@Url.Action("ListFragment", "Course", new { keyword = Model.Keyword, page = Model.PageNumber, mineOnly = Model.MineOnly })">
+    <partial name="_CourseList" model="Model" />
+</div>
 
-@if (Model.TotalPages > 1)
-{
-    <nav class="mt-5" aria-label="Phân trang khóa học">
-        <ul class="pagination justify-content-center">
-            @for (var pageNumber = 1; pageNumber <= Model.TotalPages; pageNumber++)
-            {
-                <li class="page-item @(pageNumber == Model.PageNumber ? "active" : null)">
-                    <a class="page-link" asp-action="@(Model.MineOnly ? "Mine" : "Index")" asp-route-page="@pageNumber"
-                        asp-route-keyword="@Model.Keyword" aria-current="@(pageNumber == Model.PageNumber ? "page" : null)">
-                        @pageNumber
-                    </a>
-                </li>
-            }
-        </ul>
-    </nav>
+@section Scripts {
+    <script src="~/lib/signalr/signalr.min.js"></script>
+    <script src="~/js/course-live.js" asp-append-version="true"></script>
 }

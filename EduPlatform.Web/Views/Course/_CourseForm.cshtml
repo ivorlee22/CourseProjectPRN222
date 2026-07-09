@@ -24,8 +24,13 @@
     </div>
     <div class="col-md-6" id="coursePasswordField">
         <label asp-for="EnrollmentPassword" class="form-label"></label>
-        <input asp-for="EnrollmentPassword" class="form-control"
-               autocomplete="new-password" />
+        <div class="input-group">
+            <input asp-for="EnrollmentPassword" class="form-control"
+                   autocomplete="new-password" id="EnrollmentPassword" />
+            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#EnrollmentPassword">
+                <i class="bi bi-eye"></i>
+            </button>
+        </div>
         @if (Model.HasExistingPassword)
         {
             <div class="form-text">Để trống nếu muốn giữ mật khẩu hiện tại.</div>

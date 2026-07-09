@@ -5,4 +5,5 @@ namespace EduPlatform.Web.ViewModels.Courses;
 public sealed record CourseDetailsViewModel(
     CourseDetailsDto Course,
     bool CanManage,
-    bool IsAuthenticated);
+    bool IsAuthenticated,
+    bool CanViewDocuments);

@@ -25,6 +25,12 @@ public sealed class ChatController(
         }
 
         var actor = User.GetRequiredActor();
+        if (actor.IsAdmin)
+        {
+            TempData["ErrorMessage"] = "Admin không cần hỏi từ tài liệu.";
+            return RedirectToAction("Details", "Course", new { id = courseId });
+        }
+
         var sessions = await chatService.GetSessionsAsync(
             courseId,
             actor,
@@ -66,6 +72,12 @@ public sealed class ChatController(
         Guid courseId,
         CancellationToken cancellationToken)
     {
+        if (User.GetRequiredActor().IsAdmin)
+        {
+            TempData["ErrorMessage"] = "Admin không cần hỏi từ tài liệu.";
+            return RedirectToAction("Details", "Course", new { id = courseId });
+        }
+
         try
         {
             var sessionId = await chatService.CreateSessionAsync(
@@ -87,6 +99,11 @@ public sealed class ChatController(
         ChatMessageInputViewModel input,
         CancellationToken cancellationToken)
     {
+        if (User.GetRequiredActor().IsAdmin)
+        {
+            return Forbid();
+        }
+
         var session = await chatService.GetSessionAsync(
             sessionId,
             User.GetRequiredActor(),
@@ -123,6 +140,11 @@ public sealed class ChatController(
         Guid sessionId,
         CancellationToken cancellationToken)
     {
+        if (User.GetRequiredActor().IsAdmin)
+        {
+            return Forbid();
+        }
+
         var session = await chatService.GetSessionAsync(
             sessionId,
             User.GetRequiredActor(),
