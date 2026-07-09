@@ -2,6 +2,7 @@ using System.Globalization;
 using EduPlatform.BLL.DTOs.Reports;
 using EduPlatform.BLL.Enums;
 using EduPlatform.BLL.Interfaces;
+using EduPlatform.Web.Security;
 using EduPlatform.Web.ViewModels.Reports;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,9 +10,10 @@ using OfficeOpenXml;
 
 namespace EduPlatform.Web.Controllers;
 
-[Authorize(Roles = "Admin")]
+[Authorize]
 public sealed class ReportsController(IReportService reportService) : Controller
 {
+    [Authorize(Roles = "Admin")]
     [HttpGet]
     public async Task<IActionResult> Revenue(
         DateOnly? startDate,
@@ -34,6 +36,7 @@ public sealed class ReportsController(IReportService reportService) : Controller
         });
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpGet]
     public async Task<IActionResult> UserAnalytics(
         DateOnly? startDate,
@@ -56,6 +59,20 @@ public sealed class ReportsController(IReportService reportService) : Controller
         });
     }
 
+    [Authorize(Roles = "Teacher")]
+    [HttpGet]
+    public async Task<IActionResult> TeacherStatistics(CancellationToken cancellationToken)
+    {
+        var actor = User.GetRequiredActor();
+        var report = await reportService.GetTeacherStatisticsAsync(actor.UserId, cancellationToken);
+
+        return View(new TeacherStatisticsViewModel
+        {
+            Report = report
+        });
+    }
+
+    [Authorize(Roles = "Admin")]
     [HttpGet]
     public async Task<IActionResult> ExportRevenue(
         DateOnly? startDate,

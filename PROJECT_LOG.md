@@ -66,6 +66,38 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-09 - Task 40 Teacher Statistics
+
+**Owner**
+
+- Bảo report scope (implemented by Codex).
+
+**Design Read**
+
+- Teacher statistics is a product dashboard for quick course health checks, so the UI prioritizes readable totals, per-course comparison, and a compact table.
+- Dials: design variance low-medium, motion intensity light, visual density medium.
+
+**Completed**
+
+- Added Teacher-only `/Reports/TeacherStatistics` backed by `IReportService.GetTeacherStatisticsAsync` for the signed-in teacher.
+- Added summary cards for total courses, enrolled students, document readiness, and chat usage.
+- Added Chart.js bar chart comparing enrollments, documents, and chat messages by course.
+- Added per-course detail table for enrolled students, documents, ready documents, chat sessions, and chat messages.
+- Added Teacher navigation links for "Khóa học của tôi" and "Thống kê".
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+
+**Remaining**
+
+- Task 41 Student Usage Report and Task 44 Chat UI Polish remain separate branches.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-09 - Task 39 User Analytics
 
 **Owner**

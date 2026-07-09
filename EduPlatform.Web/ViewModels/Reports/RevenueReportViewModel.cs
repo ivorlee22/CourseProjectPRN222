@@ -24,3 +24,8 @@ public sealed class UserAnalyticsViewModel
 
     public ReportPeriodGrouping Grouping { get; set; } = ReportPeriodGrouping.Day;
 }
+
+public sealed class TeacherStatisticsViewModel
+{
+    public TeacherStatisticsReportDto Report { get; set; } = null!;
+}

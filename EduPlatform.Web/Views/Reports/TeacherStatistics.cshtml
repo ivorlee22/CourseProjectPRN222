@@ -1,0 +1,191 @@
+@using System.Globalization
+@using System.Text.Json
+@model EduPlatform.Web.ViewModels.Reports.TeacherStatisticsViewModel
+@{
+    ViewData["Title"] = "Thống kê giảng viên";
+    var culture = CultureInfo.GetCultureInfo("vi-VN");
+    var report = Model.Report;
+    var courseLabels = JsonSerializer.Serialize(report.Courses.Select(course => course.Title));
+    var enrollmentValues = JsonSerializer.Serialize(report.Courses.Select(course => course.EnrolledStudents));
+    var chatValues = JsonSerializer.Serialize(report.Courses.Select(course => course.ChatMessageCount));
+    var documentValues = JsonSerializer.Serialize(report.Courses.Select(course => course.DocumentCount));
+}
+
+<div class="report-page">
+    <div class="admin-dashboard__hero">
+        <div>
+            <p class="section-label">Giảng viên</p>
+            <h1>Thống kê hoạt động</h1>
+            <p>Xem số học viên, tài liệu và lượt hỏi chatbot trên từng khóa học của bạn.</p>
+        </div>
+        <div class="admin-dashboard__actions">
+            <a class="btn btn-outline-primary" asp-controller="Course" asp-action="Mine">Khóa học của tôi</a>
+            <a class="btn btn-primary" asp-controller="Course" asp-action="Create">Tạo khóa học</a>
+        </div>
+    </div>
+
+    <section class="admin-metrics" aria-label="Tổng quan giảng viên">
+        <article class="admin-metric-card">
+            <span>Khóa học</span>
+            <strong>@report.TotalCourses.ToString("N0", culture)</strong>
+            <small>Tổng khóa học đang thuộc quyền quản lý của bạn.</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>Học viên</span>
+            <strong>@report.TotalEnrolledStudents.ToString("N0", culture)</strong>
+            <small>Tổng enrollment trên các khóa học.</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>Tài liệu</span>
+            <strong>@report.TotalReadyDocuments.ToString("N0", culture) / @report.TotalDocuments.ToString("N0", culture)</strong>
+            <small>Tài liệu đã xử lý xong trên tổng số tài liệu.</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>Lượt hỏi</span>
+            <strong>@report.TotalChatMessages.ToString("N0", culture)</strong>
+            <small>User messages trong các cuộc trò chuyện của khóa học.</small>
+        </article>
+    </section>
+
+    <section class="admin-dashboard-grid" aria-label="Biểu đồ giảng viên">
+        <article class="content-panel admin-chart-card admin-chart-card--wide">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Hoạt động theo khóa</span>
+                    <h2>Enrollment, tài liệu và lượt hỏi</h2>
+                </div>
+                <small>@report.Courses.Count.ToString("N0", culture) khóa học</small>
+            </div>
+            @if (report.Courses.Count == 0)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Bạn chưa có khóa học nào.</strong>
+                    <span>Tạo khóa học đầu tiên để dashboard bắt đầu có số liệu.</span>
+                </div>
+            }
+            else
+            {
+                <canvas id="teacherCourseChart" height="150" aria-label="Biểu đồ hoạt động theo khóa học" role="img"></canvas>
+            }
+        </article>
+    </section>
+
+    <section class="content-panel">
+        <div class="admin-card-heading mb-3">
+            <div>
+                <span>Chi tiết</span>
+                <h2>Hiệu suất từng khóa học</h2>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0 admin-top-table">
+                <thead>
+                    <tr>
+                        <th>Khóa học</th>
+                        <th class="text-end">Học viên</th>
+                        <th class="text-end">Tài liệu</th>
+                        <th class="text-end">Tài liệu sẵn sàng</th>
+                        <th class="text-end">Chat sessions</th>
+                        <th class="text-end">Lượt hỏi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var course in report.Courses)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@course.Title</td>
+                            <td class="text-end">@course.EnrolledStudents.ToString("N0", culture)</td>
+                            <td class="text-end">@course.DocumentCount.ToString("N0", culture)</td>
+                            <td class="text-end">@course.ReadyDocumentCount.ToString("N0", culture)</td>
+                            <td class="text-end">@course.ChatSessionCount.ToString("N0", culture)</td>
+                            <td class="text-end">@course.ChatMessageCount.ToString("N0", culture)</td>
+                        </tr>
+                    }
+                    @if (report.Courses.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">Chưa có khóa học để thống kê.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script>
+        (() => {
+            if (typeof Chart === "undefined") {
+                return;
+            }
+
+            const css = getComputedStyle(document.documentElement);
+            const accent = css.getPropertyValue("--edu-accent").trim() || "#0f766e";
+            const ink = css.getPropertyValue("--edu-ink").trim() || "#122033";
+            const muted = css.getPropertyValue("--edu-muted").trim() || "#5f6f82";
+            const grid = "rgba(18, 32, 51, 0.08)";
+            const formatCount = value => Number(value).toLocaleString("vi-VN");
+
+            Chart.defaults.color = muted;
+            Chart.defaults.font.family = "'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif";
+            Chart.defaults.plugins.legend.labels.usePointStyle = true;
+
+            const canvas = document.getElementById("teacherCourseChart");
+            if (!canvas) {
+                return;
+            }
+
+            new Chart(canvas, {
+                type: "bar",
+                data: {
+                    labels: @Html.Raw(courseLabels),
+                    datasets: [
+                        {
+                            label: "Học viên",
+                            data: @Html.Raw(enrollmentValues),
+                            backgroundColor: "rgba(15, 118, 110, 0.74)",
+                            borderRadius: 8,
+                            maxBarThickness: 36
+                        },
+                        {
+                            label: "Tài liệu",
+                            data: @Html.Raw(documentValues),
+                            backgroundColor: "rgba(56, 189, 248, 0.74)",
+                            borderRadius: 8,
+                            maxBarThickness: 36
+                        },
+                        {
+                            label: "Lượt hỏi",
+                            data: @Html.Raw(chatValues),
+                            backgroundColor: "rgba(18, 32, 51, 0.82)",
+                            borderRadius: 8,
+                            maxBarThickness: 36
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: "index", intersect: false },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: context => `${context.dataset.label}: ${formatCount(context.parsed.y)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: ink } },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: grid },
+                            ticks: { precision: 0, callback: value => formatCount(value) }
+                        }
+                    }
+                }
+            });
+        })();
+    </script>
+}
