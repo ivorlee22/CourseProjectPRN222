@@ -66,6 +66,34 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-09 - Task 36 ReportService
+
+**Owner**
+
+- Bảo report scope (implemented by Codex).
+
+**Completed**
+
+- Added `IReportService` and `ReportService` for report aggregates used by Admin, Revenue, User Analytics, Teacher Statistics, and Student Usage pages.
+- Added report DTOs for dashboard totals, revenue time series, user growth, course stats, chat usage, top courses, subscription distribution, teacher course stats, and student quota usage.
+- Added `IReportRepository` and `ReportRepository` with read-only aggregate queries over users, courses, enrollments, documents, chat messages, subscriptions, and succeeded payments.
+- Registered report repository and service in DAL/BLL dependency injection.
+- Added report service unit tests for revenue bucketing, admin dashboard composition, teacher total aggregation, and student free-package quota fallback.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+
+**Remaining**
+
+- Tasks 37-41 still need MVC controllers/views to consume `IReportService`.
+- Task 38 export still needs Excel generation from the revenue DTO.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-09 - Admin search, course realtime, and student document access
 
 **Owner**

@@ -36,6 +36,7 @@ public static class DependencyInjection
         services.AddScoped<IChatQuotaService, SubscriptionChatQuotaService>();
         services.AddScoped<IEmailService, GmailEmailService>();
         services.AddScoped<IChatService, ChatService>();
+        services.AddScoped<IReportService, ReportService>();
 
         // Document pipeline
         services.AddScoped<IDocumentService, DocumentService>();
