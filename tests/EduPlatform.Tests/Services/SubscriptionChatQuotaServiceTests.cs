@@ -172,7 +172,7 @@ public sealed class SubscriptionChatQuotaServiceTests
 
         public Task AddAsync(User user, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<User?> GetByNormalizedEmailAsync(string normalizedEmail, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task<(IReadOnlyList<User> Items, int TotalCount)> GetAllAsync(int pageNumber, int pageSize, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<(IReadOnlyList<User> Items, int TotalCount)> GetAllAsync(string? keyword, int pageNumber, int pageSize, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<IReadOnlyList<User>> GetByRoleAsync(EduPlatform.DAL.Entities.UserRole role, CancellationToken cancellationToken) => throw new NotImplementedException();
         public void Remove(User user) => throw new NotImplementedException();
         public Task<int> SaveChangesAsync(CancellationToken cancellationToken) => throw new NotImplementedException();

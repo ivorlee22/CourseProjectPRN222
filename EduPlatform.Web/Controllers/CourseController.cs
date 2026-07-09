@@ -1,16 +1,21 @@
 using EduPlatform.BLL.DTOs.Courses;
 using EduPlatform.BLL.Exceptions;
 using EduPlatform.BLL.Interfaces;
+using EduPlatform.Web.Hubs;
 using EduPlatform.Web.Security;
 using EduPlatform.Web.ViewModels.Courses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.SignalR;
 
 namespace EduPlatform.Web.Controllers;
 
-public sealed class CourseController(ICourseService courseService, IUserService userService) : Controller
+public sealed class CourseController(
+    ICourseService courseService,
+    IUserService userService,
+    IHubContext<CourseHub> courseHubContext) : Controller
 {
     [AllowAnonymous]
     [HttpGet]
@@ -19,10 +24,17 @@ public sealed class CourseController(ICourseService courseService, IUserService 
         int page = 1,
         CancellationToken cancellationToken = default)
     {
+        var actor = User.GetActorOrDefault();
         var result = await courseService.SearchAsync(
             new CourseSearchQuery(keyword, page),
-            User.GetActorOrDefault(),
+            actor,
             cancellationToken);
+
+        IReadOnlyList<CourseInvitationDto>? pendingInvitations = null;
+        if (actor is not null && actor.Role == EduPlatform.BLL.Enums.UserRole.Student)
+        {
+            pendingInvitations = await courseService.GetPendingInvitationsAsync(actor, cancellationToken);
+        }
 
         return View(new CourseIndexViewModel(
             result.Items,
@@ -30,7 +42,8 @@ public sealed class CourseController(ICourseService courseService, IUserService 
             result.PageNumber,
             result.TotalPages,
             result.TotalCount,
-            MineOnly: false));
+            MineOnly: false,
+            pendingInvitations));
     }
 
     [Authorize]
@@ -39,10 +52,17 @@ public sealed class CourseController(ICourseService courseService, IUserService 
         int page = 1,
         CancellationToken cancellationToken = default)
     {
+        var actor = User.GetRequiredActor();
         var result = await courseService.SearchAsync(
             new CourseSearchQuery(null, page, MineOnly: true),
-            User.GetRequiredActor(),
+            actor,
             cancellationToken);
+
+        IReadOnlyList<CourseInvitationDto>? pendingInvitations = null;
+        if (actor.Role == EduPlatform.BLL.Enums.UserRole.Student)
+        {
+            pendingInvitations = await courseService.GetPendingInvitationsAsync(actor, cancellationToken);
+        }
 
         return View("Index", new CourseIndexViewModel(
             result.Items,
@@ -50,7 +70,37 @@ public sealed class CourseController(ICourseService courseService, IUserService 
             result.PageNumber,
             result.TotalPages,
             result.TotalCount,
-            MineOnly: true));
+            MineOnly: true,
+            pendingInvitations));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ListFragment(
+        string? keyword,
+        bool mineOnly,
+        int page = 1,
+        CancellationToken cancellationToken = default)
+    {
+        var actor = User.GetActorOrDefault();
+        var result = await courseService.SearchAsync(
+            new CourseSearchQuery(keyword, page, MineOnly: mineOnly),
+            actor,
+            cancellationToken);
+
+        IReadOnlyList<CourseInvitationDto>? pendingInvitations = null;
+        if (actor is not null && actor.Role == EduPlatform.BLL.Enums.UserRole.Student)
+        {
+            pendingInvitations = await courseService.GetPendingInvitationsAsync(actor, cancellationToken);
+        }
+
+        return PartialView("_CourseList", new CourseIndexViewModel(
+            result.Items,
+            keyword,
+            result.PageNumber,
+            result.TotalPages,
+            result.TotalCount,
+            mineOnly,
+            pendingInvitations));
     }
 
     [AllowAnonymous]
@@ -68,11 +118,15 @@ public sealed class CourseController(ICourseService courseService, IUserService 
             var actor = User.GetActorOrDefault();
             var canManage = actor is not null
                 && (actor.IsAdmin || actor.UserId == course.OwnerId);
+            var canViewDocuments = canManage
+                || course.IsEnrolled
+                || (actor is not null && course.IsVisible && course.Type == EduPlatform.BLL.Enums.CourseType.Public);
 
             return View(new CourseDetailsViewModel(
                 course,
                 canManage,
-                User.Identity?.IsAuthenticated == true));
+                User.Identity?.IsAuthenticated == true,
+                canViewDocuments));
         }
         catch (ResourceNotFoundException)
         {
@@ -124,10 +178,12 @@ public sealed class CourseController(ICourseService courseService, IUserService 
                 cancellationToken);
 
             TempData["SuccessMessage"] = "Đã tạo khóa học.";
+            await NotifyCourseChangedAsync(cancellationToken);
             return RedirectToAction(nameof(Details), new { id });
         }
         catch (Exception exception) when (AddBusinessError(exception))
         {
+            await PopulateTeachersViewBagAsync(cancellationToken);
             return View(model);
         }
     }
@@ -143,10 +199,12 @@ public sealed class CourseController(ICourseService courseService, IUserService 
             User.GetRequiredActor(),
             cancellationToken);
         EnsureCanManage(course);
+        await PopulateTeachersViewBagAsync(cancellationToken);
 
         return View(new CourseFormViewModel
         {
             Id = course.Id,
+            OwnerId = course.OwnerId,
             Title = course.Title,
             Description = course.Description,
             Type = course.Type,
@@ -169,6 +227,7 @@ public sealed class CourseController(ICourseService courseService, IUserService 
 
         if (!ModelState.IsValid)
         {
+            await PopulateTeachersViewBagAsync(cancellationToken);
             return View(model);
         }
 
@@ -182,15 +241,18 @@ public sealed class CourseController(ICourseService courseService, IUserService 
                     model.Type,
                     model.IsVisible,
                     model.EnrollmentPassword,
-                    model.RemoveEnrollmentPassword),
+                    model.RemoveEnrollmentPassword,
+                    model.OwnerId),
                 User.GetRequiredActor(),
                 cancellationToken);
 
             TempData["SuccessMessage"] = "Đã cập nhật khóa học.";
+            await NotifyCourseChangedAsync(cancellationToken);
             return RedirectToAction(nameof(Details), new { id });
         }
         catch (Exception exception) when (AddBusinessError(exception))
         {
+            await PopulateTeachersViewBagAsync(cancellationToken);
             return View(model);
         }
     }
@@ -202,6 +264,7 @@ public sealed class CourseController(ICourseService courseService, IUserService 
         CancellationToken cancellationToken)
     {
         await courseService.DeleteAsync(id, User.GetRequiredActor(), cancellationToken);
+        await NotifyCourseChangedAsync(cancellationToken);
         TempData["SuccessMessage"] = "Đã xóa khóa học.";
         return RedirectToAction(nameof(Mine));
     }
@@ -218,6 +281,7 @@ public sealed class CourseController(ICourseService courseService, IUserService 
             isVisible,
             User.GetRequiredActor(),
             cancellationToken);
+        await NotifyCourseChangedAsync(cancellationToken);
 
         TempData["SuccessMessage"] = isVisible
             ? "Khóa học đã được hiển thị."
@@ -287,11 +351,26 @@ public sealed class CourseController(ICourseService courseService, IUserService 
 
         try
         {
-            await courseService.InviteAsync(
+            var studentId = await courseService.InviteAsync(
                 id,
-                model.UserId,
+                model.StudentLookup,
                 User.GetRequiredActor(),
                 cancellationToken);
+
+            var course = await courseService.GetByIdAsync(id, User.GetRequiredActor(), cancellationToken);
+            var inviterName = User.Identity?.Name ?? "Admin";
+
+            // Realtime push
+            await courseHubContext.Clients.User(studentId.ToString()).SendAsync(
+                "ReceiveInvitation",
+                new
+                {
+                    courseId = id,
+                    courseTitle = course.Title,
+                    inviterName = inviterName
+                },
+                cancellationToken);
+
             TempData["SuccessMessage"] = "Đã gửi lời mời tham gia khóa học.";
             return RedirectToAction(nameof(Details), new { id });
         }
@@ -299,6 +378,37 @@ public sealed class CourseController(ICourseService courseService, IUserService 
         {
             return View(model);
         }
+    }
+
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> CancelInvitation(
+        Guid id,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await courseService.CancelInvitationAsync(
+                id,
+                userId,
+                User.GetRequiredActor(),
+                cancellationToken);
+
+            // Realtime push
+            await courseHubContext.Clients.User(userId.ToString()).SendAsync(
+                "CancelInvitation",
+                id,
+                cancellationToken);
+
+            TempData["SuccessMessage"] = "Đã hủy lời mời tham gia khóa học.";
+        }
+        catch (Exception exception)
+        {
+            TempData["ErrorMessage"] = exception.Message;
+        }
+
+        return RedirectToAction(nameof(Students), new { id });
     }
 
     [Authorize]
@@ -366,6 +476,14 @@ public sealed class CourseController(ICourseService courseService, IUserService 
     {
         return exception is BusinessValidationException
             or ResourceConflictException
+            or ResourceNotFoundException
             or CourseQuotaExceededException;
+    }
+
+    private Task NotifyCourseChangedAsync(CancellationToken cancellationToken)
+    {
+        return courseHubContext.Clients.All.SendAsync(
+            "CourseChanged",
+            cancellationToken);
     }
 }

@@ -89,6 +89,7 @@ app.UseAuthorization();
 
 app.MapStaticAssets();
 app.MapHub<ChatHub>("/hubs/chat");
+app.MapHub<CourseHub>("/hubs/courses");
 
 app.MapControllerRoute(
         name: "default",

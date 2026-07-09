@@ -10,6 +10,7 @@ public sealed record CourseSummaryDto(
     bool IsVisible,
     Guid OwnerId,
     string OwnerName,
+    UserRole OwnerRole,
     int EnrollmentCount,
     DateTimeOffset CreatedAtUtc);
 
@@ -22,9 +23,11 @@ public sealed record CourseDetailsDto(
     bool RequiresEnrollmentPassword,
     Guid OwnerId,
     string OwnerName,
+    UserRole OwnerRole,
     int EnrollmentCount,
     DateTimeOffset CreatedAtUtc,
-    DateTimeOffset UpdatedAtUtc);
+    DateTimeOffset UpdatedAtUtc,
+    bool IsEnrolled = false);
 
 public sealed record CourseStudentDto(
     Guid UserId,
@@ -39,7 +42,7 @@ public sealed record CreateCourseCommand(
     CourseType Type,
     bool IsVisible,
     string? EnrollmentPassword,
-    Guid OwnerId);
+    Guid? OwnerId);
 
 public sealed record UpdateCourseCommand(
     string Title,
@@ -47,7 +50,8 @@ public sealed record UpdateCourseCommand(
     CourseType Type,
     bool IsVisible,
     string? EnrollmentPassword,
-    bool RemoveEnrollmentPassword);
+    bool RemoveEnrollmentPassword,
+    Guid? OwnerId = null);
 
 public sealed record CourseSearchQuery(
     string? Keyword,
@@ -55,3 +59,8 @@ public sealed record CourseSearchQuery(
     int PageSize = 12,
     bool MineOnly = false,
     bool IncludeHidden = false);
+
+public sealed record CourseInvitationDto(
+    Guid CourseId,
+    string CourseTitle,
+    string InviterName);

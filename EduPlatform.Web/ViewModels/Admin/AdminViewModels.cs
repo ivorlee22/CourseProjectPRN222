@@ -9,6 +9,8 @@ namespace EduPlatform.Web.ViewModels.Admin;
 public sealed class UserListViewModel
 {
     public PagedResult<UserSummaryDto> Users { get; set; } = null!;
+
+    public string? Keyword { get; set; }
 }
 
 public sealed class CreateUserViewModel

@@ -26,6 +26,12 @@ public sealed class ChatHub(
         await antiforgery.ValidateRequestAsync(httpContext);
 
         var actor = Context.User!.GetRequiredActor();
+        if (actor.IsAdmin)
+        {
+            yield return new ChatStreamEventDto("error", "Admin không cần hỏi từ tài liệu.");
+            yield break;
+        }
+
         await using var stream = chatService.StreamMessageAsync(
             sessionId,
             new SendChatMessageCommand(question),

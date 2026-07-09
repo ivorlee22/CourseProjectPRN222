@@ -1,11 +1,11 @@
 @model EduPlatform.Web.ViewModels.AdminSubscription.AdminSubscriptionListViewModel
 
 @{
-    ViewData["Title"] = "Quản lý Đăng ký (Subscriptions)";
+    ViewData["Title"] = "Quản lý đăng ký gói";
 }
 
 <div class="page-heading">
-    <h1>Danh sách Đăng ký (Subscriptions)</h1>
+    <h1>Danh sách đăng ký gói</h1>
 </div>
 
 <div class="content-panel shadow-sm border-0 overflow-hidden">
@@ -59,15 +59,12 @@
                         <td class="px-4 py-3 text-muted small">@item.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
                     </tr>
                 }
-                
+
                 @if (Model.Subscriptions.Items.Count == 0)
                 {
                     <tr>
                         <td colspan="6" class="text-center py-5 text-muted">
-                            <div class="d-flex flex-column align-items-center">
-                                <span class="fs-4 mb-2">📭</span>
-                                <p class="mb-0 fw-medium">Chưa có dữ liệu đăng ký nào.</p>
-                            </div>
+                            <p class="mb-0 fw-medium">Chưa có dữ liệu đăng ký gói nào.</p>
                         </td>
                     </tr>
                 }
@@ -79,10 +76,10 @@
     {
         <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top px-4 pb-3">
             <span class="text-muted small">
-                Hiển thị @Model.Subscriptions.Items.Count trên tổng số @Model.Subscriptions.TotalCount đăng ký
+                Hiển thị @Model.Subscriptions.Items.Count trên tổng số @Model.Subscriptions.TotalCount đăng ký gói
             </span>
-            
-            <nav aria-label="Phân trang đăng ký">
+
+            <nav aria-label="Phân trang đăng ký gói">
                 <ul class="pagination pagination-sm mb-0">
                     <li class="page-item @(Model.Subscriptions.PageNumber == 1 ? "disabled" : "")">
                         <a class="page-link" asp-action="Index" asp-route-page="@(Model.Subscriptions.PageNumber - 1)">Trước</a>

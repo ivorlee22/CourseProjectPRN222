@@ -14,6 +14,18 @@
     </div>
 </div>
 
+<form class="search-bar" method="get" asp-action="Users" role="search">
+    <label class="visually-hidden" for="userKeyword">Tìm người dùng</label>
+    <input id="userKeyword"
+           class="form-control"
+           type="search"
+           name="keyword"
+           value="@Model.Keyword"
+           placeholder="Tìm theo tên hoặc email" />
+    <button class="btn btn-primary" type="submit">Tìm kiếm</button>
+
+</form>
+
 <div class="content-panel shadow-sm border-0 overflow-hidden">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0" style="--bs-table-bg: transparent;">
@@ -57,37 +69,30 @@
                         </td>
                         <td class="px-4 py-3 text-muted small">@user.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy")</td>
                         <td class="px-4 py-3 text-end">
-                            @if (user.Role != UserRole.Admin)
-                            {
-                                <div class="dropdown">
-                                    <button class="btn btn-sm btn-light dropdown-toggle text-muted rounded-pill px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        Tùy chọn
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="border-radius: 0.75rem;">
-                                        <li>
-                                            <a class="dropdown-item py-2" asp-action="EditUser" asp-route-id="@user.Id">Đổi vai trò</a>
-                                        </li>
-                                        <li>
-                                            <form asp-action="ToggleUserActive" method="post">
-                                                <input type="hidden" name="id" value="@user.Id" />
-                                                <input type="hidden" name="isActive" value="@(user.IsActive ? "false" : "true")" />
-                                                @if (user.IsActive)
-                                                {
-                                                    <button type="submit" class="dropdown-item text-danger py-2">Khóa tài khoản</button>
-                                                }
-                                                else
-                                                {
-                                                    <button type="submit" class="dropdown-item text-success py-2">Mở khóa tài khoản</button>
-                                                }
-                                            </form>
-                                        </li>
-                                    </ul>
-                                </div>
-                            }
-                            else
-                            {
-                                <span class="text-muted small">Mặc định</span>
-                            }
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-light dropdown-toggle text-muted rounded-pill px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Tùy chọn
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="border-radius: 0.75rem;">
+                                    <li>
+                                        <a class="dropdown-item py-2" asp-action="EditUser" asp-route-id="@user.Id">Đổi vai trò</a>
+                                    </li>
+                                    <li>
+                                        <form asp-action="ToggleUserActive" method="post">
+                                            <input type="hidden" name="id" value="@user.Id" />
+                                            <input type="hidden" name="isActive" value="@(user.IsActive ? "false" : "true")" />
+                                            @if (user.IsActive)
+                                            {
+                                                <button type="submit" class="dropdown-item text-danger py-2">Khóa tài khoản</button>
+                                            }
+                                            else
+                                            {
+                                                <button type="submit" class="dropdown-item text-success py-2">Mở khóa tài khoản</button>
+                                            }
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
                         </td>
                     </tr>
                 }
@@ -117,16 +122,16 @@
             <nav aria-label="Phân trang người dùng">
                 <ul class="pagination pagination-sm mb-0">
                     <li class="page-item @(Model.Users.PageNumber == 1 ? "disabled" : "")">
-                        <a class="page-link" asp-action="Users" asp-route-page="@(Model.Users.PageNumber - 1)">Trước</a>
+                        <a class="page-link" asp-action="Users" asp-route-page="@(Model.Users.PageNumber - 1)" asp-route-keyword="@Model.Keyword">Trước</a>
                     </li>
                     @for (int i = 1; i <= Model.Users.TotalPages; i++)
                     {
                         <li class="page-item @(i == Model.Users.PageNumber ? "active" : "")">
-                            <a class="page-link" asp-action="Users" asp-route-page="@i">@i</a>
+                            <a class="page-link" asp-action="Users" asp-route-page="@i" asp-route-keyword="@Model.Keyword">@i</a>
                         </li>
                     }
                     <li class="page-item @(Model.Users.PageNumber == Model.Users.TotalPages ? "disabled" : "")">
-                        <a class="page-link" asp-action="Users" asp-route-page="@(Model.Users.PageNumber + 1)">Sau</a>
+                        <a class="page-link" asp-action="Users" asp-route-page="@(Model.Users.PageNumber + 1)" asp-route-keyword="@Model.Keyword">Sau</a>
                     </li>
                 </ul>
             </nav>

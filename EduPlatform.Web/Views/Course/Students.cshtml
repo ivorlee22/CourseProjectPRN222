@@ -30,6 +30,7 @@ else
                     <th scope="col">Email</th>
                     <th scope="col">Trạng thái</th>
                     <th scope="col">Ngày tham gia</th>
+                    <th scope="col">Hành động</th>
                 </tr>
             </thead>
             <tbody>
@@ -38,8 +39,35 @@ else
                     <tr>
                         <td>@student.FullName</td>
                         <td>@student.Email</td>
-                        <td>@student.Status</td>
-                        <td>@(student.EnrolledAtUtc?.ToLocalTime().ToString("dd/MM/yyyy") ?? "Chưa tham gia")</td>
+                        <td>
+                            @if (student.Status == EduPlatform.BLL.Enums.EnrollmentStatus.Pending)
+                            {
+                                <span class="badge bg-warning text-dark">Chờ xác nhận</span>
+                            }
+                            else if (student.Status == EduPlatform.BLL.Enums.EnrollmentStatus.Active)
+                            {
+                                <span class="badge bg-success">Đã tham gia</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">@student.Status</span>
+                            }
+                        </td>
+                        <td>@(student.EnrolledAtUtc?.ToLocalTime().ToString("dd/MM/yyyy") ?? "-")</td>
+                        <td>
+                            @if (student.Status == EduPlatform.BLL.Enums.EnrollmentStatus.Pending)
+                            {
+                                <form asp-action="CancelInvitation" asp-route-id="@courseId" asp-route-userId="@student.UserId" method="post" class="d-inline" data-confirm="Bạn có chắc muốn hủy lời mời này?">
+                                    <button class="btn btn-sm btn-outline-danger" type="submit" title="Hủy lời mời">
+                                        <i class="bi bi-trash"></i> Hủy
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        </td>
                     </tr>
                 }
             </tbody>

@@ -20,10 +20,18 @@ public sealed class AdminController(IUserService userService) : Controller
     // ── User Management ───────────────────────────────────────────────────────
 
     [HttpGet]
-    public async Task<IActionResult> Users(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Users(
+        string? keyword,
+        int page = 1,
+        int pageSize = 20,
+        CancellationToken cancellationToken = default)
     {
-        var result = await userService.GetAllAsync(page, pageSize, cancellationToken);
-        var viewModel = new UserListViewModel { Users = result };
+        var result = await userService.GetAllAsync(keyword, page, pageSize, cancellationToken);
+        var viewModel = new UserListViewModel
+        {
+            Users = result,
+            Keyword = keyword
+        };
         return View(viewModel);
     }
 
@@ -109,6 +117,11 @@ public sealed class AdminController(IUserService userService) : Controller
             ModelState.AddModelError(string.Empty, ex.Message);
             return View(model);
         }
+        catch (ForbiddenOperationException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return View(model);
+        }
         catch (ResourceNotFoundException)
         {
             return NotFound();
@@ -130,6 +143,10 @@ public sealed class AdminController(IUserService userService) : Controller
                 : "Đã tạm khóa tài khoản.";
         }
         catch (BusinessValidationException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+        catch (ForbiddenOperationException ex)
         {
             TempData["ErrorMessage"] = ex.Message;
         }
@@ -183,7 +200,7 @@ public sealed class AdminController(IUserService userService) : Controller
             var role = UserRole.Student;
             if (!string.IsNullOrEmpty(roleText) && Enum.TryParse<UserRole>(roleText, true, out var parsedRole))
             {
-                role = parsedRole == UserRole.Admin ? UserRole.Teacher : parsedRole;
+                role = parsedRole;
             }
 
             try

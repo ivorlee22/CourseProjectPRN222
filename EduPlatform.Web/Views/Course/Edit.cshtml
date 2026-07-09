@@ -12,6 +12,21 @@
     <form asp-action="Edit" asp-route-id="@Model.Id" method="post" class="content-panel">
         <input asp-for="Id" type="hidden" />
         <input asp-for="HasExistingPassword" type="hidden" />
+        @if (User.IsInRole("Admin"))
+        {
+            <div class="mb-4">
+                <label asp-for="OwnerId" class="form-label fw-semibold"></label>
+                <select asp-for="OwnerId" class="form-select" asp-items="ViewBag.Teachers">
+                    <option value="">Chưa chọn giáo viên</option>
+                </select>
+                <div class="form-text">Đổi giáo viên phụ trách khi cần bàn giao khóa học.</div>
+                <span asp-validation-for="OwnerId" class="text-danger small"></span>
+            </div>
+        }
+        else
+        {
+            <input asp-for="OwnerId" type="hidden" />
+        }
         <partial name="_CourseForm" model="Model" />
         <div class="d-flex flex-wrap gap-2 mt-5">
             <button class="btn btn-primary" type="submit">Lưu thay đổi</button>

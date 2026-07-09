@@ -16,7 +16,11 @@ public interface IUserService
 
     Task<UserSummaryDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 
-    Task<PagedResult<UserSummaryDto>> GetAllAsync(int pageNumber, int pageSize, CancellationToken cancellationToken);
+    Task<PagedResult<UserSummaryDto>> GetAllAsync(
+        string? keyword,
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken);
 
     Task<IReadOnlyList<UserSummaryDto>> GetByRoleAsync(EduPlatform.BLL.Enums.UserRole role, CancellationToken cancellationToken);
 

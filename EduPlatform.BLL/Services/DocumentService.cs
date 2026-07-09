@@ -9,6 +9,7 @@ using EduPlatform.DAL.Repositories;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Pgvector;
+using DalCourseType = EduPlatform.DAL.Entities.CourseType;
 using DalDocumentStatus = EduPlatform.DAL.Entities.DocumentStatus;
 using DalEnrollmentStatus = EduPlatform.DAL.Entities.EnrollmentStatus;
 using BllDocumentStatus = EduPlatform.BLL.Enums.DocumentStatus;
@@ -305,6 +306,11 @@ public sealed class DocumentService : IDocumentService
             ?? throw new ResourceNotFoundException("Không tìm thấy khóa học.");
 
         if (actor.IsAdmin || course.OwnerId == actor.UserId)
+        {
+            return;
+        }
+
+        if (course.IsVisible && course.Type == DalCourseType.Public)
         {
             return;
         }

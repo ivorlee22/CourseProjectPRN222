@@ -8,4 +8,5 @@ public sealed record CourseIndexViewModel(
     int PageNumber,
     int TotalPages,
     int TotalCount,
-    bool MineOnly);
+    bool MineOnly,
+    IReadOnlyList<CourseInvitationDto>? PendingInvitations = null);
