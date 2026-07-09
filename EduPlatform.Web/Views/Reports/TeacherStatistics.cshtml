@@ -1,14 +1,14 @@
 @using System.Globalization
-@using System.Text.Json
 @model EduPlatform.Web.ViewModels.Reports.TeacherStatisticsViewModel
 @{
     ViewData["Title"] = "Thống kê giảng viên";
     var culture = CultureInfo.GetCultureInfo("vi-VN");
     var report = Model.Report;
-    var courseLabels = JsonSerializer.Serialize(report.Courses.Select(course => course.Title));
-    var enrollmentValues = JsonSerializer.Serialize(report.Courses.Select(course => course.EnrolledStudents));
-    var chatValues = JsonSerializer.Serialize(report.Courses.Select(course => course.ChatMessageCount));
-    var documentValues = JsonSerializer.Serialize(report.Courses.Select(course => course.DocumentCount));
+    var maxChartValue = report.Courses
+        .SelectMany(course => new[] { course.EnrolledStudents, course.DocumentCount, course.ChatMessageCount })
+        .DefaultIfEmpty(0)
+        .Max();
+    var chartScale = Math.Max(maxChartValue, 1);
 }
 
 <div class="report-page">
@@ -65,7 +65,47 @@
             }
             else
             {
-                <canvas id="teacherCourseChart" height="150" aria-label="Biểu đồ hoạt động theo khóa học" role="img"></canvas>
+                <div class="teacher-course-chart" role="img" aria-label="Biểu đồ hoạt động theo khóa học">
+                    <div class="teacher-course-chart__legend" aria-hidden="true">
+                        <span><i class="teacher-course-chart__dot teacher-course-chart__dot--students"></i>Học viên</span>
+                        <span><i class="teacher-course-chart__dot teacher-course-chart__dot--documents"></i>Tài liệu</span>
+                        <span><i class="teacher-course-chart__dot teacher-course-chart__dot--chats"></i>Lượt hỏi</span>
+                    </div>
+
+                    @foreach (var course in report.Courses)
+                    {
+                        var enrollmentWidth = Math.Max(4, (int)Math.Round(course.EnrolledStudents * 100m / chartScale));
+                        var documentWidth = Math.Max(4, (int)Math.Round(course.DocumentCount * 100m / chartScale));
+                        var chatWidth = Math.Max(4, (int)Math.Round(course.ChatMessageCount * 100m / chartScale));
+
+                        <article class="teacher-course-chart__row">
+                            <h3>@course.Title</h3>
+                            <div class="teacher-course-chart__bars">
+                                <div class="teacher-course-chart__bar">
+                                    <span class="teacher-course-chart__label">Học viên</span>
+                                    <span class="teacher-course-chart__track">
+                                        <span class="teacher-course-chart__fill teacher-course-chart__fill--students" style="width: @enrollmentWidth%"></span>
+                                    </span>
+                                    <strong>@course.EnrolledStudents.ToString("N0", culture)</strong>
+                                </div>
+                                <div class="teacher-course-chart__bar">
+                                    <span class="teacher-course-chart__label">Tài liệu</span>
+                                    <span class="teacher-course-chart__track">
+                                        <span class="teacher-course-chart__fill teacher-course-chart__fill--documents" style="width: @documentWidth%"></span>
+                                    </span>
+                                    <strong>@course.DocumentCount.ToString("N0", culture)</strong>
+                                </div>
+                                <div class="teacher-course-chart__bar">
+                                    <span class="teacher-course-chart__label">Lượt hỏi</span>
+                                    <span class="teacher-course-chart__track">
+                                        <span class="teacher-course-chart__fill teacher-course-chart__fill--chats" style="width: @chatWidth%"></span>
+                                    </span>
+                                    <strong>@course.ChatMessageCount.ToString("N0", culture)</strong>
+                                </div>
+                            </div>
+                        </article>
+                    }
+                </div>
             }
         </article>
     </section>
@@ -112,80 +152,3 @@
         </div>
     </section>
 </div>
-
-@section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-    <script>
-        (() => {
-            if (typeof Chart === "undefined") {
-                return;
-            }
-
-            const css = getComputedStyle(document.documentElement);
-            const accent = css.getPropertyValue("--edu-accent").trim() || "#0f766e";
-            const ink = css.getPropertyValue("--edu-ink").trim() || "#122033";
-            const muted = css.getPropertyValue("--edu-muted").trim() || "#5f6f82";
-            const grid = "rgba(18, 32, 51, 0.08)";
-            const formatCount = value => Number(value).toLocaleString("vi-VN");
-
-            Chart.defaults.color = muted;
-            Chart.defaults.font.family = "'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif";
-            Chart.defaults.plugins.legend.labels.usePointStyle = true;
-
-            const canvas = document.getElementById("teacherCourseChart");
-            if (!canvas) {
-                return;
-            }
-
-            new Chart(canvas, {
-                type: "bar",
-                data: {
-                    labels: @Html.Raw(courseLabels),
-                    datasets: [
-                        {
-                            label: "Học viên",
-                            data: @Html.Raw(enrollmentValues),
-                            backgroundColor: "rgba(15, 118, 110, 0.74)",
-                            borderRadius: 8,
-                            maxBarThickness: 36
-                        },
-                        {
-                            label: "Tài liệu",
-                            data: @Html.Raw(documentValues),
-                            backgroundColor: "rgba(56, 189, 248, 0.74)",
-                            borderRadius: 8,
-                            maxBarThickness: 36
-                        },
-                        {
-                            label: "Lượt hỏi",
-                            data: @Html.Raw(chatValues),
-                            backgroundColor: "rgba(18, 32, 51, 0.82)",
-                            borderRadius: 8,
-                            maxBarThickness: 36
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: { mode: "index", intersect: false },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: context => `${context.dataset.label}: ${formatCount(context.parsed.y)}`
-                            }
-                        }
-                    },
-                    scales: {
-                        x: { grid: { display: false }, ticks: { color: ink } },
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: grid },
-                            ticks: { precision: 0, callback: value => formatCount(value) }
-                        }
-                    }
-                }
-            });
-        })();
-    </script>
-}

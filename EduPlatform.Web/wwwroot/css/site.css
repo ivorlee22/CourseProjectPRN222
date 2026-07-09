@@ -713,6 +713,100 @@ h1 {
   font-weight: 760;
 }
 
+.teacher-course-chart {
+  display: grid;
+  gap: 1rem;
+}
+
+.teacher-course-chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  color: var(--edu-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.teacher-course-chart__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.teacher-course-chart__dot {
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 50%;
+}
+
+.teacher-course-chart__dot--students,
+.teacher-course-chart__fill--students {
+  background: var(--edu-accent);
+}
+
+.teacher-course-chart__dot--documents,
+.teacher-course-chart__fill--documents {
+  background: #38bdf8;
+}
+
+.teacher-course-chart__dot--chats,
+.teacher-course-chart__fill--chats {
+  background: var(--edu-ink);
+}
+
+.teacher-course-chart__row {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1rem;
+  border: 1px solid var(--edu-line);
+  border-radius: var(--edu-radius-control);
+  background: var(--edu-surface);
+}
+
+.teacher-course-chart__row h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.teacher-course-chart__bars {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.teacher-course-chart__bar {
+  display: grid;
+  grid-template-columns: 5.8rem minmax(0, 1fr) 3rem;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.teacher-course-chart__label {
+  color: var(--edu-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.teacher-course-chart__track {
+  display: block;
+  overflow: hidden;
+  height: 0.82rem;
+  border-radius: 999px;
+  background: rgb(18 32 51 / 8%);
+}
+
+.teacher-course-chart__fill {
+  display: block;
+  height: 100%;
+  min-width: 0.25rem;
+  border-radius: inherit;
+}
+
+.teacher-course-chart__bar strong {
+  color: var(--edu-ink);
+  font-size: 0.86rem;
+  text-align: right;
+}
+
 @media (max-width: 1199.98px) {
   .admin-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -779,6 +873,14 @@ h1 {
 
   .student-subscription-grid {
     grid-template-columns: 1fr;
+  }
+
+  .teacher-course-chart__bar {
+    grid-template-columns: 1fr auto;
+  }
+
+  .teacher-course-chart__label {
+    grid-column: 1 / -1;
   }
 }
 

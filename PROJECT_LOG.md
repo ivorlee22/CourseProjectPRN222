@@ -66,6 +66,26 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-09 - Teacher chart fallback fix
+
+**Owner**
+
+- Bảo report scope (implemented by Codex).
+
+**Completed**
+
+- Replaced the Teacher Statistics Chart.js-only canvas with a server-rendered HTML/CSS bar chart.
+- Removed the Teacher Statistics dependency on the external Chart.js CDN so the chart remains visible even when the CDN is blocked or unavailable.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-09 - Task 44 Chat UI Polish
 
 **Owner**
