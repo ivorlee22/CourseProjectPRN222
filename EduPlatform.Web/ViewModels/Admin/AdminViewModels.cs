@@ -1,10 +1,20 @@
 using System.ComponentModel.DataAnnotations;
+using EduPlatform.BLL.DTOs.Reports;
 using EduPlatform.BLL.DTOs.Users;
 using EduPlatform.BLL.Enums;
 using EduPlatform.BLL.Models;
 using Microsoft.AspNetCore.Http;
 
 namespace EduPlatform.Web.ViewModels.Admin;
+
+public sealed class AdminDashboardViewModel
+{
+    public AdminDashboardReportDto Report { get; set; } = null!;
+
+    public ReportDateRange Range { get; set; } = null!;
+
+    public ReportPeriodGrouping Grouping { get; set; } = ReportPeriodGrouping.Day;
+}
 
 public sealed class UserListViewModel
 {
