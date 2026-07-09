@@ -66,6 +66,39 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-10 - Fix UI chart rendering syntax and height issues
+
+**Owner**
+
+- Bảo report scope (implemented by Antigravity).
+
+**Design Read**
+
+- Polish UI charts to fix squished bars and rendering issues for C# decimal formatting.
+- Dials: design variance medium, motion intensity medium, visual density low
+
+**Completed**
+
+- `EduPlatform.Web/Views/Admin/Index.cshtml`: Wrapped `.ToString()` with `@()` so `maxRevenue`, `maxUserGrowth`, `maxChatUsage` render as formatted values, not raw code. Fixed parens on `.Count(...)`.
+- `EduPlatform.Web/Views/Reports/Revenue.cshtml`: Wrapped `.ToString()` for `maxPeriodRevenue` and `.Count(...)` inside `@(...)` to fix raw C# code rendering.
+- `EduPlatform.Web/Views/Reports/UserAnalytics.cshtml`: Wrapped `.ToString()` for `maxUserGrowth` and `.Sum(...)` inside `@(...)` to fix raw C# code rendering.
+- `EduPlatform.Web/Views/Course/Details.cshtml`: Wrapped `.ToString()` inside `@(...)` for hidden `isVisible` field.
+- `EduPlatform.Web/wwwroot/css/site.css`: Added `height: 100%;` to `.report-column-chart__bar-wrap` to allow percentage heights of its flex children to resolve correctly, fixing the squished (đụt) charts.
+
+**Verification**
+
+- `dotnet build "c:\Users\THIS PC\Desktop\Semester_7\PRN222\CourseProjectPRN222\EduPlatform.Web\EduPlatform.Web.csproj" -c Release --no-restore` passed with 0 warnings and 0 errors.
+- Visual inspection of code confirms Razor parens are correctly balanced to execute C# formatting and CSS properly provides explicit height to flex children.
+
+**Remaining**
+
+- None.
+
+**Blocked**
+
+- None.
+
+
 ### 2026-07-10 - Report chart UI and Npgsql query fixes
 
 **Owner**

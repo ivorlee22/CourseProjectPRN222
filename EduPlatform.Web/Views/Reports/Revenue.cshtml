@@ -61,7 +61,7 @@
         </article>
         <article class="admin-metric-card">
             <span>Số kỳ có doanh thu</span>
-            <strong>@report.RevenueByPeriod.Count(point => point.Value > 0).ToString("N0", culture)</strong>
+            <strong>@(report.RevenueByPeriod.Count(point => point.Value > 0).ToString("N0", culture))</strong>
             <small>Nhóm theo @Model.Grouping.ToString().ToLowerInvariant().</small>
         </article>
         <article class="admin-metric-card">
@@ -102,7 +102,7 @@
                     <div class="report-column-chart__body">
                         <div class="report-column-chart__axis" aria-hidden="true">
                             <span>@maxPeriodRevenue.ToString("C0", culture)</span>
-                            <span>@(maxPeriodRevenue / 2m).ToString("C0", culture)</span>
+                            <span>@((maxPeriodRevenue / 2m).ToString("C0", culture))</span>
                             <span>0 đ</span>
                         </div>
                         <div class="report-column-chart__plot">
@@ -142,20 +142,38 @@
             }
             else
             {
-                <div class="report-distribution" role="img" aria-label="Doanh thu theo gói cước">
-                    @foreach (var item in report.RevenueByPackage)
-                    {
-                        <div class="report-distribution__row">
-                            <span class="report-distribution__label">@item.Category</span>
-                            <span class="report-distribution__track" aria-hidden="true">
-                                <span class="report-distribution__fill @FillClass(item.Category)" data-width="@Width(item.Value, maxPackageRevenue)"></span>
-                            </span>
-                            <div class="report-distribution__value">
-                                <strong>@item.Value.ToString("C0", culture)</strong>
-                                <small>@PercentDecimal(item.Value, totalByPackage)</small>
+                var segments = new List<string>();
+                var currentSum = 0m;
+                foreach (var item in report.RevenueByPackage)
+                {
+                    var percent = totalByPackage <= 0 ? 0m : item.Value / totalByPackage * 100m;
+                    if (percent <= 0) continue;
+
+                    var color = GetColorHex(item.Category);
+                    var start = currentSum.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+                    currentSum += percent;
+                    var end = currentSum.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+                    segments.Add($"{color} {start} {end}");
+                }
+                var conicGradientValue = segments.Count > 0 ? "conic-gradient(" + string.Join(", ", segments) + ")" : "none";
+
+                <div class="report-pie-container" role="img" aria-label="Doanh thu theo gói cước">
+                    <div class="report-pie-chart" data-segments="@conicGradientValue"></div>
+                    <div class="report-pie-legend">
+                        @foreach (var item in report.RevenueByPackage)
+                        {
+                            <div class="report-pie-legend__item">
+                                <div class="report-pie-legend__info">
+                                    <i class="report-pie-legend__dot @LegendDotClass(item.Category)"></i>
+                                    <span class="report-pie-legend__label">@item.Category</span>
+                                </div>
+                                <div class="report-pie-legend__value">
+                                    <strong>@item.Value.ToString("C0", culture)</strong>
+                                    <small>@PercentDecimal(item.Value, totalByPackage)</small>
+                                </div>
                             </div>
-                        </div>
-                    }
+                        }
+                    </div>
                 </div>
             }
         </article>
@@ -176,20 +194,38 @@
             }
             else
             {
-                <div class="report-distribution" role="img" aria-label="Doanh thu theo phương thức thanh toán">
-                    @foreach (var item in report.RevenueByPaymentMethod)
-                    {
-                        <div class="report-distribution__row">
-                            <span class="report-distribution__label">@item.Category</span>
-                            <span class="report-distribution__track" aria-hidden="true">
-                                <span class="report-distribution__fill @FillClass(item.Category)" data-width="@Width(item.Value, maxMethodRevenue)"></span>
-                            </span>
-                            <div class="report-distribution__value">
-                                <strong>@item.Value.ToString("C0", culture)</strong>
-                                <small>@PercentDecimal(item.Value, totalByMethod)</small>
+                var segments = new List<string>();
+                var currentSum = 0m;
+                foreach (var item in report.RevenueByPaymentMethod)
+                {
+                    var percent = totalByMethod <= 0 ? 0m : item.Value / totalByMethod * 100m;
+                    if (percent <= 0) continue;
+
+                    var color = GetColorHex(item.Category);
+                    var start = currentSum.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+                    currentSum += percent;
+                    var end = currentSum.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+                    segments.Add($"{color} {start} {end}");
+                }
+                var conicGradientValue = segments.Count > 0 ? "conic-gradient(" + string.Join(", ", segments) + ")" : "none";
+
+                <div class="report-pie-container" role="img" aria-label="Doanh thu theo phương thức thanh toán">
+                    <div class="report-pie-chart" data-segments="@conicGradientValue"></div>
+                    <div class="report-pie-legend">
+                        @foreach (var item in report.RevenueByPaymentMethod)
+                        {
+                            <div class="report-pie-legend__item">
+                                <div class="report-pie-legend__info">
+                                    <i class="report-pie-legend__dot @LegendDotClass(item.Category)"></i>
+                                    <span class="report-pie-legend__label">@item.Category</span>
+                                </div>
+                                <div class="report-pie-legend__value">
+                                    <strong>@item.Value.ToString("C0", culture)</strong>
+                                    <small>@PercentDecimal(item.Value, totalByMethod)</small>
+                                </div>
                             </div>
-                        </div>
-                    }
+                        }
+                    </div>
                 </div>
             }
         </article>
@@ -285,5 +321,47 @@
         }
 
         return "report-distribution__fill--violet";
+    }
+
+    private static string LegendDotClass(string value)
+    {
+        var normalized = value.ToLowerInvariant();
+        if (normalized.Contains("vnpay") || normalized.Contains("free"))
+        {
+            return "report-pie-legend__dot--sky";
+        }
+
+        if (normalized.Contains("momo") || normalized.Contains("pro") || normalized.Contains("max"))
+        {
+            return "report-pie-legend__dot--ink";
+        }
+
+        if (normalized.Contains("plus"))
+        {
+            return "report-pie-legend__dot--amber";
+        }
+
+        return "report-pie-legend__dot--violet";
+    }
+
+    private static string GetColorHex(string category)
+    {
+        var normalized = category.ToLowerInvariant();
+        if (normalized.Contains("vnpay") || normalized.Contains("free"))
+        {
+            return "#0ea5e9";
+        }
+
+        if (normalized.Contains("momo") || normalized.Contains("pro") || normalized.Contains("max"))
+        {
+            return "#122033";
+        }
+
+        if (normalized.Contains("plus"))
+        {
+            return "#f59e0b";
+        }
+
+        return "#7c3aed";
     }
 }
