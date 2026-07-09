@@ -1,0 +1,429 @@
+@using System.Globalization
+@model EduPlatform.Web.ViewModels.Admin.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Tổng quan Admin";
+    var culture = CultureInfo.GetCultureInfo("vi-VN");
+    var report = Model.Report;
+    var rangeLabel = $"{Model.Range.StartUtc.ToLocalTime():dd/MM/yyyy} - {Model.Range.EndUtc.ToLocalTime():dd/MM/yyyy}";
+    var maxRevenue = Math.Max(report.Revenue.Select(point => point.Value).DefaultIfEmpty(0m).Max(), 1m);
+    var maxUserGrowth = Math.Max(report.UserGrowth.Select(point => (decimal)point.Count).DefaultIfEmpty(0m).Max(), 1m);
+    var maxChatUsage = Math.Max(report.ChatUsage.Select(point => (decimal)point.Count).DefaultIfEmpty(0m).Max(), 1m);
+    var maxSubscription = Math.Max(report.SubscriptionDistribution.Select(point => point.Count).DefaultIfEmpty(0).Max(), 1);
+    var totalSubUsers = report.SubscriptionDistribution.Sum(s => s.Count);
+}
+
+<div class="admin-dashboard">
+    <div class="admin-dashboard__hero">
+        <div>
+            <p class="section-label">Bảng điều khiển</p>
+            <h1>Tổng quan hệ thống</h1>
+            <p>Theo dõi người dùng, khóa học, doanh thu và lượt hỏi tài liệu trong @rangeLabel.</p>
+        </div>
+        <div class="admin-dashboard__actions">
+            <a class="btn btn-outline-primary" asp-controller="Admin" asp-action="Users">Quản lý người dùng</a>
+            <a class="btn btn-primary" asp-controller="AdminPackage" asp-action="Index">Quản lý gói cước</a>
+        </div>
+    </div>
+
+    <section class="admin-metrics" aria-label="Chỉ số chính">
+        <article class="admin-metric-card">
+            <span>Tổng người dùng</span>
+            <strong>@report.TotalUsers.ToString("N0", culture)</strong>
+            <small>User đã đăng ký trong hệ thống.</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>Tổng khóa học</span>
+            <strong>@report.TotalCourses.ToString("N0", culture)</strong>
+            <small>@report.CourseStats.VisibleCourses.ToString("N0", culture) khóa học đang hiển thị.</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>Doanh thu</span>
+            <strong>@report.TotalRevenue.ToString("C0", culture)</strong>
+            <small>Tính trên thanh toán đã thành công.</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>Gói đang hiệu lực</span>
+            <strong>@report.ActiveSubscriptions.ToString("N0", culture)</strong>
+            <small>Subscription chưa hết hạn.</small>
+        </article>
+    </section>
+
+    <section class="admin-dashboard-grid" aria-label="Biểu đồ tổng quan">
+        <article class="content-panel admin-chart-card admin-chart-card--wide">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Doanh thu</span>
+                    <h2>Doanh thu theo ngày</h2>
+                </div>
+                <small>@rangeLabel</small>
+            </div>
+            @if (report.Revenue.Count == 0)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Chưa có doanh thu.</strong>
+                    <span>Khi có payment thành công, biểu đồ sẽ cập nhật.</span>
+                </div>
+            }
+            else
+            {
+                <div class="report-column-chart" role="img" aria-label="Biểu đồ doanh thu theo ngày">
+                    <div class="report-column-chart__summary">
+                        <span>Đỉnh</span>
+                        <strong>@maxRevenue.ToString("C0", culture)</strong>
+                    </div>
+                    <div class="report-column-chart__body">
+                        <div class="report-column-chart__axis" aria-hidden="true">
+                            <span>@maxRevenue.ToString("C0", culture)</span>
+                            <span>@((maxRevenue / 2m).ToString("C0", culture))</span>
+                            <span>0 đ</span>
+                        </div>
+                        <div class="report-column-chart__plot">
+                            @for (var i = 0; i < report.Revenue.Count; i++)
+                            {
+                                var point = report.Revenue[i];
+                                <div class="report-column-chart__group" style="--chart-index: @i;">
+                                    <div class="report-column-chart__bar-wrap">
+                                        <span class="report-column-chart__bar"
+                                              data-height="@Height(point.Value, maxRevenue)"
+                                              title="@point.Label: @point.Value.ToString("C0", culture)">
+                                            <strong>@point.Value.ToString("C0", culture)</strong>
+                                        </span>
+                                    </div>
+                                    <span class="report-column-chart__label">@point.Label</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </article>
+
+        <article class="content-panel admin-chart-card">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Người dùng</span>
+                    <h2>User mới</h2>
+                </div>
+            </div>
+            @if (report.UserGrowth.Count == 0)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Chưa có user mới.</strong>
+                    <span>Dữ liệu sẽ xuất hiện khi có đăng ký mới.</span>
+                </div>
+            }
+            else
+            {
+                <div class="report-column-chart" role="img" aria-label="Biểu đồ user mới">
+                    <div class="report-column-chart__summary">
+                        <span>Đỉnh</span>
+                        <strong>@maxUserGrowth.ToString("N0", culture)</strong>
+                    </div>
+                    <div class="report-column-chart__body">
+                        <div class="report-column-chart__axis" aria-hidden="true">
+                            <span>@maxUserGrowth.ToString("N0", culture)</span>
+                            <span>@((maxUserGrowth / 2m).ToString("N0", culture))</span>
+                            <span>0</span>
+                        </div>
+                        <div class="report-column-chart__plot">
+                            @for (var i = 0; i < report.UserGrowth.Count; i++)
+                            {
+                                var point = report.UserGrowth[i];
+                                <div class="report-column-chart__group" style="--chart-index: @i;">
+                                    <div class="report-column-chart__bar-wrap">
+                                        <span class="report-column-chart__bar report-column-chart__bar--sky"
+                                              data-height="@Height(point.Count, maxUserGrowth)"
+                                              title="@point.Label: @point.Count.ToString("N0", culture) user">
+                                            <strong>@point.Count.ToString("N0", culture)</strong>
+                                        </span>
+                                    </div>
+                                    <span class="report-column-chart__label">@point.Label</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </article>
+
+        <article class="content-panel admin-chart-card">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Chatbot</span>
+                    <h2>Lượt hỏi tài liệu</h2>
+                </div>
+            </div>
+            @if (report.ChatUsage.Count == 0)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Chưa có lượt hỏi.</strong>
+                    <span>Dữ liệu sẽ xuất hiện khi student chat với tài liệu.</span>
+                </div>
+            }
+            else
+            {
+                <div class="report-column-chart" role="img" aria-label="Biểu đồ lượt hỏi tài liệu">
+                    <div class="report-column-chart__summary">
+                        <span>Đỉnh</span>
+                        <strong>@maxChatUsage.ToString("N0", culture)</strong>
+                    </div>
+                    <div class="report-column-chart__body">
+                        <div class="report-column-chart__axis" aria-hidden="true">
+                            <span>@maxChatUsage.ToString("N0", culture)</span>
+                            <span>@((maxChatUsage / 2m).ToString("N0", culture))</span>
+                            <span>0</span>
+                        </div>
+                        <div class="report-column-chart__plot">
+                            @for (var i = 0; i < report.ChatUsage.Count; i++)
+                            {
+                                var point = report.ChatUsage[i];
+                                <div class="report-column-chart__group" style="--chart-index: @i;">
+                                    <div class="report-column-chart__bar-wrap">
+                                        <span class="report-column-chart__bar report-column-chart__bar--ink"
+                                              data-height="@Height(point.Count, maxChatUsage)"
+                                              title="@point.Label: @point.Count.ToString("N0", culture) luot hoi">
+                                            <strong>@point.Count.ToString("N0", culture)</strong>
+                                        </span>
+                                    </div>
+                                    <span class="report-column-chart__label">@point.Label</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </article>
+
+        <article class="content-panel admin-chart-card">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Gói cước</span>
+                    <h2>Phân bố subscription</h2>
+                </div>
+            </div>
+            @if (report.SubscriptionDistribution.Count == 0)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Chưa có gói đang hiệu lực.</strong>
+                    <span>Dữ liệu sẽ xuất hiện khi user mua gói thành công.</span>
+                </div>
+            }
+            else
+            {
+                var segments = new List<string>();
+                var currentSum = 0m;
+                foreach (var item in report.SubscriptionDistribution)
+                {
+                    var percent = totalSubUsers <= 0 ? 0m : (decimal)item.Count / totalSubUsers * 100m;
+                    if (percent <= 0) continue;
+
+                    var color = GetColorHex(item.Category);
+                    var start = currentSum.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+                    currentSum += percent;
+                    var end = currentSum.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+                    segments.Add($"{color} {start} {end}");
+                }
+                var conicGradientValue = segments.Count > 0 ? "conic-gradient(" + string.Join(", ", segments) + ")" : "none";
+
+                <div class="report-pie-container" role="img" aria-label="Phân bố subscription">
+                    <div class="report-pie-chart" data-segments="@conicGradientValue"></div>
+                    <div class="report-pie-legend">
+                        @foreach (var item in report.SubscriptionDistribution)
+                        {
+                            <div class="report-pie-legend__item">
+                                <div class="report-pie-legend__info">
+                                    <i class="report-pie-legend__dot @LegendDotClass(item.Category)"></i>
+                                    <span class="report-pie-legend__label">@item.Category</span>
+                                </div>
+                                <div class="report-pie-legend__value">
+                                    <strong>@item.Count.ToString("N0", culture)</strong>
+                                    <small>@Percent(item.Count, totalSubUsers)</small>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </article>
+
+        <article class="content-panel admin-chart-card admin-chart-card--wide">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Khóa học</span>
+                    <h2>Khóa học nổi bật</h2>
+                </div>
+                <small>Dựa trên enrollment và lượt chat</small>
+            </div>
+            @if (report.TopCourses.Count == 0)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Chưa có dữ liệu khóa học.</strong>
+                    <span>Khi có enrollment hoặc chat, top courses sẽ hiện ở đây.</span>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0 admin-top-table">
+                        <thead>
+                            <tr>
+                                <th>Khóa học</th>
+                                <th>Giảng viên</th>
+                                <th class="text-end">Học viên</th>
+                                <th class="text-end">Tài liệu</th>
+                                <th class="text-end">Lượt hỏi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var course in report.TopCourses)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">@course.Title</td>
+                                    <td class="text-muted">@course.OwnerName</td>
+                                    <td class="text-end">@course.EnrollmentCount.ToString("N0", culture)</td>
+                                    <td class="text-end">@course.DocumentCount.ToString("N0", culture)</td>
+                                    <td class="text-end">@course.ChatMessageCount.ToString("N0", culture)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </article>
+    </section>
+
+    <section class="content-panel admin-course-breakdown" aria-label="Tình trạng khóa học">
+        <div class="admin-card-heading">
+            <div>
+                <span>Sức khỏe nội dung</span>
+                <h2>Tình trạng khóa học và tài liệu</h2>
+            </div>
+        </div>
+        <div class="admin-breakdown-grid">
+            <div>
+                <span>Public</span>
+                <strong>@report.CourseStats.PublicCourses.ToString("N0", culture)</strong>
+            </div>
+            <div>
+                <span>Private</span>
+                <strong>@report.CourseStats.PrivateCourses.ToString("N0", culture)</strong>
+            </div>
+            <div>
+                <span>Enrollments</span>
+                <strong>@report.CourseStats.TotalEnrollments.ToString("N0", culture)</strong>
+            </div>
+            <div>
+                <span>Tài liệu sẵn sàng</span>
+                <strong>@report.CourseStats.ReadyDocuments.ToString("N0", culture) / @report.CourseStats.TotalDocuments.ToString("N0", culture)</strong>
+            </div>
+            <div>
+                <span>Chat sessions</span>
+                <strong>@report.CourseStats.TotalChatSessions.ToString("N0", culture)</strong>
+            </div>
+            <div>
+                <span>User messages</span>
+                <strong>@report.CourseStats.TotalChatMessages.ToString("N0", culture)</strong>
+            </div>
+        </div>
+    </section>
+</div>
+
+@functions {
+    private static string Height(decimal value, decimal max)
+    {
+        if (max <= 0 || value <= 0)
+        {
+            return "0";
+        }
+
+        var percent = value / max * 100m;
+        percent = Math.Max(6m, Math.Min(100m, percent));
+        return percent.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+    }
+
+    private static string Width(decimal value, decimal max)
+    {
+        if (max <= 0 || value <= 0)
+        {
+            return "0";
+        }
+
+        var percent = value / max * 100m;
+        percent = Math.Max(5m, Math.Min(100m, percent));
+        return percent.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+    }
+
+    private static string Percent(int value, int max)
+    {
+        if (max <= 0 || value <= 0)
+        {
+            return "0%";
+        }
+
+        var pct = (decimal)value / max * 100m;
+        return pct.ToString("0.#", CultureInfo.InvariantCulture) + "%";
+    }
+
+    private static string FillClass(string value)
+    {
+        var normalized = value.ToLowerInvariant();
+        if (normalized.Contains("free"))
+        {
+            return "report-distribution__fill--sky";
+        }
+
+        if (normalized.Contains("pro") || normalized.Contains("max"))
+        {
+            return "report-distribution__fill--ink";
+        }
+
+        if (normalized.Contains("plus"))
+        {
+            return "report-distribution__fill--amber";
+        }
+
+        return "report-distribution__fill--violet";
+    }
+
+    private static string LegendDotClass(string value)
+    {
+        var normalized = value.ToLowerInvariant();
+        if (normalized.Contains("student") || normalized.Contains("free"))
+        {
+            return "report-pie-legend__dot--sky";
+        }
+
+        if (normalized.Contains("admin") || normalized.Contains("pro") || normalized.Contains("max"))
+        {
+            return "report-pie-legend__dot--ink";
+        }
+
+        if (normalized.Contains("teacher") || normalized.Contains("plus"))
+        {
+            return "report-pie-legend__dot--amber";
+        }
+
+        return "report-pie-legend__dot--violet";
+    }
+
+    private static string GetColorHex(string category)
+    {
+        var normalized = category.ToLowerInvariant();
+        if (normalized.Contains("student") || normalized.Contains("free"))
+        {
+            return "#0ea5e9";
+        }
+
+        if (normalized.Contains("admin") || normalized.Contains("pro") || normalized.Contains("max"))
+        {
+            return "#122033";
+        }
+
+        if (normalized.Contains("teacher") || normalized.Contains("plus"))
+        {
+            return "#f59e0b";
+        }
+
+        return "#7c3aed";
+    }
+}

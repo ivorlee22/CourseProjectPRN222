@@ -1,0 +1,388 @@
+@using System.Globalization
+@using EduPlatform.BLL.Enums
+@model EduPlatform.Web.ViewModels.Reports.UserAnalyticsViewModel
+@{
+    ViewData["Title"] = "Phân tích người dùng";
+    var culture = CultureInfo.GetCultureInfo("vi-VN");
+    var report = Model.Report;
+    var maxUserGrowth = Math.Max(report.UserGrowth.Select(point => (decimal)point.Count).DefaultIfEmpty(0m).Max(), 1m);
+    var maxRoleUsers = Math.Max(report.UsersByRole.Select(point => point.Count).DefaultIfEmpty(0).Max(), 1);
+    var maxSubscriptions = Math.Max(report.SubscriptionDistribution.Select(point => point.Count).DefaultIfEmpty(0).Max(), 1);
+    var totalRoleUsers = report.UsersByRole.Sum(r => r.Count);
+    var totalSubUsers = report.SubscriptionDistribution.Sum(s => s.Count);
+}
+
+<div class="report-page">
+    <div class="admin-dashboard__hero">
+        <div>
+            <p class="section-label">Báo cáo</p>
+            <h1>Phân tích người dùng</h1>
+            <p>Theo dõi user mới theo thời gian, phân bố role và subscription đang hiệu lực.</p>
+        </div>
+        <div class="admin-dashboard__actions">
+            <a class="btn btn-outline-primary" asp-controller="Admin" asp-action="Users">Quản lý người dùng</a>
+            <a class="btn btn-primary" asp-controller="Admin" asp-action="Index">Về tổng quan</a>
+        </div>
+    </div>
+
+    <form class="content-panel report-filter" method="get" asp-action="UserAnalytics">
+        <div>
+            <label class="form-label" for="startDate">Từ ngày</label>
+            <input class="form-control" id="startDate" name="startDate" type="date" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+        </div>
+        <div>
+            <label class="form-label" for="endDate">Đến ngày</label>
+            <input class="form-control" id="endDate" name="endDate" type="date" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+        </div>
+        <div>
+            <label class="form-label" for="grouping">Nhóm theo</label>
+            <select class="form-select" id="grouping" name="grouping" asp-for="Grouping">
+                <option value="@ReportPeriodGrouping.Day">Ngày</option>
+                <option value="@ReportPeriodGrouping.Week">Tuần</option>
+                <option value="@ReportPeriodGrouping.Month">Tháng</option>
+            </select>
+        </div>
+        <div class="report-filter__actions">
+            <button class="btn btn-primary" type="submit">Cập nhật</button>
+        </div>
+    </form>
+
+    <section class="admin-metrics" aria-label="Tổng quan người dùng">
+        <article class="admin-metric-card">
+            <span>Tổng user</span>
+            <strong>@report.TotalUsers.ToString("N0", culture)</strong>
+            <small>Tất cả tài khoản trong hệ thống.</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>User mới</span>
+            <strong>@report.NewUsers.ToString("N0", culture)</strong>
+            <small>Đăng ký trong khoảng đã chọn.</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>Số role</span>
+            <strong>@report.UsersByRole.Count.ToString("N0", culture)</strong>
+            <small>Admin, Teacher, Student hoặc role khác nếu có.</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>Gói đang dùng</span>
+            <strong>@(report.SubscriptionDistribution.Sum(item => item.Count).ToString("N0", culture))</strong>
+            <small>Subscription đang còn hiệu lực.</small>
+        </article>
+    </section>
+
+    <section class="admin-dashboard-grid" aria-label="Biểu đồ người dùng">
+        <article class="content-panel admin-chart-card admin-chart-card--wide">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Theo thời gian</span>
+                    <h2>User mới theo kỳ</h2>
+                </div>
+                <small>@Model.StartDate.ToString("dd/MM/yyyy") - @Model.EndDate.ToString("dd/MM/yyyy")</small>
+            </div>
+            @if (report.UserGrowth.Count == 0)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Chưa có user mới.</strong>
+                    <span>Dữ liệu sẽ xuất hiện khi có đăng ký mới.</span>
+                </div>
+            }
+            else
+            {
+                <div class="report-column-chart" role="img" aria-label="Biểu đồ user mới theo kỳ">
+                    <div class="report-column-chart__summary">
+                        <span>Đỉnh kỳ</span>
+                        <strong>@maxUserGrowth.ToString("N0", culture)</strong>
+                    </div>
+                    <div class="report-column-chart__body">
+                        <div class="report-column-chart__axis" aria-hidden="true">
+                            <span>@maxUserGrowth.ToString("N0", culture)</span>
+                            <span>@((maxUserGrowth / 2m).ToString("N0", culture))</span>
+                            <span>0</span>
+                        </div>
+                        <div class="report-column-chart__plot">
+                            @for (var i = 0; i < report.UserGrowth.Count; i++)
+                            {
+                                var point = report.UserGrowth[i];
+                                <div class="report-column-chart__group" style="--chart-index: @i;">
+                                    <div class="report-column-chart__bar-wrap">
+                                        <span class="report-column-chart__bar report-column-chart__bar--sky"
+                                              data-height="@Height(point.Count, maxUserGrowth)"
+                                              title="@point.Label: @point.Count.ToString("N0", culture) user">
+                                            <strong>@point.Count.ToString("N0", culture)</strong>
+                                        </span>
+                                    </div>
+                                    <span class="report-column-chart__label">@point.Label</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </article>
+
+        <article class="content-panel admin-chart-card">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Role</span>
+                    <h2>Phân bố vai trò</h2>
+                </div>
+            </div>
+            @if (report.UsersByRole.Count == 0)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Chưa có dữ liệu role.</strong>
+                    <span>Dữ liệu sẽ xuất hiện khi có user.</span>
+                </div>
+            }
+            else
+            {
+                var segments = new List<string>();
+                var currentSum = 0m;
+                foreach (var item in report.UsersByRole)
+                {
+                    var percent = totalRoleUsers <= 0 ? 0m : (decimal)item.Count / totalRoleUsers * 100m;
+                    if (percent <= 0) continue;
+
+                    var color = GetRoleColorHex(item.Category);
+                    var start = currentSum.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+                    currentSum += percent;
+                    var end = currentSum.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+                    segments.Add($"{color} {start} {end}");
+                }
+                var conicGradientValue = segments.Count > 0 ? "conic-gradient(" + string.Join(", ", segments) + ")" : "none";
+
+                <div class="report-pie-container" role="img" aria-label="Phân bố vai trò">
+                    <div class="report-pie-chart" data-segments="@conicGradientValue"></div>
+                    <div class="report-pie-legend">
+                        @foreach (var item in report.UsersByRole)
+                        {
+                            <div class="report-pie-legend__item">
+                                <div class="report-pie-legend__info">
+                                    <i class="report-pie-legend__dot @RoleLegendDotClass(item.Category)"></i>
+                                    <span class="report-pie-legend__label">@item.Category</span>
+                                </div>
+                                <div class="report-pie-legend__value">
+                                    <strong>@item.Count.ToString("N0", culture)</strong>
+                                    <small>@Percent(item.Count, totalRoleUsers)</small>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </article>
+
+        <article class="content-panel admin-chart-card">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Subscription</span>
+                    <h2>Phân bố gói đang hiệu lực</h2>
+                </div>
+            </div>
+            @if (report.SubscriptionDistribution.Count == 0)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Chưa có subscription đang hiệu lực.</strong>
+                    <span>Sau khi user mua gói thành công, dữ liệu sẽ hiện ở đây.</span>
+                </div>
+            }
+            else
+            {
+                var segments = new List<string>();
+                var currentSum = 0m;
+                foreach (var item in report.SubscriptionDistribution)
+                {
+                    var percent = totalSubUsers <= 0 ? 0m : (decimal)item.Count / totalSubUsers * 100m;
+                    if (percent <= 0) continue;
+
+                    var color = GetColorHex(item.Category);
+                    var start = currentSum.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+                    currentSum += percent;
+                    var end = currentSum.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+                    segments.Add($"{color} {start} {end}");
+                }
+                var conicGradientValue = segments.Count > 0 ? "conic-gradient(" + string.Join(", ", segments) + ")" : "none";
+
+                <div class="report-pie-container" role="img" aria-label="Phân bố subscription">
+                    <div class="report-pie-chart" data-segments="@conicGradientValue"></div>
+                    <div class="report-pie-legend">
+                        @foreach (var item in report.SubscriptionDistribution)
+                        {
+                            <div class="report-pie-legend__item">
+                                <div class="report-pie-legend__info">
+                                    <i class="report-pie-legend__dot @LegendDotClass(item.Category)"></i>
+                                    <span class="report-pie-legend__label">@item.Category</span>
+                                </div>
+                                <div class="report-pie-legend__value">
+                                    <strong>@item.Count.ToString("N0", culture)</strong>
+                                    <small>@Percent(item.Count, totalSubUsers)</small>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </article>
+    </section>
+
+    <section class="content-panel">
+        <div class="admin-card-heading mb-3">
+            <div>
+                <span>Bảng dữ liệu</span>
+                <h2>Phân bố user</h2>
+            </div>
+        </div>
+        <div class="admin-breakdown-grid">
+            @foreach (var role in report.UsersByRole)
+            {
+                <div>
+                    <span>@role.Category</span>
+                    <strong>@role.Count.ToString("N0", culture)</strong>
+                </div>
+            }
+            @if (report.UsersByRole.Count == 0)
+            {
+                <div>
+                    <span>Chưa có dữ liệu</span>
+                    <strong>0</strong>
+                </div>
+            }
+        </div>
+    </section>
+</div>
+
+@functions {
+    private static string Height(decimal value, decimal max)
+    {
+        if (max <= 0 || value <= 0)
+        {
+            return "0";
+        }
+
+        var percent = value / max * 100m;
+        percent = Math.Max(6m, Math.Min(100m, percent));
+        return percent.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+    }
+
+    private static string Width(decimal value, decimal max)
+    {
+        if (max <= 0 || value <= 0)
+        {
+            return "0";
+        }
+
+        var percent = value / max * 100m;
+        percent = Math.Max(5m, Math.Min(100m, percent));
+        return percent.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+    }
+
+    private static string Percent(int value, int total)
+    {
+        if (total <= 0 || value <= 0)
+        {
+            return "0%";
+        }
+
+        var pct = (decimal)value / total * 100m;
+        return pct.ToString("0.#", CultureInfo.InvariantCulture) + "%";
+    }
+
+    private static string FillClass(string value)
+    {
+        var normalized = value.ToLowerInvariant();
+        if (normalized.Contains("student") || normalized.Contains("free"))
+        {
+            return "report-distribution__fill--sky";
+        }
+
+        if (normalized.Contains("admin") || normalized.Contains("pro") || normalized.Contains("max"))
+        {
+            return "report-distribution__fill--ink";
+        }
+
+        if (normalized.Contains("teacher") || normalized.Contains("plus"))
+        {
+            return "report-distribution__fill--amber";
+        }
+
+        return "report-distribution__fill--violet";
+    }
+
+    private static string LegendDotClass(string value)
+    {
+        var normalized = value.ToLowerInvariant();
+        if (normalized.Contains("student") || normalized.Contains("free"))
+        {
+            return "report-pie-legend__dot--sky";
+        }
+
+        if (normalized.Contains("admin") || normalized.Contains("pro") || normalized.Contains("max"))
+        {
+            return "report-pie-legend__dot--ink";
+        }
+
+        if (normalized.Contains("teacher") || normalized.Contains("plus"))
+        {
+            return "report-pie-legend__dot--amber";
+        }
+
+        return "report-pie-legend__dot--violet";
+    }
+
+    private static string GetColorHex(string category)
+    {
+        var normalized = category.ToLowerInvariant();
+        if (normalized.Contains("student") || normalized.Contains("free"))
+        {
+            return "#0ea5e9";
+        }
+
+        if (normalized.Contains("admin") || normalized.Contains("pro") || normalized.Contains("max"))
+        {
+            return "#122033";
+        }
+
+        if (normalized.Contains("teacher") || normalized.Contains("plus"))
+        {
+            return "#f59e0b";
+        }
+
+        return "#7c3aed";
+    }
+
+    private static string RoleLegendDotClass(string value)
+    {
+        var normalized = value.ToLowerInvariant();
+        if (normalized.Contains("admin"))
+        {
+            return "report-pie-legend__dot--indigo";
+        }
+        if (normalized.Contains("teacher"))
+        {
+            return "report-pie-legend__dot--teal";
+        }
+        if (normalized.Contains("student"))
+        {
+            return "report-pie-legend__dot--rose";
+        }
+        return "report-pie-legend__dot--slate";
+    }
+
+    private static string GetRoleColorHex(string category)
+    {
+        var normalized = category.ToLowerInvariant();
+        if (normalized.Contains("admin"))
+        {
+            return "#6366f1";
+        }
+        if (normalized.Contains("teacher"))
+        {
+            return "#14b8a6";
+        }
+        if (normalized.Contains("student"))
+        {
+            return "#f43f5e";
+        }
+        return "#64748b";
+    }
+}

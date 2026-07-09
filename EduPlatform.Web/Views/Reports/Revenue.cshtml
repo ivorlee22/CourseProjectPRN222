@@ -1,0 +1,367 @@
+@using System.Globalization
+@using EduPlatform.BLL.Enums
+@model EduPlatform.Web.ViewModels.Reports.RevenueReportViewModel
+@{
+    ViewData["Title"] = "Báo cáo doanh thu";
+    var culture = CultureInfo.GetCultureInfo("vi-VN");
+    var report = Model.Report;
+    var maxPeriodRevenue = Math.Max(report.RevenueByPeriod.Select(point => point.Value).DefaultIfEmpty(0m).Max(), 1m);
+    var maxPackageRevenue = Math.Max(report.RevenueByPackage.Select(point => point.Value).DefaultIfEmpty(0m).Max(), 1m);
+    var maxMethodRevenue = Math.Max(report.RevenueByPaymentMethod.Select(point => point.Value).DefaultIfEmpty(0m).Max(), 1m);
+    var totalByPackage = report.RevenueByPackage.Sum(p => p.Value);
+    var totalByMethod = report.RevenueByPaymentMethod.Sum(p => p.Value);
+}
+
+<div class="report-page">
+    <div class="admin-dashboard__hero">
+        <div>
+            <p class="section-label">Báo cáo</p>
+            <h1>Doanh thu</h1>
+            <p>Xem doanh thu theo ngày, tuần, tháng, theo gói cước và phương thức thanh toán.</p>
+        </div>
+        <div class="admin-dashboard__actions">
+            <a class="btn btn-outline-primary"
+               asp-action="ExportRevenue"
+               asp-route-startDate="@Model.StartDate.ToString("yyyy-MM-dd")"
+               asp-route-endDate="@Model.EndDate.ToString("yyyy-MM-dd")"
+               asp-route-grouping="@Model.Grouping">
+                Export Excel
+            </a>
+            <a class="btn btn-primary" asp-controller="Admin" asp-action="Index">Về tổng quan</a>
+        </div>
+    </div>
+
+    <form class="content-panel report-filter" method="get" asp-action="Revenue">
+        <div>
+            <label class="form-label" for="startDate">Từ ngày</label>
+            <input class="form-control" id="startDate" name="startDate" type="date" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+        </div>
+        <div>
+            <label class="form-label" for="endDate">Đến ngày</label>
+            <input class="form-control" id="endDate" name="endDate" type="date" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+        </div>
+        <div>
+            <label class="form-label" for="grouping">Nhóm theo</label>
+            <select class="form-select" id="grouping" name="grouping" asp-for="Grouping">
+                <option value="@ReportPeriodGrouping.Day">Ngày</option>
+                <option value="@ReportPeriodGrouping.Week">Tuần</option>
+                <option value="@ReportPeriodGrouping.Month">Tháng</option>
+            </select>
+        </div>
+        <div class="report-filter__actions">
+            <button class="btn btn-primary" type="submit">Cập nhật</button>
+        </div>
+    </form>
+
+    <section class="admin-metrics" aria-label="Tổng quan doanh thu">
+        <article class="admin-metric-card">
+            <span>Tổng doanh thu</span>
+            <strong>@report.TotalRevenue.ToString("C0", culture)</strong>
+            <small>Tính theo thanh toán thành công trong khoảng đã chọn.</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>Số kỳ có doanh thu</span>
+            <strong>@(report.RevenueByPeriod.Count(point => point.Value > 0).ToString("N0", culture))</strong>
+            <small>Nhóm theo @Model.Grouping.ToString().ToLowerInvariant().</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>Gói phát sinh</span>
+            <strong>@report.RevenueByPackage.Count.ToString("N0", culture)</strong>
+            <small>Số gói cước có thanh toán thành công.</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>Phương thức</span>
+            <strong>@report.RevenueByPaymentMethod.Count.ToString("N0", culture)</strong>
+            <small>VNPay, MoMo hoặc các phương thức khác.</small>
+        </article>
+    </section>
+
+    <section class="admin-dashboard-grid" aria-label="Biểu đồ doanh thu">
+        <article class="content-panel admin-chart-card admin-chart-card--wide">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Theo thời gian</span>
+                    <h2>Doanh thu theo kỳ</h2>
+                </div>
+                <small>@Model.StartDate.ToString("dd/MM/yyyy") - @Model.EndDate.ToString("dd/MM/yyyy")</small>
+            </div>
+            @if (report.RevenueByPeriod.Count == 0)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Chưa có doanh thu.</strong>
+                    <span>Dữ liệu sẽ xuất hiện khi payment thành công.</span>
+                </div>
+            }
+            else
+            {
+                <div class="report-column-chart" role="img" aria-label="Biểu đồ doanh thu theo kỳ">
+                    <div class="report-column-chart__summary">
+                        <span>Đỉnh kỳ</span>
+                        <strong>@maxPeriodRevenue.ToString("C0", culture)</strong>
+                    </div>
+                    <div class="report-column-chart__body">
+                        <div class="report-column-chart__axis" aria-hidden="true">
+                            <span>@maxPeriodRevenue.ToString("C0", culture)</span>
+                            <span>@((maxPeriodRevenue / 2m).ToString("C0", culture))</span>
+                            <span>0 đ</span>
+                        </div>
+                        <div class="report-column-chart__plot">
+                            @for (var i = 0; i < report.RevenueByPeriod.Count; i++)
+                            {
+                                var point = report.RevenueByPeriod[i];
+                                <div class="report-column-chart__group" style="--chart-index: @i;">
+                                    <div class="report-column-chart__bar-wrap">
+                                        <span class="report-column-chart__bar"
+                                              data-height="@Height(point.Value, maxPeriodRevenue)"
+                                              title="@point.Label: @point.Value.ToString("C0", culture)">
+                                            <strong>@point.Value.ToString("C0", culture)</strong>
+                                        </span>
+                                    </div>
+                                    <span class="report-column-chart__label">@point.Label</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </article>
+
+        <article class="content-panel admin-chart-card">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Theo gói</span>
+                    <h2>Doanh thu theo gói cước</h2>
+                </div>
+            </div>
+            @if (report.RevenueByPackage.Count == 0)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Chưa có doanh thu theo gói.</strong>
+                    <span>Dữ liệu sẽ xuất hiện khi payment thành công.</span>
+                </div>
+            }
+            else
+            {
+                var segments = new List<string>();
+                var currentSum = 0m;
+                foreach (var item in report.RevenueByPackage)
+                {
+                    var percent = totalByPackage <= 0 ? 0m : item.Value / totalByPackage * 100m;
+                    if (percent <= 0) continue;
+
+                    var color = GetColorHex(item.Category);
+                    var start = currentSum.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+                    currentSum += percent;
+                    var end = currentSum.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+                    segments.Add($"{color} {start} {end}");
+                }
+                var conicGradientValue = segments.Count > 0 ? "conic-gradient(" + string.Join(", ", segments) + ")" : "none";
+
+                <div class="report-pie-container" role="img" aria-label="Doanh thu theo gói cước">
+                    <div class="report-pie-chart" data-segments="@conicGradientValue"></div>
+                    <div class="report-pie-legend">
+                        @foreach (var item in report.RevenueByPackage)
+                        {
+                            <div class="report-pie-legend__item">
+                                <div class="report-pie-legend__info">
+                                    <i class="report-pie-legend__dot @LegendDotClass(item.Category)"></i>
+                                    <span class="report-pie-legend__label">@item.Category</span>
+                                </div>
+                                <div class="report-pie-legend__value">
+                                    <strong>@item.Value.ToString("C0", culture)</strong>
+                                    <small>@PercentDecimal(item.Value, totalByPackage)</small>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </article>
+
+        <article class="content-panel admin-chart-card">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Theo payment</span>
+                    <h2>Doanh thu theo phương thức</h2>
+                </div>
+            </div>
+            @if (report.RevenueByPaymentMethod.Count == 0)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Chưa có doanh thu theo phương thức.</strong>
+                    <span>Khi có thanh toán thành công, chart sẽ cập nhật.</span>
+                </div>
+            }
+            else
+            {
+                var segments = new List<string>();
+                var currentSum = 0m;
+                foreach (var item in report.RevenueByPaymentMethod)
+                {
+                    var percent = totalByMethod <= 0 ? 0m : item.Value / totalByMethod * 100m;
+                    if (percent <= 0) continue;
+
+                    var color = GetColorHex(item.Category);
+                    var start = currentSum.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+                    currentSum += percent;
+                    var end = currentSum.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+                    segments.Add($"{color} {start} {end}");
+                }
+                var conicGradientValue = segments.Count > 0 ? "conic-gradient(" + string.Join(", ", segments) + ")" : "none";
+
+                <div class="report-pie-container" role="img" aria-label="Doanh thu theo phương thức thanh toán">
+                    <div class="report-pie-chart" data-segments="@conicGradientValue"></div>
+                    <div class="report-pie-legend">
+                        @foreach (var item in report.RevenueByPaymentMethod)
+                        {
+                            <div class="report-pie-legend__item">
+                                <div class="report-pie-legend__info">
+                                    <i class="report-pie-legend__dot @LegendDotClass(item.Category)"></i>
+                                    <span class="report-pie-legend__label">@item.Category</span>
+                                </div>
+                                <div class="report-pie-legend__value">
+                                    <strong>@item.Value.ToString("C0", culture)</strong>
+                                    <small>@PercentDecimal(item.Value, totalByMethod)</small>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </article>
+    </section>
+
+    <section class="content-panel">
+        <div class="admin-card-heading mb-3">
+            <div>
+                <span>Bảng dữ liệu</span>
+                <h2>Doanh thu theo kỳ</h2>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0 admin-top-table">
+                <thead>
+                    <tr>
+                        <th>Kỳ</th>
+                        <th class="text-end">Doanh thu</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var point in report.RevenueByPeriod)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@point.Label</td>
+                            <td class="text-end">@point.Value.ToString("C0", culture)</td>
+                        </tr>
+                    }
+                    @if (report.RevenueByPeriod.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="2" class="text-center text-muted py-4">Chưa có dữ liệu trong khoảng đã chọn.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+@functions {
+    private static string Height(decimal value, decimal max)
+    {
+        if (max <= 0 || value <= 0)
+        {
+            return "0";
+        }
+
+        var percent = value / max * 100m;
+        percent = Math.Max(6m, Math.Min(100m, percent));
+        return percent.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+    }
+
+    private static string Width(decimal value, decimal max)
+    {
+        if (max <= 0 || value <= 0)
+        {
+            return "0";
+        }
+
+        var percent = value / max * 100m;
+        percent = Math.Max(5m, Math.Min(100m, percent));
+        return percent.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+    }
+
+    private static string PercentDecimal(decimal value, decimal total)
+    {
+        if (total <= 0 || value <= 0)
+        {
+            return "0%";
+        }
+
+        var pct = value / total * 100m;
+        return pct.ToString("0.#", CultureInfo.InvariantCulture) + "%";
+    }
+
+    private static string FillClass(string value)
+    {
+        var normalized = value.ToLowerInvariant();
+        if (normalized.Contains("vnpay") || normalized.Contains("free"))
+        {
+            return "report-distribution__fill--sky";
+        }
+
+        if (normalized.Contains("momo") || normalized.Contains("pro") || normalized.Contains("max"))
+        {
+            return "report-distribution__fill--ink";
+        }
+
+        if (normalized.Contains("plus"))
+        {
+            return "report-distribution__fill--amber";
+        }
+
+        return "report-distribution__fill--violet";
+    }
+
+    private static string LegendDotClass(string value)
+    {
+        var normalized = value.ToLowerInvariant();
+        if (normalized.Contains("vnpay") || normalized.Contains("free"))
+        {
+            return "report-pie-legend__dot--sky";
+        }
+
+        if (normalized.Contains("momo") || normalized.Contains("pro") || normalized.Contains("max"))
+        {
+            return "report-pie-legend__dot--ink";
+        }
+
+        if (normalized.Contains("plus"))
+        {
+            return "report-pie-legend__dot--amber";
+        }
+
+        return "report-pie-legend__dot--violet";
+    }
+
+    private static string GetColorHex(string category)
+    {
+        var normalized = category.ToLowerInvariant();
+        if (normalized.Contains("vnpay") || normalized.Contains("free"))
+        {
+            return "#0ea5e9";
+        }
+
+        if (normalized.Contains("momo") || normalized.Contains("pro") || normalized.Contains("max"))
+        {
+            return "#122033";
+        }
+
+        if (normalized.Contains("plus"))
+        {
+            return "#f59e0b";
+        }
+
+        return "#7c3aed";
+    }
+}

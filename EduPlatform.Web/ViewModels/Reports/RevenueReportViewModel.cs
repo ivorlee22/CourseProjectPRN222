@@ -1,0 +1,36 @@
+using EduPlatform.BLL.DTOs.Reports;
+using EduPlatform.BLL.Enums;
+
+namespace EduPlatform.Web.ViewModels.Reports;
+
+public sealed class RevenueReportViewModel
+{
+    public RevenueReportDto Report { get; set; } = null!;
+
+    public DateOnly StartDate { get; set; }
+
+    public DateOnly EndDate { get; set; }
+
+    public ReportPeriodGrouping Grouping { get; set; } = ReportPeriodGrouping.Day;
+}
+
+public sealed class UserAnalyticsViewModel
+{
+    public UserAnalyticsReportDto Report { get; set; } = null!;
+
+    public DateOnly StartDate { get; set; }
+
+    public DateOnly EndDate { get; set; }
+
+    public ReportPeriodGrouping Grouping { get; set; } = ReportPeriodGrouping.Day;
+}
+
+public sealed class TeacherStatisticsViewModel
+{
+    public TeacherStatisticsReportDto Report { get; set; } = null!;
+}
+
+public sealed class StudentUsageViewModel
+{
+    public StudentUsageReportDto Report { get; set; } = null!;
+}

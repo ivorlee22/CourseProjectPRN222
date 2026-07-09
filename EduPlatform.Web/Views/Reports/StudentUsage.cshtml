@@ -1,0 +1,147 @@
+@using System.Globalization
+@model EduPlatform.Web.ViewModels.Reports.StudentUsageViewModel
+@{
+    ViewData["Title"] = "Thống kê sử dụng";
+    var culture = CultureInfo.GetCultureInfo("vi-VN");
+    var report = Model.Report;
+    var subscription = report.ActiveSubscription;
+    var quotaPercent = report.DailyChatLimit <= 0
+        ? 0
+        : Math.Clamp((int)Math.Round(report.ChatsRemainingToday * 100m / report.DailyChatLimit), 0, 100);
+    var courseRemaining = subscription is null ? 0 : Math.Max(0, subscription.MaxCourses - report.EnrolledCourses);
+    var coursePercent = subscription is null || subscription.MaxCourses <= 0
+        ? 0
+        : Math.Clamp((int)Math.Round(courseRemaining * 100m / subscription.MaxCourses), 0, 100);
+}
+
+<div class="report-page">
+    <div class="admin-dashboard__hero">
+        <div>
+            <p class="section-label">Học viên</p>
+            <h1>Thống kê sử dụng</h1>
+            <p>Theo dõi gói hiện tại, quota chat hôm nay, số khóa đang học và lịch sử hỏi tài liệu.</p>
+        </div>
+        <div class="admin-dashboard__actions">
+            <a class="btn btn-outline-primary" asp-controller="Course" asp-action="Mine">Khóa học của tôi</a>
+            <a class="btn btn-primary" asp-controller="Subscription" asp-action="Index">Gói của tôi</a>
+        </div>
+    </div>
+
+    <section class="admin-metrics" aria-label="Tổng quan sử dụng">
+        <article class="admin-metric-card">
+            <span>Khóa đang học</span>
+            <strong>@report.EnrolledCourses.ToString("N0", culture)</strong>
+            <small>Số enrollment đang active.</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>Chat sessions</span>
+            <strong>@report.ChatSessions.ToString("N0", culture)</strong>
+            <small>Tổng cuộc trò chuyện đã tạo.</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>Lượt hỏi</span>
+            <strong>@report.ChatMessages.ToString("N0", culture)</strong>
+            <small>Tổng user messages đã gửi.</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>Còn hôm nay</span>
+            <strong>@report.ChatsRemainingToday.ToString("N0", culture)</strong>
+            <small>Còn lại trên giới hạn @report.DailyChatLimit.ToString("N0", culture) lượt/ngày.</small>
+        </article>
+    </section>
+
+    <section class="admin-dashboard-grid" aria-label="Chi tiết sử dụng">
+        <article class="content-panel student-usage-card">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Quota chat</span>
+                    <h2>Lượt hỏi hôm nay</h2>
+                </div>
+                <small>@quotaPercent.ToString("N0", culture)% còn lại</small>
+            </div>
+            <div class="usage-progress" aria-label="Tiến độ quota chat">
+                <div class="usage-progress__bar">
+                    <span data-width="@quotaPercent%"></span>
+                </div>
+                <div class="usage-progress__meta">
+                    <strong>@report.ChatsUsedToday.ToString("N0", culture) / @report.DailyChatLimit.ToString("N0", culture)</strong>
+                    <span>@report.ChatsRemainingToday.ToString("N0", culture) lượt còn lại hôm nay</span>
+                </div>
+            </div>
+        </article>
+
+        <article class="content-panel student-usage-card">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Khóa học</span>
+                    <h2>Tiến độ theo giới hạn gói</h2>
+                </div>
+                @if (subscription is not null)
+                {
+                    <small>@coursePercent.ToString("N0", culture)% còn lại</small>
+                }
+            </div>
+            @if (subscription is null)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Chưa có gói đang hiệu lực.</strong>
+                    <span>Hệ thống đang dùng quota mặc định để giới hạn lượt chat.</span>
+                </div>
+            }
+            else
+            {
+                <div class="usage-progress" aria-label="Tiến độ giới hạn khóa học">
+                    <div class="usage-progress__bar">
+                        <span data-width="@coursePercent%"></span>
+                    </div>
+                    <div class="usage-progress__meta">
+                        <strong>@report.EnrolledCourses.ToString("N0", culture) / @subscription.MaxCourses.ToString("N0", culture)</strong>
+                        <span>Khóa học đang tham gia so với giới hạn gói.</span>
+                    </div>
+                </div>
+            }
+        </article>
+    </section>
+
+    <section class="content-panel student-subscription-panel">
+        <div class="admin-card-heading">
+            <div>
+                <span>Subscription</span>
+                <h2>Gói hiện tại</h2>
+            </div>
+        </div>
+
+        @if (subscription is null)
+        {
+            <div class="admin-empty-mini">
+                <strong>Không có subscription active.</strong>
+                <span>Vào trang Gói cước để mua hoặc gia hạn gói học tập.</span>
+            </div>
+        }
+        else
+        {
+            <dl class="student-subscription-grid">
+                <div>
+                    <dt>Gói cước</dt>
+                    <dd>@subscription.PackageName</dd>
+                </div>
+                <div>
+                    <dt>Giới hạn khóa học</dt>
+                    <dd>@subscription.MaxCourses.ToString("N0", culture)</dd>
+                </div>
+                <div>
+                    <dt>Quota chat/ngày</dt>
+                    <dd>@subscription.DailyChats.ToString("N0", culture)</dd>
+                </div>
+                <div>
+                    <dt>Bắt đầu</dt>
+                    <dd>@subscription.StartsAtUtc.ToLocalTime().ToString("dd/MM/yyyy", culture)</dd>
+                </div>
+                <div>
+                    <dt>Hết hạn</dt>
+                    <dd>@subscription.EndsAtUtc.ToLocalTime().ToString("dd/MM/yyyy", culture)</dd>
+                </div>
+            </dl>
+        }
+    </section>
+</div>

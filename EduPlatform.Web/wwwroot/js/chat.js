@@ -14,6 +14,10 @@ if (workspace) {
   const sourcePanel = workspace.querySelector("[data-source-panel]");
   const sourceCount = workspace.querySelector("[data-source-count]");
   const backdrop = workspace.querySelector("[data-chat-backdrop]");
+  const citationModalElement = workspace.querySelector("#citationDetailModal");
+  const citationModal = citationModalElement && window.bootstrap
+    ? new window.bootstrap.Modal(citationModalElement)
+    : null;
   let connection;
   let isStreaming = false;
 
@@ -77,6 +81,7 @@ if (workspace) {
     const parts = [];
     let activeList = "";
     let paragraphOpen = false;
+    let codeBlockOpen = false;
 
     const closeParagraph = () => {
       if (!paragraphOpen) return;
@@ -94,9 +99,38 @@ if (workspace) {
       parts.push(kind === "ol" ? "<ol>" : "<ul>");
       activeList = kind;
     };
+    const closeCodeBlock = () => {
+      if (!codeBlockOpen) return;
+      parts.push("</code></pre>");
+      codeBlockOpen = false;
+    };
 
     lines.forEach((rawLine) => {
       const line = rawLine.trimEnd();
+      const trimmedLine = line.trim();
+      if (trimmedLine.startsWith("```")) {
+        if (codeBlockOpen) {
+          closeCodeBlock();
+        } else {
+          closeParagraph();
+          closeList();
+          const language = trimmedLine.slice(3).trim();
+          parts.push("<pre class=\"chat-code-block\"><code");
+          if (language) {
+            parts.push(` data-code-language="${escapeHtml(language)}"`);
+          }
+          parts.push(">");
+          codeBlockOpen = true;
+        }
+        return;
+      }
+
+      if (codeBlockOpen) {
+        parts.push(escapeHtml(rawLine));
+        parts.push("\n");
+        return;
+      }
+
       if (!line.trim()) {
         closeParagraph();
         closeList();
@@ -131,7 +165,68 @@ if (workspace) {
 
     closeParagraph();
     closeList();
+    closeCodeBlock();
     return parts.join("");
+  };
+
+  const highlightCode = (value) => {
+    let html = escapeHtml(value);
+    html = html.replace(
+      /(&quot;.*?&quot;|&#39;.*?&#39;|`.*?`)/g,
+      '<span class="chat-code-token chat-code-token--string">$1</span>'
+    );
+    html = html.replace(
+      /\b(await|async|class|const|decimal|else|false|for|foreach|if|int|let|new|null|private|public|return|string|true|using|var|void|while)\b/g,
+      '<span class="chat-code-token chat-code-token--keyword">$1</span>'
+    );
+    html = html.replace(
+      /(\/\/.*)$/gm,
+      '<span class="chat-code-token chat-code-token--comment">$1</span>'
+    );
+    return html;
+  };
+
+  const decorateCodeBlocks = (root = workspace) => {
+    root.querySelectorAll(".chat-code-block:not([data-code-ready])").forEach((block) => {
+      const code = block.querySelector("code");
+      const language = code?.dataset.codeLanguage;
+      const rawCode = code?.textContent || "";
+      block.dataset.codeReady = "true";
+      if (code) {
+        code.dataset.rawCode = rawCode;
+        code.innerHTML = highlightCode(rawCode);
+      }
+
+      if (language) {
+        const badge = document.createElement("span");
+        badge.className = "chat-code-block__language";
+        badge.textContent = language;
+        block.append(badge);
+      }
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "chat-code-copy";
+      button.textContent = "Copy";
+      button.addEventListener("click", async () => {
+        const text = code?.dataset.rawCode || code?.textContent || "";
+        if (!text) return;
+
+        try {
+          await navigator.clipboard.writeText(text);
+          button.textContent = "Đã copy";
+          window.setTimeout(() => {
+            button.textContent = "Copy";
+          }, 1600);
+        } catch {
+          button.textContent = "Không copy được";
+          window.setTimeout(() => {
+            button.textContent = "Copy";
+          }, 1600);
+        }
+      });
+      block.append(button);
+    });
   };
 
   const createMessage = (role, content) => {
@@ -157,6 +252,7 @@ if (workspace) {
     const contentNode = document.createElement("div");
     contentNode.className = "chat-message__content";
     contentNode.innerHTML = renderMarkdown(content);
+    decorateCodeBlocks(contentNode);
     meta.append(author, time);
     body.append(meta, contentNode);
     article.append(identity, body);
@@ -224,12 +320,14 @@ if (workspace) {
         if (item.type === "delta" && answer) {
           streamedAnswer += item.content || "";
           answer.innerHTML = renderMarkdown(streamedAnswer);
+          decorateCodeBlocks(answer);
           stream.scrollTop = stream.scrollHeight;
         }
         if (item.type === "error") {
           streamError = item.content || "Không thể gửi câu hỏi lúc này.";
           if (answer) {
             answer.innerHTML = renderMarkdown(streamError);
+            decorateCodeBlocks(answer);
             answer.closest(".chat-message")?.classList.add("chat-message--notice");
             stream.scrollTop = stream.scrollHeight;
           }
@@ -299,11 +397,38 @@ if (workspace) {
     });
   });
 
+  workspace.querySelectorAll("[data-citation-modal]").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (!citationModalElement || !citationModal) return;
+
+      const meta = citationModalElement.querySelector("[data-citation-modal-meta]");
+      const title = citationModalElement.querySelector("[data-citation-modal-title]");
+      const location = citationModalElement.querySelector("[data-citation-modal-location]");
+      const content = citationModalElement.querySelector("[data-citation-modal-content]");
+
+      if (meta) {
+        meta.textContent = `[${button.dataset.citationRank}] ${button.dataset.citationScore}% phù hợp`;
+      }
+      if (title) {
+        title.textContent = button.dataset.citationTitle || "Nguồn tham khảo";
+      }
+      if (location) {
+        location.textContent = button.dataset.citationLocation || "";
+      }
+      if (content) {
+        content.textContent = button.dataset.citationContent || "";
+      }
+
+      citationModal.show();
+    });
+  });
+
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closePanels();
   });
 
   if (stream?.querySelector(".chat-message")) {
+    decorateCodeBlocks(stream);
     stream.scrollTop = stream.scrollHeight;
   }
 

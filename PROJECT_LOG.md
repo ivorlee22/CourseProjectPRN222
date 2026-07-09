@@ -130,6 +130,174 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 **Remaining**
 
 - Manual browser review is still recommended on authenticated Admin, Course, Document, Payment, and Package pages to tune final spacing after seeing real data.
+### 2026-07-10 - Fix UI chart rendering syntax and height issues
+
+**Owner**
+
+- Bảo report scope (implemented by Antigravity).
+
+**Design Read**
+
+- Polish UI charts to fix squished bars and rendering issues for C# decimal formatting.
+- Dials: design variance medium, motion intensity medium, visual density low
+
+**Completed**
+
+- `EduPlatform.Web/Views/Admin/Index.cshtml`: Wrapped `.ToString()` with `@()` so `maxRevenue`, `maxUserGrowth`, `maxChatUsage` render as formatted values, not raw code. Fixed parens on `.Count(...)`.
+- `EduPlatform.Web/Views/Reports/Revenue.cshtml`: Wrapped `.ToString()` for `maxPeriodRevenue` and `.Count(...)` inside `@(...)` to fix raw C# code rendering.
+- `EduPlatform.Web/Views/Reports/UserAnalytics.cshtml`: Wrapped `.ToString()` for `maxUserGrowth` and `.Sum(...)` inside `@(...)` to fix raw C# code rendering.
+- `EduPlatform.Web/Views/Course/Details.cshtml`: Wrapped `.ToString()` inside `@(...)` for hidden `isVisible` field.
+- `EduPlatform.Web/wwwroot/css/site.css`: Added `height: 100%;` to `.report-column-chart__bar-wrap` to allow percentage heights of its flex children to resolve correctly, fixing the squished (đụt) charts.
+
+**Verification**
+
+- `dotnet build "c:\Users\THIS PC\Desktop\Semester_7\PRN222\CourseProjectPRN222\EduPlatform.Web\EduPlatform.Web.csproj" -c Release --no-restore` passed with 0 warnings and 0 errors.
+- Visual inspection of code confirms Razor parens are correctly balanced to execute C# formatting and CSS properly provides explicit height to flex children.
+
+**Remaining**
+
+- None.
+
+**Blocked**
+
+- None.
+
+
+### 2026-07-10 - Report chart UI and Npgsql query fixes
+
+**Owner**
+
+- Bảo report scope (UI updated by Antigravity, query fixes completed by Codex).
+
+**Design Read**
+
+- Admin and report pages are internal product dashboards, so the UI keeps MVC, Bootstrap 5, native JavaScript, strong data hierarchy, accessible labels, and restrained motion instead of marketing-style visuals.
+- Dials: design variance medium, motion intensity light-dynamic, visual density medium.
+
+**Completed**
+
+- Reworked Admin overview, Revenue, User Analytics, and Teacher Statistics chart presentation with a shared chart card system.
+- Added `report-column-chart` and `report-distribution` styling, animated bars, hover states, chart gridlines, stagger support through `--chart-index`, and percentage/value presentation for distribution rows.
+- Aligned Teacher Statistics chart markup with the shared `content-panel chart-card` structure and existing semantic legend classes.
+- Restored EF Core/Npgsql-safe report queries for revenue by package, revenue by payment method, users by role, and subscription distribution.
+- Moved enum/string conversion and grouped navigation-name aggregation out of SQL translation by materializing scalar values first, then grouping in memory.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini integration test skipped.
+
+**Remaining**
+
+- Manual browser check recommended for `/Admin`, `/Reports/Revenue`, `/Reports/UserAnalytics`, and `/Reports/TeacherStatistics` after merge.
+
+**Blocked**
+
+- None.
+
+### 2026-07-10 - Fixed Admin dashboard top courses query
+
+**Owner**
+
+- Bảo report scope (implemented by Codex).
+
+**Completed**
+
+- Fixed `ReportRepository.GetTopCoursesAsync` so the Admin dashboard no longer asks EF Core/Npgsql to order by properties on a projected `TopCourseSnapshot` record.
+- Split the database projection from the BLL snapshot mapping: SQL now returns an anonymous scalar shape first, then maps to `TopCourseSnapshot` after materialization.
+- Replaced the nested `SelectMany(...).Count(...)` message count with an explicit correlated count over `Messages` by `ChatSession.CourseId`.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini integration test skipped.
+
+**Blocked**
+
+- None.
+
+### 2026-07-10 - Redesigned Teacher Statistics chart UI and animation
+
+**Owner**
+
+- Bảo report scope (implemented by Antigravity).
+
+**Design Read**
+
+- Teacher statistics is a product data workflow rather than a marketing page, so the redesign keeps MVC, Bootstrap 5, native JavaScript, and restrained dashboard styling.
+- The redesign also fixes the flattened bars and missing legend colors caused by the Content Security Policy (`style-src 'self'`) blocking inline `style="..."` attributes:
+  - Legend dots now use CSS classes from the stylesheet instead of inline styles.
+  - Chart bars now expose their intended height through `data-height`, then `site.js` applies the height after `DOMContentLoaded` from a script file allowed by CSP.
+- Dials: design variance medium, motion intensity dynamic, visual density medium.
+
+**Completed**
+
+- Fixed flattened chart bars by making `.teacher-stat-chart__bar` render as a block-level visual element.
+- Replaced CSP-blocked inline bar heights with `data-height` attributes and a small `site.js` initializer that applies heights on `DOMContentLoaded`.
+- Replaced CSP-blocked inline legend colors with semantic CSS classes and gradient colors in `site.css`.
+- Redesigned the chart container with Bootstrap `card border-0 shadow-sm`, a clearer heading area, and a flex/badge-based legend.
+- Added an 850ms bottom-up bar growth animation using `cubic-bezier(0.34, 1.56, 0.64, 1)`.
+- Added CSS-only hover tooltips with a softer shadow and subtle bar scale feedback.
+- Refined the background grid lines and top-course summary cards with light hover elevation.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini integration test skipped.
+
+**Blocked**
+
+- None.
+
+### 2026-07-09 - Teacher chart fallback fix
+
+**Owner**
+
+- Bảo report scope (implemented by Codex).
+
+**Completed**
+
+- Replaced the Teacher Statistics Chart.js-only canvas with a server-rendered HTML/CSS bar chart.
+- Removed the Teacher Statistics dependency on the external Chart.js CDN so the chart remains visible even when the CDN is blocked or unavailable.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+
+**Blocked**
+
+- None.
+
+### 2026-07-09 - Task 44 Chat UI Polish
+
+**Owner**
+
+- Bảo chat scope (implemented by Codex).
+
+**Design Read**
+
+- Chat is a product workflow, so the polish keeps the existing MVC/native JavaScript structure, improves readability, and adds source/code affordances without changing routes or data contracts.
+- Dials: design variance medium, motion intensity light, visual density medium.
+
+**Completed**
+
+- Added fenced code block support to the safe server-side chat markdown renderer.
+- Added matching fenced code block rendering for SignalR streaming responses.
+- Added lightweight syntax highlighting and copy buttons for chat code blocks.
+- Polished chat bubble radius, shadows, code block styling, and source card controls.
+- Added citation detail modal with source rank, similarity score, location, and excerpt.
+- Added citation chip tooltip text and accessible focus states for new controls.
+
+**Verification**
+
+- `node --check EduPlatform.Web\wwwroot\js\chat.js` passed.
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+
+**Remaining**
+
+- No remaining Bảo Phase 4 report/chat polish tasks in the current task range.
 
 **Blocked**
 
@@ -156,6 +324,196 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 - Design Read: Realtime notifications should use visual cues (border color, light grey backgrounds) to draw focus and provide distinct actions without visual clutter.
 - Dials: `DESIGN_VARIANCE 1`, `MOTION_INTENSITY 2`, `VISUAL_DENSITY 5`.
 - Shared MVC/Bootstrap rules applied.
+### 2026-07-09 - Task 41 Student Usage Report
+
+**Owner**
+
+- Bảo report scope (implemented by Codex).
+
+**Design Read**
+
+- Student usage is a self-service dashboard, so the UI emphasizes quota clarity, active subscription status, and quick links back to courses and package management.
+- Dials: design variance low-medium, motion intensity light, visual density medium.
+
+**Completed**
+
+- Added Student-only `/Reports/StudentUsage` backed by `IReportService.GetStudentUsageAsync` for the signed-in student.
+- Added summary cards for enrolled courses, chat sessions, chat messages, and remaining daily chat quota.
+- Added progress bars for daily chat quota and course usage against the active package limit when available.
+- Added active subscription detail panel with package, course limit, daily chat quota, start date, and end date.
+- Added Student navigation link for "Sử dụng".
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+
+**Remaining**
+
+- Task 44 Chat UI Polish remains separate branch.
+
+**Blocked**
+
+- None.
+
+### 2026-07-09 - Task 40 Teacher Statistics
+
+**Owner**
+
+- Bảo report scope (implemented by Codex).
+
+**Design Read**
+
+- Teacher statistics is a product dashboard for quick course health checks, so the UI prioritizes readable totals, per-course comparison, and a compact table.
+- Dials: design variance low-medium, motion intensity light, visual density medium.
+
+**Completed**
+
+- Added Teacher-only `/Reports/TeacherStatistics` backed by `IReportService.GetTeacherStatisticsAsync` for the signed-in teacher.
+- Added summary cards for total courses, enrolled students, document readiness, and chat usage.
+- Added Chart.js bar chart comparing enrollments, documents, and chat messages by course.
+- Added per-course detail table for enrolled students, documents, ready documents, chat sessions, and chat messages.
+- Added Teacher navigation links for "Khóa học của tôi" and "Thống kê".
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+
+**Remaining**
+
+- Task 41 Student Usage Report and Task 44 Chat UI Polish remain separate branches.
+
+**Blocked**
+
+- None.
+
+### 2026-07-09 - Task 39 User Analytics
+
+**Owner**
+
+- Bảo report scope (implemented by Codex).
+
+**Design Read**
+
+- User analytics is an Admin data workflow, so the UI keeps filter controls visible, charts readable, and role/subscription summaries compact.
+- Dials: design variance low-medium, motion intensity light, visual density medium.
+
+**Completed**
+
+- Added Admin-only `/Reports/UserAnalytics` backed by `IReportService.GetUserAnalyticsAsync`.
+- Added date range and day/week/month grouping filters.
+- Added summary cards for total users, new users, role count, and active subscription count.
+- Added Chart.js visualizations for new users over time, role distribution, and subscription distribution.
+- Added role breakdown cards and Admin navigation link.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+
+**Remaining**
+
+- Tasks 40-41 and 44 remain separate branches.
+
+**Blocked**
+
+- None.
+
+### 2026-07-09 - Task 38 Revenue Report
+
+**Owner**
+
+- Bảo report scope (implemented by Codex).
+
+**Design Read**
+
+- Revenue report is an Admin data workflow, so the UI keeps Bootstrap/MVC, clear filters, visible export action, readable charts, and compact data tables.
+- Dials: design variance low-medium, motion intensity light, visual density medium.
+
+**Completed**
+
+- Added Admin-only `ReportsController` with revenue report and Excel export actions.
+- Added `/Reports/Revenue` with date range filters, grouping by day/week/month, summary cards, Chart.js visualizations, and a revenue table.
+- Added `/Reports/ExportRevenue` to generate an `.xlsx` workbook with summary, revenue by period, revenue by package, and revenue by payment method sheets.
+- Added revenue report view model and Admin navigation link.
+- Added responsive report filter styling in `site.css`.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+
+**Remaining**
+
+- Tasks 39-41 and 44 remain separate branches.
+
+**Blocked**
+
+- None.
+
+### 2026-07-09 - Task 37 Admin Dashboard
+
+**Owner**
+
+- Bảo report scope (implemented by Codex).
+
+**Design Read**
+
+- Admin dashboard is a product/data screen, so the taste-skill guidance was adapted to MVC, Bootstrap 5, restrained hierarchy, responsive spacing, accessible states, and low-motion charts.
+- Dials: design variance low-medium, motion intensity light, visual density medium.
+
+**Completed**
+
+- Added the Admin dashboard at `Admin/Index` using `IReportService` only from the Web layer.
+- Added dashboard view model wiring for the 30-day report range and daily grouping.
+- Added summary cards for total users, total courses, succeeded revenue, and active subscriptions.
+- Added Chart.js charts for revenue, user growth, chat usage, and subscription distribution.
+- Added top courses and course content health sections.
+- Added "Tổng quan" to the Admin navigation menu.
+- Added responsive dashboard styling in `site.css`.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+
+**Remaining**
+
+- Task 38 still needs Revenue Report page and Excel export.
+- Tasks 39-41 and 44 remain separate branches.
+
+**Blocked**
+
+- None.
+
+### 2026-07-09 - Task 36 ReportService
+
+**Owner**
+
+- Bảo report scope (implemented by Codex).
+
+**Completed**
+
+- Added `IReportService` and `ReportService` for report aggregates used by Admin, Revenue, User Analytics, Teacher Statistics, and Student Usage pages.
+- Added report DTOs for dashboard totals, revenue time series, user growth, course stats, chat usage, top courses, subscription distribution, teacher course stats, and student quota usage.
+- Added `IReportRepository` and `ReportRepository` with read-only aggregate queries over users, courses, enrollments, documents, chat messages, subscriptions, and succeeded payments.
+- Registered report repository and service in DAL/BLL dependency injection.
+- Added report service unit tests for revenue bucketing, admin dashboard composition, teacher total aggregation, and student free-package quota fallback.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+
+**Remaining**
+
+- Tasks 37-41 still need MVC controllers/views to consume `IReportService`.
+- Task 38 export still needs Excel generation from the revenue DTO.
+
+**Blocked**
+
+- None.
 
 ### 2026-07-09 - Admin search, course realtime, and student document access
 

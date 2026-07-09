@@ -46,6 +46,18 @@
                                 <li class="nav-item">
                                     <a class="nav-link" asp-controller="Subscription" asp-action="Index">Gói của tôi</a>
                                 </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-controller="Reports" asp-action="StudentUsage">Sử dụng</a>
+                                </li>
+                            }
+                            @if (User.IsInRole("Teacher"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-controller="Course" asp-action="Mine">Khóa học của tôi</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-controller="Reports" asp-action="TeacherStatistics">Thống kê</a>
+                                </li>
                             }
                             @if (User.IsInRole("Admin"))
                             {
@@ -55,12 +67,18 @@
                                         Quản trị
                                     </a>
                                     <ul class="dropdown-menu shadow-sm" aria-labelledby="admin-menu-btn">
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Index">Tổng quan</a>
+                                        </li>
                                         <li><a class="dropdown-item" asp-controller="Admin" asp-action="Users">Người dùng</a>
                                         </li>
                                         <li><a class="dropdown-item" asp-controller="AdminPackage" asp-action="Index">Gói
                                                 cước</a></li>
                                         <li><a class="dropdown-item" asp-controller="AdminSubscription"
                                                 asp-action="Index">Đăng ký gói</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Reports"
+                                                asp-action="Revenue">Báo cáo doanh thu</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Reports"
+                                                asp-action="UserAnalytics">Phân tích người dùng</a></li>
                                     </ul>
                                 </li>
                             }
