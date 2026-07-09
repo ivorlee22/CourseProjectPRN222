@@ -23,6 +23,7 @@ public sealed class GmailEmailServiceTests
             async () => await service.SendAccountCreatedAsync(
                 "student@example.test",
                 "Demo Student",
+                temporaryPassword: null,
                 CancellationToken.None));
     }
 }
