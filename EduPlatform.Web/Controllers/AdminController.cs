@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using EduPlatform.BLL.DTOs.Reports;
 using EduPlatform.BLL.DTOs.Users;
 using EduPlatform.BLL.Enums;
 using EduPlatform.BLL.Exceptions;
@@ -13,9 +14,29 @@ using OfficeOpenXml;
 namespace EduPlatform.Web.Controllers;
 
 [Authorize(Roles = "Admin")]
-public sealed class AdminController(IUserService userService) : Controller
+public sealed class AdminController(IUserService userService, IReportService reportService) : Controller
 {
     private const string DefaultImportPassword = "EduPlatform@123";
+
+    [HttpGet]
+    public async Task<IActionResult> Index(CancellationToken cancellationToken)
+    {
+        var nowUtc = DateTimeOffset.UtcNow;
+        var startUtc = new DateTimeOffset(nowUtc.UtcDateTime.Date.AddDays(-29), TimeSpan.Zero);
+        var range = new ReportDateRange(startUtc, nowUtc);
+        var report = await reportService.GetAdminDashboardAsync(
+            range,
+            ReportPeriodGrouping.Day,
+            topCourseLimit: 5,
+            cancellationToken);
+
+        return View(new AdminDashboardViewModel
+        {
+            Report = report,
+            Range = range,
+            Grouping = ReportPeriodGrouping.Day
+        });
+    }
 
     // ── User Management ───────────────────────────────────────────────────────
 

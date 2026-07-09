@@ -457,6 +457,208 @@ h1 {
   }
 }
 
+/* Admin reports */
+
+.admin-dashboard {
+  display: grid;
+  gap: clamp(1.25rem, 3vw, 2rem);
+}
+
+.admin-dashboard__hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1.5rem;
+  align-items: end;
+  padding-block: 1rem 0.5rem;
+}
+
+.admin-dashboard__hero h1 {
+  max-width: 56rem;
+  margin: 0;
+  font-size: clamp(2.2rem, 4.4vw, 4rem);
+}
+
+.admin-dashboard__hero p:not(.section-label) {
+  max-width: 48rem;
+  margin: 0.9rem 0 0;
+  color: var(--edu-muted);
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+
+.admin-dashboard__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.7rem;
+}
+
+.admin-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.admin-metric-card {
+  display: grid;
+  min-height: 10.5rem;
+  align-content: space-between;
+  gap: 0.85rem;
+  padding: 1.25rem;
+  border: 1px solid rgb(15 118 110 / 14%);
+  border-radius: var(--edu-radius-panel);
+  background:
+    radial-gradient(circle at 92% 0%, rgb(15 118 110 / 13%), transparent 7rem),
+    var(--edu-panel);
+  box-shadow: 0 0.9rem 2.4rem rgb(18 32 51 / 6%);
+}
+
+.admin-metric-card span,
+.admin-card-heading span,
+.admin-breakdown-grid span {
+  color: var(--edu-accent-dark);
+  font-size: 0.75rem;
+  font-weight: 780;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-metric-card strong {
+  color: var(--edu-ink);
+  font-size: clamp(1.9rem, 3vw, 2.55rem);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.admin-metric-card small {
+  color: var(--edu-muted);
+  line-height: 1.55;
+}
+
+.admin-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.admin-chart-card {
+  display: grid;
+  min-height: 23rem;
+  gap: 1.2rem;
+}
+
+.admin-chart-card--wide {
+  grid-column: 1 / -1;
+}
+
+.admin-card-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-card-heading h2 {
+  margin: 0.25rem 0 0;
+  font-size: clamp(1.25rem, 2.2vw, 1.65rem);
+}
+
+.admin-card-heading small {
+  color: var(--edu-muted);
+  font-weight: 650;
+}
+
+.admin-chart-card canvas {
+  width: 100%;
+  min-height: 15rem;
+}
+
+.admin-top-table thead th {
+  color: var(--edu-muted);
+  font-size: 0.75rem;
+  font-weight: 760;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-empty-mini {
+  display: grid;
+  min-height: 12rem;
+  place-content: center;
+  gap: 0.35rem;
+  color: var(--edu-muted);
+  text-align: center;
+}
+
+.admin-empty-mini strong {
+  color: var(--edu-ink);
+}
+
+.admin-course-breakdown {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.admin-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.admin-breakdown-grid > div {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+  border: 1px solid var(--edu-line);
+  border-radius: var(--edu-radius-control);
+  background: var(--edu-surface);
+}
+
+.admin-breakdown-grid strong {
+  color: var(--edu-ink);
+  font-size: 1.25rem;
+  line-height: 1.15;
+}
+
+@media (max-width: 1199.98px) {
+  .admin-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-breakdown-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 991.98px) {
+  .admin-dashboard__hero {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-dashboard__actions {
+    justify-content: flex-start;
+  }
+
+  .admin-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .admin-metrics,
+  .admin-breakdown-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-dashboard__actions .btn {
+    width: 100%;
+  }
+
+  .admin-card-heading {
+    display: grid;
+  }
+}
+
 /* Chat workspace */
 
 .chat-page {

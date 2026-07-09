@@ -66,6 +66,41 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-09 - Task 37 Admin Dashboard
+
+**Owner**
+
+- Bảo report scope (implemented by Codex).
+
+**Design Read**
+
+- Admin dashboard is a product/data screen, so the taste-skill guidance was adapted to MVC, Bootstrap 5, restrained hierarchy, responsive spacing, accessible states, and low-motion charts.
+- Dials: design variance low-medium, motion intensity light, visual density medium.
+
+**Completed**
+
+- Added the Admin dashboard at `Admin/Index` using `IReportService` only from the Web layer.
+- Added dashboard view model wiring for the 30-day report range and daily grouping.
+- Added summary cards for total users, total courses, succeeded revenue, and active subscriptions.
+- Added Chart.js charts for revenue, user growth, chat usage, and subscription distribution.
+- Added top courses and course content health sections.
+- Added "Tổng quan" to the Admin navigation menu.
+- Added responsive dashboard styling in `site.css`.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+
+**Remaining**
+
+- Task 38 still needs Revenue Report page and Excel export.
+- Tasks 39-41 and 44 remain separate branches.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-09 - Task 36 ReportService
 
 **Owner**

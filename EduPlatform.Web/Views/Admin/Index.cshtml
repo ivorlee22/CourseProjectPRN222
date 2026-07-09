@@ -1,0 +1,283 @@
+@using System.Globalization
+@using System.Text.Json
+@model EduPlatform.Web.ViewModels.Admin.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Tổng quan Admin";
+    var culture = CultureInfo.GetCultureInfo("vi-VN");
+    var report = Model.Report;
+    var rangeLabel = $"{Model.Range.StartUtc.ToLocalTime():dd/MM/yyyy} - {Model.Range.EndUtc.ToLocalTime():dd/MM/yyyy}";
+
+    var revenueLabels = JsonSerializer.Serialize(report.Revenue.Select(point => point.Label));
+    var revenueValues = JsonSerializer.Serialize(report.Revenue.Select(point => point.Value));
+    var userLabels = JsonSerializer.Serialize(report.UserGrowth.Select(point => point.Label));
+    var userValues = JsonSerializer.Serialize(report.UserGrowth.Select(point => point.Count));
+    var chatLabels = JsonSerializer.Serialize(report.ChatUsage.Select(point => point.Label));
+    var chatValues = JsonSerializer.Serialize(report.ChatUsage.Select(point => point.Count));
+    var subscriptionLabels = JsonSerializer.Serialize(report.SubscriptionDistribution.Select(point => point.Category));
+    var subscriptionValues = JsonSerializer.Serialize(report.SubscriptionDistribution.Select(point => point.Count));
+}
+
+<div class="admin-dashboard">
+    <div class="admin-dashboard__hero">
+        <div>
+            <p class="section-label">Bảng điều khiển</p>
+            <h1>Tổng quan hệ thống</h1>
+            <p>Theo dõi người dùng, khóa học, doanh thu và lượt hỏi tài liệu trong @rangeLabel.</p>
+        </div>
+        <div class="admin-dashboard__actions">
+            <a class="btn btn-outline-primary" asp-controller="Admin" asp-action="Users">Quản lý người dùng</a>
+            <a class="btn btn-primary" asp-controller="AdminPackage" asp-action="Index">Quản lý gói cước</a>
+        </div>
+    </div>
+
+    <section class="admin-metrics" aria-label="Chỉ số chính">
+        <article class="admin-metric-card">
+            <span>Tổng người dùng</span>
+            <strong>@report.TotalUsers.ToString("N0", culture)</strong>
+            <small>User đã đăng ký trong hệ thống.</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>Tổng khóa học</span>
+            <strong>@report.TotalCourses.ToString("N0", culture)</strong>
+            <small>@report.CourseStats.VisibleCourses.ToString("N0", culture) khóa học đang hiển thị.</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>Doanh thu</span>
+            <strong>@report.TotalRevenue.ToString("C0", culture)</strong>
+            <small>Tính trên thanh toán đã thành công.</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>Gói đang hiệu lực</span>
+            <strong>@report.ActiveSubscriptions.ToString("N0", culture)</strong>
+            <small>Subscription chưa hết hạn.</small>
+        </article>
+    </section>
+
+    <section class="admin-dashboard-grid" aria-label="Biểu đồ tổng quan">
+        <article class="content-panel admin-chart-card admin-chart-card--wide">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Doanh thu</span>
+                    <h2>Doanh thu theo ngày</h2>
+                </div>
+                <small>@rangeLabel</small>
+            </div>
+            <canvas id="revenueChart" height="120" aria-label="Biểu đồ doanh thu theo ngày" role="img"></canvas>
+        </article>
+
+        <article class="content-panel admin-chart-card">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Người dùng</span>
+                    <h2>User mới</h2>
+                </div>
+            </div>
+            <canvas id="userGrowthChart" height="180" aria-label="Biểu đồ user mới" role="img"></canvas>
+        </article>
+
+        <article class="content-panel admin-chart-card">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Chatbot</span>
+                    <h2>Lượt hỏi tài liệu</h2>
+                </div>
+            </div>
+            <canvas id="chatUsageChart" height="180" aria-label="Biểu đồ lượt hỏi tài liệu" role="img"></canvas>
+        </article>
+
+        <article class="content-panel admin-chart-card">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Gói cước</span>
+                    <h2>Phân bố subscription</h2>
+                </div>
+            </div>
+            @if (report.SubscriptionDistribution.Count == 0)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Chưa có gói đang hiệu lực.</strong>
+                    <span>Dữ liệu sẽ xuất hiện khi user mua gói thành công.</span>
+                </div>
+            }
+            else
+            {
+                <canvas id="subscriptionChart" height="180" aria-label="Biểu đồ phân bố subscription" role="img"></canvas>
+            }
+        </article>
+
+        <article class="content-panel admin-chart-card admin-chart-card--wide">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Khóa học</span>
+                    <h2>Khóa học nổi bật</h2>
+                </div>
+                <small>Dựa trên enrollment và lượt chat</small>
+            </div>
+            @if (report.TopCourses.Count == 0)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Chưa có dữ liệu khóa học.</strong>
+                    <span>Khi có enrollment hoặc chat, top courses sẽ hiện ở đây.</span>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0 admin-top-table">
+                        <thead>
+                            <tr>
+                                <th>Khóa học</th>
+                                <th>Giảng viên</th>
+                                <th class="text-end">Học viên</th>
+                                <th class="text-end">Tài liệu</th>
+                                <th class="text-end">Lượt hỏi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var course in report.TopCourses)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">@course.Title</td>
+                                    <td class="text-muted">@course.OwnerName</td>
+                                    <td class="text-end">@course.EnrollmentCount.ToString("N0", culture)</td>
+                                    <td class="text-end">@course.DocumentCount.ToString("N0", culture)</td>
+                                    <td class="text-end">@course.ChatMessageCount.ToString("N0", culture)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </article>
+    </section>
+
+    <section class="content-panel admin-course-breakdown" aria-label="Tình trạng khóa học">
+        <div class="admin-card-heading">
+            <div>
+                <span>Sức khỏe nội dung</span>
+                <h2>Tình trạng khóa học và tài liệu</h2>
+            </div>
+        </div>
+        <div class="admin-breakdown-grid">
+            <div>
+                <span>Public</span>
+                <strong>@report.CourseStats.PublicCourses.ToString("N0", culture)</strong>
+            </div>
+            <div>
+                <span>Private</span>
+                <strong>@report.CourseStats.PrivateCourses.ToString("N0", culture)</strong>
+            </div>
+            <div>
+                <span>Enrollments</span>
+                <strong>@report.CourseStats.TotalEnrollments.ToString("N0", culture)</strong>
+            </div>
+            <div>
+                <span>Tài liệu sẵn sàng</span>
+                <strong>@report.CourseStats.ReadyDocuments.ToString("N0", culture) / @report.CourseStats.TotalDocuments.ToString("N0", culture)</strong>
+            </div>
+            <div>
+                <span>Chat sessions</span>
+                <strong>@report.CourseStats.TotalChatSessions.ToString("N0", culture)</strong>
+            </div>
+            <div>
+                <span>User messages</span>
+                <strong>@report.CourseStats.TotalChatMessages.ToString("N0", culture)</strong>
+            </div>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script>
+        (() => {
+            const css = getComputedStyle(document.documentElement);
+            const accent = css.getPropertyValue("--edu-accent").trim() || "#0f766e";
+            const ink = css.getPropertyValue("--edu-ink").trim() || "#122033";
+            const muted = css.getPropertyValue("--edu-muted").trim() || "#5f6f82";
+            const grid = "rgba(18, 32, 51, 0.08)";
+
+            Chart.defaults.color = muted;
+            Chart.defaults.font.family = "'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif";
+            Chart.defaults.plugins.legend.labels.usePointStyle = true;
+
+            const money = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 });
+
+            const buildLineChart = (id, labels, values, label, formatValue) => {
+                const canvas = document.getElementById(id);
+                if (!canvas) {
+                    return;
+                }
+
+                new Chart(canvas, {
+                    type: "line",
+                    data: {
+                        labels,
+                        datasets: [{
+                            label,
+                            data: values,
+                            borderColor: accent,
+                            backgroundColor: "rgba(15, 118, 110, 0.12)",
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 2.5,
+                            pointHoverRadius: 5
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: "index", intersect: false },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: context => `${context.dataset.label}: ${formatValue(context.parsed.y)}`
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: grid },
+                                ticks: { callback: value => formatValue(value) }
+                            }
+                        }
+                    }
+                });
+            };
+
+            buildLineChart("revenueChart", @Html.Raw(revenueLabels), @Html.Raw(revenueValues), "Doanh thu", value => money.format(value));
+            buildLineChart("userGrowthChart", @Html.Raw(userLabels), @Html.Raw(userValues), "User mới", value => Number(value).toLocaleString("vi-VN"));
+            buildLineChart("chatUsageChart", @Html.Raw(chatLabels), @Html.Raw(chatValues), "Lượt hỏi", value => Number(value).toLocaleString("vi-VN"));
+
+            const subscriptionCanvas = document.getElementById("subscriptionChart");
+            if (subscriptionCanvas) {
+                new Chart(subscriptionCanvas, {
+                    type: "doughnut",
+                    data: {
+                        labels: @Html.Raw(subscriptionLabels),
+                        datasets: [{
+                            data: @Html.Raw(subscriptionValues),
+                            backgroundColor: [accent, ink, "#38bdf8", "#f59e0b", "#a78bfa"],
+                            borderColor: "#fff",
+                            borderWidth: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: "64%",
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: context => `${context.label}: ${Number(context.parsed).toLocaleString("vi-VN")}`
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        })();
+    </script>
+}
