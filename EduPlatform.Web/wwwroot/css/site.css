@@ -643,12 +643,86 @@ h1 {
   justify-content: flex-end;
 }
 
+.student-usage-card {
+  display: grid;
+  gap: 1.5rem;
+  min-height: 15rem;
+}
+
+.usage-progress {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.usage-progress__bar {
+  overflow: hidden;
+  height: 0.85rem;
+  border-radius: 999px;
+  background: var(--edu-accent-soft);
+}
+
+.usage-progress__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--edu-accent), var(--edu-accent-dark));
+}
+
+.usage-progress__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--edu-muted);
+}
+
+.usage-progress__meta strong {
+  color: var(--edu-ink);
+  font-size: 1.25rem;
+}
+
+.student-subscription-panel {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.student-subscription-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.student-subscription-grid > div {
+  padding: 1rem;
+  border: 1px solid var(--edu-line);
+  border-radius: var(--edu-radius-control);
+  background: var(--edu-surface);
+}
+
+.student-subscription-grid dt {
+  color: var(--edu-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.student-subscription-grid dd {
+  margin: 0.3rem 0 0;
+  color: var(--edu-ink);
+  font-size: 1.05rem;
+  font-weight: 760;
+}
+
 @media (max-width: 1199.98px) {
   .admin-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .admin-breakdown-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .student-subscription-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
@@ -667,6 +741,10 @@ h1 {
   }
 
   .report-filter {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .student-subscription-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -692,6 +770,15 @@ h1 {
   .report-filter__actions,
   .report-filter__actions .btn {
     width: 100%;
+  }
+
+  .usage-progress__meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .student-subscription-grid {
+    grid-template-columns: 1fr;
   }
 }
 
