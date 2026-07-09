@@ -5,71 +5,77 @@
     ViewData["Title"] = "Chi tiết thanh toán";
 }
 
-<div class="container my-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow-sm">
-                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0 text-primary">Chi tiết giao dịch</h4>
-                    <a asp-action="History" class="btn btn-sm btn-outline-secondary">Quay lại</a>
-                </div>
-                <div class="card-body p-4">
-                    <div class="row mb-3 border-bottom pb-3">
-                        <div class="col-sm-4 text-muted fw-bold">Mã GD (Nội bộ):</div>
-                        <div class="col-sm-8">@Model.InternalReference</div>
-                    </div>
-                    <div class="row mb-3 border-bottom pb-3">
-                        <div class="col-sm-4 text-muted fw-bold">Mã GD (Cổng):</div>
-                        <div class="col-sm-8">@(string.IsNullOrEmpty(Model.GatewayTransactionId) ? "N/A" : Model.GatewayTransactionId)</div>
-                    </div>
-                    <div class="row mb-3 border-bottom pb-3">
-                        <div class="col-sm-4 text-muted fw-bold">Gói cước:</div>
-                        <div class="col-sm-8 fw-medium text-primary">@Model.PackageName</div>
-                    </div>
-                    <div class="row mb-3 border-bottom pb-3">
-                        <div class="col-sm-4 text-muted fw-bold">Số tiền:</div>
-                        <div class="col-sm-8 fw-bold text-success">@Model.Amount.ToString("N0") VNĐ</div>
-                    </div>
-                    <div class="row mb-3 border-bottom pb-3">
-                        <div class="col-sm-4 text-muted fw-bold">Phương thức:</div>
-                        <div class="col-sm-8">
-                            @if (Model.Method == EduPlatform.DAL.Entities.PaymentMethod.VNPay)
-                            {
-                                <span class="badge bg-info text-dark">VNPay</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-danger">MoMo</span>
-                            }
-                        </div>
-                    </div>
-                    <div class="row mb-3 border-bottom pb-3">
-                        <div class="col-sm-4 text-muted fw-bold">Trạng thái:</div>
-                        <div class="col-sm-8">
-                            @if (Model.Status == EduPlatform.DAL.Entities.PaymentStatus.Succeeded)
-                            {
-                                <span class="badge bg-success">Thành công</span>
-                            }
-                            else if (Model.Status == EduPlatform.DAL.Entities.PaymentStatus.Failed)
-                            {
-                                <span class="badge bg-danger">Thất bại</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-warning text-dark">Đang xử lý</span>
-                            }
-                        </div>
-                    </div>
-                    <div class="row mb-3 border-bottom pb-3">
-                        <div class="col-sm-4 text-muted fw-bold">Ngày tạo:</div>
-                        <div class="col-sm-8">@Model.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</div>
-                    </div>
-                    <div class="row mb-0">
-                        <div class="col-sm-4 text-muted fw-bold">Ngày xử lý:</div>
-                        <div class="col-sm-8">@(Model.ProcessedAtUtc?.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss") ?? "Chưa xử lý")</div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<nav aria-label="Đường dẫn" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="History">Lịch sử thanh toán</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Chi tiết</li>
+    </ol>
+</nav>
+
+<section class="page-heading">
+    <div>
+        <p class="section-label">Giao dịch</p>
+        <h1>Chi tiết thanh toán</h1>
+        <p class="mb-0">@Model.InternalReference</p>
     </div>
-</div>
+    <a asp-action="History" class="btn btn-outline-secondary">Quay lại</a>
+</section>
+
+<section class="content-panel payment-detail-panel">
+    <dl class="detail-list">
+        <div>
+            <dt>Mã giao dịch nội bộ</dt>
+            <dd>@Model.InternalReference</dd>
+        </div>
+        <div>
+            <dt>Mã giao dịch cổng</dt>
+            <dd>@(string.IsNullOrEmpty(Model.GatewayTransactionId) ? "Chưa có" : Model.GatewayTransactionId)</dd>
+        </div>
+        <div>
+            <dt>Gói cước</dt>
+            <dd>@Model.PackageName</dd>
+        </div>
+        <div>
+            <dt>Số tiền</dt>
+            <dd class="text-success fw-bold">@Model.Amount.ToString("N0") VND</dd>
+        </div>
+        <div>
+            <dt>Phương thức</dt>
+            <dd>
+                @if (Model.Method == EduPlatform.DAL.Entities.PaymentMethod.VNPay)
+                {
+                    <span class="badge bg-info text-dark">VNPay</span>
+                }
+                else
+                {
+                    <span class="badge bg-danger">MoMo</span>
+                }
+            </dd>
+        </div>
+        <div>
+            <dt>Trạng thái</dt>
+            <dd>
+                @if (Model.Status == EduPlatform.DAL.Entities.PaymentStatus.Succeeded)
+                {
+                    <span class="badge bg-success">Thành công</span>
+                }
+                else if (Model.Status == EduPlatform.DAL.Entities.PaymentStatus.Failed)
+                {
+                    <span class="badge bg-danger">Thất bại</span>
+                }
+                else
+                {
+                    <span class="badge bg-warning text-dark">Đang xử lý</span>
+                }
+            </dd>
+        </div>
+        <div>
+            <dt>Ngày tạo</dt>
+            <dd>@Model.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</dd>
+        </div>
+        <div>
+            <dt>Ngày xử lý</dt>
+            <dd>@(Model.ProcessedAtUtc?.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss") ?? "Chưa xử lý")</dd>
+        </div>
+    </dl>
+</section>

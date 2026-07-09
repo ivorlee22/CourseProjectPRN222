@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using EduPlatform.BLL.DTOs.Payments;
+using EduPlatform.BLL.Exceptions;
 using EduPlatform.BLL.Interfaces;
 using EduPlatform.DAL.Entities;
+using EduPlatform.Web.ViewModels.Packages;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,8 +11,32 @@ namespace EduPlatform.Web.Controllers;
 
 [Authorize]
 [Route("payment")]
-public class PaymentController(IPaymentService paymentService) : Controller
+public class PaymentController(
+    IPaymentService paymentService,
+    IPackageService packageService) : Controller
 {
+    [HttpGet("checkout/{packageId:guid}")]
+    [Authorize(Roles = "Student")]
+    public async Task<IActionResult> Checkout(Guid packageId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var package = await packageService.GetByIdAsync(packageId, cancellationToken);
+            if (package.Price <= 0)
+            {
+                TempData["ErrorMessage"] = "Gói miễn phí đang là mặc định, không cần thanh toán.";
+                return RedirectToAction("Index", "Package");
+            }
+
+            return View(new PaymentCheckoutViewModel(package, false));
+        }
+        catch (ResourceNotFoundException exception)
+        {
+            TempData["ErrorMessage"] = exception.Message;
+            return RedirectToAction("Index", "Package");
+        }
+    }
+
     [HttpPost("create")]
     [Authorize(Roles = "Student")]
     [ValidateAntiForgeryToken]
@@ -26,13 +52,26 @@ public class PaymentController(IPaymentService paymentService) : Controller
 
         try
         {
+            var package = await packageService.GetByIdAsync(packageId, cancellationToken);
+            if (package.Price <= 0)
+            {
+                TempData["ErrorMessage"] = "Gói miễn phí không cần thanh toán.";
+                return RedirectToAction("Index", "Package");
+            }
+
             var command = new CreatePaymentCommand(userId, packageId, method, clientIp);
             var response = await paymentService.CreatePaymentAsync(command, cancellationToken);
             return Redirect(response.Url);
         }
+        catch (ResourceNotFoundException exception)
+        {
+            TempData["ErrorMessage"] = exception.Message;
+            return RedirectToAction("Index", "Package");
+        }
         catch (Exception ex)
         {
-            return Content($"Error: {ex.GetType().Name} - {ex.Message}\n\nStack Trace:\n{ex.StackTrace}");
+            TempData["ErrorMessage"] = $"Không thể tạo thanh toán: {ex.Message}";
+            return RedirectToAction(nameof(Checkout), new { packageId });
         }
     }
 
@@ -120,10 +159,9 @@ public class PaymentController(IPaymentService paymentService) : Controller
 
     [AllowAnonymous]
     [HttpGet("packages")]
-    public async Task<IActionResult> Packages([FromServices] IPackageService packageService, CancellationToken cancellationToken)
+    public IActionResult Packages()
     {
-        var packages = await packageService.GetActivePackagesAsync(cancellationToken);
-        return View(packages);
+        return RedirectToAction("Index", "Package");
     }
 
     [HttpGet("detail/{id:guid}")]

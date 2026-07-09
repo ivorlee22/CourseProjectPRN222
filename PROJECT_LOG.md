@@ -66,6 +66,97 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-10 - Pricing checkout flow and package highlighting
+
+**Owner**
+
+- Codex (Agent) / pricing and payment UI fix requested by user.
+
+**Completed**
+
+- Changed pricing cards so paid packages show a single `Mua ngay` action instead of choosing VNPay/MoMo directly on the pricing page.
+- Added `PaymentController.Checkout` and `Views/Payment/Checkout.cshtml` so Students choose VNPay or MoMo on a dedicated payment step after selecting a package.
+- Added package pricing metadata for `IsFeatured`; Plus is highlighted as the hot/popular package.
+- Updated pricing UI so the current package has a distinct active treatment and the featured package has a visible hot ribbon/lifted card style.
+- Kept Free package as a disabled/default package rather than routing it into payment.
+- Replaced payment creation stack trace output with user-facing TempData errors and redirects.
+
+**UI/UX**
+
+- Design Read: Pricing should let students compare packages first, then make payment method selection a focused second step.
+- Dials: `DESIGN_VARIANCE 4`, `MOTION_INTENSITY 2`, `VISUAL_DENSITY 6`.
+- Applied Bootstrap 5 MVC product UI rules with restrained teal highlighting and no new frontend framework.
+
+**Verification**
+
+- `node --check EduPlatform.Web\wwwroot\js\site.js` passed.
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 85 succeeded, 1 skipped live Gemini credential test.
+
+**Remaining**
+
+- Manual browser check recommended on `/Package` and `/payment/checkout/{packageId}` with a Student account to tune final spacing against real package data.
+
+**Blocked**
+
+- End-to-end payment still depends on valid VNPay/MoMo sandbox credentials.
+
+### 2026-07-10 - Cross-page UI system polish and clickable cards
+
+**Owner**
+
+- Codex (Agent) / UI polish pass confirmed by user.
+
+**Completed**
+
+- Added shared UI polish tokens for soft elevation, transition timing, semantic state colors, breadcrumbs, panels, empty states, tables, dropdowns, detail lists, and card hover/focus states.
+- Added a guarded `data-clickable-card` interaction in `site.js` so Course and Document cards can be opened by clicking the full card area while preserving buttons, forms, inputs, and keyboard access.
+- Refactored Course list invitation cards and Course/Document cards to use shared classes instead of inline styling.
+- Reworked Course Details, Payment History, and Payment Detail into consistent page heading, content panel, action panel, table, and detail-list layouts.
+- Aligned Admin user, package, and subscription tables with the shared table/panel system and removed stray inline styling/duplicate modal attributes.
+
+**UI/UX**
+
+- Design Read: EduPlatform needs a consistent product UI system across role-based pages, preserving the teal education tone while adding softer panels, clearer interactive affordances, and restrained state motion.
+- Dials: `DESIGN_VARIANCE 4`, `MOTION_INTENSITY 2`, `VISUAL_DENSITY 6`.
+- Applied product-register guidance for Bootstrap 5 MVC screens; no new frontend framework or design system was introduced.
+
+**Verification**
+
+- `node --check EduPlatform.Web\wwwroot\js\site.js` passed.
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 85 succeeded, 1 skipped live Gemini credential test.
+
+**Remaining**
+
+- Manual browser review is still recommended on authenticated Admin, Course, Document, Payment, and Package pages to tune final spacing after seeing real data.
+
+**Blocked**
+
+- None.
+
+### 2026-07-09 - Realtime invitations, course quota integration, and Admin bypass
+
+**Owner**
+
+- Codex (Agent) / pair programming with user.
+
+**Completed**
+
+- Fixed `ICourseService` / `CourseService` and `CourseController` to integrate `ICourseQuotaService` during course creation and check the quota correctly.
+- Added Admin bypass check to `SubscriptionCourseQuotaService.cs` using `IUserRepository` to resolve the user's role.
+- Integrated `RemoveEnrollment` to `ICourseRepository` and implemented it in `CourseRepository` and tests.
+- Replaced separate Student "Lời mời" (Invitations) tab with a realtime styled alert card on the course list index page (`Index.cshtml` & `_CourseList.cshtml`).
+- Added Cancel Invitation capability for Admins in `Students.cshtml` with trash icon and hooked it up to the BLL service.
+- Broadcasted realtime SignalR notifications (`ReceiveInvitation` and `CancelInvitation`) to users when invitations are sent or cancelled.
+- Added unit tests for Admin bypass on quota, integration of quota checks, and invitation cancellation. All 85/85 tests passed.
+
+**UI/UX**
+
+- Design Read: Realtime notifications should use visual cues (border color, light grey backgrounds) to draw focus and provide distinct actions without visual clutter.
+- Dials: `DESIGN_VARIANCE 1`, `MOTION_INTENSITY 2`, `VISUAL_DENSITY 5`.
+- Shared MVC/Bootstrap rules applied.
+
 ### 2026-07-09 - Admin search, course realtime, and student document access
 
 **Owner**

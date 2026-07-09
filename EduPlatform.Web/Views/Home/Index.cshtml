@@ -24,14 +24,14 @@
                     }
                     @if (User.IsInRole("Student"))
                     {
-                        <a class="btn btn-warning btn-lg" asp-controller="Payment" asp-action="Packages">
+                        <a class="btn btn-warning btn-lg fw-semibold" asp-controller="Package" asp-action="Index">
                             Nâng cấp tài khoản
                         </a>
                     }
                 }
                 else
                 {
-                    <a class="btn btn-warning btn-lg" asp-controller="Payment" asp-action="Packages">
+                    <a class="btn btn-warning btn-lg fw-semibold" asp-controller="Package" asp-action="Index">
                         Nâng cấp tài khoản
                     </a>
                 }

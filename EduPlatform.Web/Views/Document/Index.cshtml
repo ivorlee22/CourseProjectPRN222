@@ -21,7 +21,7 @@
     <div>
         <p class="section-label">Kho tài liệu</p>
         <h1>Tài liệu của @Model.CourseTitle</h1>
-        <p class="text-secondary mb-0">@Model.Documents.Count tài liệu</p>
+        <p class="mb-0">@Model.Documents.Count tài liệu</p>
     </div>
     @if (Model.CanManage)
     {
@@ -58,13 +58,13 @@ else
     <div class="document-grid">
         @foreach (var document in Model.Documents)
         {
-            <article class="document-card" data-status="@document.Status.ToString().ToLowerInvariant()">
+            <article class="document-card" data-clickable-card data-status="@document.Status.ToString().ToLowerInvariant()" tabindex="0" role="link" aria-label="Xem chi tiet tai lieu @document.OriginalFileName">
                 <div class="d-flex justify-content-between align-items-start gap-3">
                     <span class="document-type">@FormatFileType(document.FileType)</span>
                     @DocumentStatusBadge(document.Status)
                 </div>
                 <h2>
-                    <a asp-action="Details" asp-route-id="@document.Id">
+                    <a asp-action="Details" asp-route-id="@document.Id" data-card-link>
                         @document.OriginalFileName
                     </a>
                 </h2>

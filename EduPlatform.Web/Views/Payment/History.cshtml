@@ -5,84 +5,87 @@
     ViewData["Title"] = "Lịch sử thanh toán";
 }
 
-<div class="container my-5">
-    <div class="card shadow-sm">
-        <div class="card-header bg-white py-3">
-            <h4 class="mb-0 text-primary"><i class="bi bi-receipt"></i> Lịch sử thanh toán</h4>
-        </div>
-        <div class="card-body">
-            @if (TempData["SuccessMessage"] != null)
-            {
-                <div class="alert alert-success">@TempData["SuccessMessage"]</div>
-            }
-            @if (TempData["ErrorMessage"] != null)
-            {
-                <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
-            }
-
-            @if (Model.Count == 0)
-            {
-                <div class="text-center py-5">
-                    <p class="text-muted mb-0">Bạn chưa có giao dịch thanh toán nào.</p>
-                    <a asp-controller="Package" asp-action="Index" class="btn btn-outline-primary mt-3">Xem các gói cước</a>
-                </div>
-            }
-            else
-            {
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Mã GD</th>
-                                <th>Gói cước</th>
-                                <th>Số tiền</th>
-                                <th>Phương thức</th>
-                                <th>Trạng thái</th>
-                                <th>Ngày tạo</th>
-                                <th>Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var p in Model)
-                            {
-                                <tr>
-                                    <td><small class="text-muted">@p.InternalReference</small></td>
-                                    <td><span class="fw-medium">@p.PackageName</span></td>
-                                    <td>@p.Amount.ToString("N0") VNĐ</td>
-                                    <td>
-                                        @if (p.Method == EduPlatform.DAL.Entities.PaymentMethod.VNPay)
-                                        {
-                                            <span class="badge bg-info text-dark">VNPay</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-danger">MoMo</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        @if (p.Status == EduPlatform.DAL.Entities.PaymentStatus.Succeeded)
-                                        {
-                                            <span class="badge bg-success">Thành công</span>
-                                        }
-                                        else if (p.Status == EduPlatform.DAL.Entities.PaymentStatus.Failed)
-                                        {
-                                            <span class="badge bg-danger">Thất bại</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-warning text-dark">Đang xử lý</span>
-                                        }
-                                    </td>
-                                    <td>@p.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                    <td>
-                                        <a asp-action="Detail" asp-route-id="@p.Id" class="btn btn-sm btn-outline-secondary">Chi tiết</a>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </div>
+<section class="page-heading">
+    <div>
+        <p class="section-label">Thanh toán</p>
+        <h1>Lịch sử thanh toán</h1>
+        <p class="mb-0">@Model.Count giao dịch</p>
     </div>
-</div>
+    <a asp-controller="Package" asp-action="Index" class="btn btn-outline-primary">Xem gói cước</a>
+</section>
+
+<section class="content-panel p-0 overflow-hidden">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success m-3">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger m-3">@TempData["ErrorMessage"]</div>
+    }
+
+    @if (Model.Count == 0)
+    {
+        <div class="empty-state border-0 shadow-none">
+            <h2>Chưa có giao dịch thanh toán</h2>
+            <p>Chọn một gói phù hợp để bắt đầu sử dụng quota học tập.</p>
+            <a asp-controller="Package" asp-action="Index" class="btn btn-primary">Xem các gói cước</a>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Mã GD</th>
+                        <th>Gói cước</th>
+                        <th>Số tiền</th>
+                        <th>Phương thức</th>
+                        <th>Trạng thái</th>
+                        <th>Ngày tạo</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model)
+                    {
+                        <tr class="clickable-row" data-clickable-card tabindex="0" role="link" aria-label="Xem chi tiết giao dịch @p.InternalReference">
+                            <td><small class="text-muted">@p.InternalReference</small></td>
+                            <td><span class="fw-medium">@p.PackageName</span></td>
+                            <td>@p.Amount.ToString("N0") VND</td>
+                            <td>
+                                @if (p.Method == EduPlatform.DAL.Entities.PaymentMethod.VNPay)
+                                {
+                                    <span class="badge bg-info text-dark">VNPay</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">MoMo</span>
+                                }
+                            </td>
+                            <td>
+                                @if (p.Status == EduPlatform.DAL.Entities.PaymentStatus.Succeeded)
+                                {
+                                    <span class="badge bg-success">Thành công</span>
+                                }
+                                else if (p.Status == EduPlatform.DAL.Entities.PaymentStatus.Failed)
+                                {
+                                    <span class="badge bg-danger">Thất bại</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">Đang xử lý</span>
+                                }
+                            </td>
+                            <td>@p.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                            <td class="text-end">
+                                <a asp-action="Detail" asp-route-id="@p.Id" class="btn btn-sm btn-outline-secondary" data-card-link>Chi tiết</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
