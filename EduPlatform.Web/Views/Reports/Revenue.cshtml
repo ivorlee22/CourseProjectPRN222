@@ -1,0 +1,266 @@
+@using System.Globalization
+@using System.Text.Json
+@using EduPlatform.BLL.Enums
+@model EduPlatform.Web.ViewModels.Reports.RevenueReportViewModel
+@{
+    ViewData["Title"] = "Báo cáo doanh thu";
+    var culture = CultureInfo.GetCultureInfo("vi-VN");
+    var report = Model.Report;
+    var periodLabels = JsonSerializer.Serialize(report.RevenueByPeriod.Select(point => point.Label));
+    var periodValues = JsonSerializer.Serialize(report.RevenueByPeriod.Select(point => point.Value));
+    var packageLabels = JsonSerializer.Serialize(report.RevenueByPackage.Select(point => point.Category));
+    var packageValues = JsonSerializer.Serialize(report.RevenueByPackage.Select(point => point.Value));
+    var methodLabels = JsonSerializer.Serialize(report.RevenueByPaymentMethod.Select(point => point.Category));
+    var methodValues = JsonSerializer.Serialize(report.RevenueByPaymentMethod.Select(point => point.Value));
+}
+
+<div class="report-page">
+    <div class="admin-dashboard__hero">
+        <div>
+            <p class="section-label">Báo cáo</p>
+            <h1>Doanh thu</h1>
+            <p>Xem doanh thu theo ngày, tuần, tháng, theo gói cước và phương thức thanh toán.</p>
+        </div>
+        <div class="admin-dashboard__actions">
+            <a class="btn btn-outline-primary"
+               asp-action="ExportRevenue"
+               asp-route-startDate="@Model.StartDate.ToString("yyyy-MM-dd")"
+               asp-route-endDate="@Model.EndDate.ToString("yyyy-MM-dd")"
+               asp-route-grouping="@Model.Grouping">
+                Export Excel
+            </a>
+            <a class="btn btn-primary" asp-controller="Admin" asp-action="Index">Về tổng quan</a>
+        </div>
+    </div>
+
+    <form class="content-panel report-filter" method="get" asp-action="Revenue">
+        <div>
+            <label class="form-label" for="startDate">Từ ngày</label>
+            <input class="form-control" id="startDate" name="startDate" type="date" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+        </div>
+        <div>
+            <label class="form-label" for="endDate">Đến ngày</label>
+            <input class="form-control" id="endDate" name="endDate" type="date" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+        </div>
+        <div>
+            <label class="form-label" for="grouping">Nhóm theo</label>
+            <select class="form-select" id="grouping" name="grouping" asp-for="Grouping">
+                <option value="@ReportPeriodGrouping.Day">Ngày</option>
+                <option value="@ReportPeriodGrouping.Week">Tuần</option>
+                <option value="@ReportPeriodGrouping.Month">Tháng</option>
+            </select>
+        </div>
+        <div class="report-filter__actions">
+            <button class="btn btn-primary" type="submit">Cập nhật</button>
+        </div>
+    </form>
+
+    <section class="admin-metrics" aria-label="Tổng quan doanh thu">
+        <article class="admin-metric-card">
+            <span>Tổng doanh thu</span>
+            <strong>@report.TotalRevenue.ToString("C0", culture)</strong>
+            <small>Tính theo thanh toán thành công trong khoảng đã chọn.</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>Số kỳ có doanh thu</span>
+            <strong>@report.RevenueByPeriod.Count(point => point.Value > 0).ToString("N0", culture)</strong>
+            <small>Nhóm theo @Model.Grouping.ToString().ToLowerInvariant().</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>Gói phát sinh</span>
+            <strong>@report.RevenueByPackage.Count.ToString("N0", culture)</strong>
+            <small>Số gói cước có thanh toán thành công.</small>
+        </article>
+        <article class="admin-metric-card">
+            <span>Phương thức</span>
+            <strong>@report.RevenueByPaymentMethod.Count.ToString("N0", culture)</strong>
+            <small>VNPay, MoMo hoặc các phương thức khác.</small>
+        </article>
+    </section>
+
+    <section class="admin-dashboard-grid" aria-label="Biểu đồ doanh thu">
+        <article class="content-panel admin-chart-card admin-chart-card--wide">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Theo thời gian</span>
+                    <h2>Doanh thu theo kỳ</h2>
+                </div>
+                <small>@Model.StartDate.ToString("dd/MM/yyyy") - @Model.EndDate.ToString("dd/MM/yyyy")</small>
+            </div>
+            <canvas id="revenuePeriodChart" height="120" aria-label="Biểu đồ doanh thu theo kỳ" role="img"></canvas>
+        </article>
+
+        <article class="content-panel admin-chart-card">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Theo gói</span>
+                    <h2>Doanh thu theo gói cước</h2>
+                </div>
+            </div>
+            @if (report.RevenueByPackage.Count == 0)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Chưa có doanh thu theo gói.</strong>
+                    <span>Dữ liệu sẽ xuất hiện khi payment thành công.</span>
+                </div>
+            }
+            else
+            {
+                <canvas id="revenuePackageChart" height="180" aria-label="Biểu đồ doanh thu theo gói" role="img"></canvas>
+            }
+        </article>
+
+        <article class="content-panel admin-chart-card">
+            <div class="admin-card-heading">
+                <div>
+                    <span>Theo payment</span>
+                    <h2>Doanh thu theo phương thức</h2>
+                </div>
+            </div>
+            @if (report.RevenueByPaymentMethod.Count == 0)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Chưa có doanh thu theo phương thức.</strong>
+                    <span>Khi có thanh toán thành công, chart sẽ cập nhật.</span>
+                </div>
+            }
+            else
+            {
+                <canvas id="revenueMethodChart" height="180" aria-label="Biểu đồ doanh thu theo phương thức" role="img"></canvas>
+            }
+        </article>
+    </section>
+
+    <section class="content-panel">
+        <div class="admin-card-heading mb-3">
+            <div>
+                <span>Bảng dữ liệu</span>
+                <h2>Doanh thu theo kỳ</h2>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0 admin-top-table">
+                <thead>
+                    <tr>
+                        <th>Kỳ</th>
+                        <th class="text-end">Doanh thu</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var point in report.RevenueByPeriod)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@point.Label</td>
+                            <td class="text-end">@point.Value.ToString("C0", culture)</td>
+                        </tr>
+                    }
+                    @if (report.RevenueByPeriod.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="2" class="text-center text-muted py-4">Chưa có dữ liệu trong khoảng đã chọn.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script>
+        (() => {
+            if (typeof Chart === "undefined") {
+                return;
+            }
+
+            const css = getComputedStyle(document.documentElement);
+            const accent = css.getPropertyValue("--edu-accent").trim() || "#0f766e";
+            const ink = css.getPropertyValue("--edu-ink").trim() || "#122033";
+            const muted = css.getPropertyValue("--edu-muted").trim() || "#5f6f82";
+            const grid = "rgba(18, 32, 51, 0.08)";
+            const money = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 });
+
+            Chart.defaults.color = muted;
+            Chart.defaults.font.family = "'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif";
+            Chart.defaults.plugins.legend.labels.usePointStyle = true;
+
+            const buildRevenueLine = () => {
+                const canvas = document.getElementById("revenuePeriodChart");
+                if (!canvas) {
+                    return;
+                }
+
+                new Chart(canvas, {
+                    type: "bar",
+                    data: {
+                        labels: @Html.Raw(periodLabels),
+                        datasets: [{
+                            label: "Doanh thu",
+                            data: @Html.Raw(periodValues),
+                            borderColor: accent,
+                            backgroundColor: "rgba(15, 118, 110, 0.72)",
+                            borderRadius: 8,
+                            maxBarThickness: 42
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: context => `${context.dataset.label}: ${money.format(context.parsed.y)}`
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: grid },
+                                ticks: { callback: value => money.format(value) }
+                            }
+                        }
+                    }
+                });
+            };
+
+            const buildDoughnut = (id, labels, values) => {
+                const canvas = document.getElementById(id);
+                if (!canvas) {
+                    return;
+                }
+
+                new Chart(canvas, {
+                    type: "doughnut",
+                    data: {
+                        labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: [accent, ink, "#38bdf8", "#f59e0b", "#a78bfa"],
+                            borderColor: "#fff",
+                            borderWidth: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: "64%",
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: context => `${context.label}: ${money.format(context.parsed)}`
+                                }
+                            }
+                        }
+                    }
+                });
+            };
+
+            buildRevenueLine();
+            buildDoughnut("revenuePackageChart", @Html.Raw(packageLabels), @Html.Raw(packageValues));
+            buildDoughnut("revenueMethodChart", @Html.Raw(methodLabels), @Html.Raw(methodValues));
+        })();
+    </script>
+}
