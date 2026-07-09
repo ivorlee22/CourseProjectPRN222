@@ -66,6 +66,39 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-10 - Redesigned Teacher Statistics chart UI and animation
+
+**Owner**
+
+- Bảo report scope (implemented by Antigravity).
+
+**Design Read**
+
+- Teacher statistics is a product data workflow rather than a marketing page, so the redesign keeps MVC, Bootstrap 5, native JavaScript, and restrained dashboard styling.
+- The redesign also fixes the flattened bars and missing legend colors caused by the Content Security Policy (`style-src 'self'`) blocking inline `style="..."` attributes:
+  - Legend dots now use CSS classes from the stylesheet instead of inline styles.
+  - Chart bars now expose their intended height through `data-height`, then `site.js` applies the height after `DOMContentLoaded` from a script file allowed by CSP.
+- Dials: design variance medium, motion intensity dynamic, visual density medium.
+
+**Completed**
+
+- Fixed flattened chart bars by making `.teacher-stat-chart__bar` render as a block-level visual element.
+- Replaced CSP-blocked inline bar heights with `data-height` attributes and a small `site.js` initializer that applies heights on `DOMContentLoaded`.
+- Replaced CSP-blocked inline legend colors with semantic CSS classes and gradient colors in `site.css`.
+- Redesigned the chart container with Bootstrap `card border-0 shadow-sm`, a clearer heading area, and a flex/badge-based legend.
+- Added an 850ms bottom-up bar growth animation using `cubic-bezier(0.34, 1.56, 0.64, 1)`.
+- Added CSS-only hover tooltips with a softer shadow and subtle bar scale feedback.
+- Refined the background grid lines and top-course summary cards with light hover elevation.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini integration test skipped.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-09 - Teacher chart fallback fix
 
 **Owner**

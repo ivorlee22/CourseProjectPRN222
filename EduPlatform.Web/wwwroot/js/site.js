@@ -60,3 +60,14 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 });
+
+// Initialize Teacher Statistics Chart Heights (CSP compliance)
+document.addEventListener("DOMContentLoaded", function () {
+    const bars = document.querySelectorAll(".teacher-stat-chart__bar");
+    bars.forEach(function (bar) {
+        const height = bar.getAttribute("data-height");
+        if (height) {
+            bar.style.height = height;
+        }
+    });
+});
