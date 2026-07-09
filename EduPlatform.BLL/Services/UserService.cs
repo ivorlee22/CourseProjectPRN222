@@ -4,12 +4,16 @@ using EduPlatform.BLL.Interfaces;
 using EduPlatform.BLL.Models;
 using EduPlatform.DAL.Entities;
 using EduPlatform.DAL.Repositories;
+using Microsoft.Extensions.Logging;
 using BllUserRole = EduPlatform.BLL.Enums.UserRole;
 using DalUserRole = EduPlatform.DAL.Entities.UserRole;
 
 namespace EduPlatform.BLL.Services;
 
-public sealed class UserService(IUserRepository userRepository) : IUserService
+public sealed class UserService(
+    IUserRepository userRepository,
+    IEmailService emailService,
+    ILogger<UserService> logger) : IUserService
 {
     private const int MaximumPageSize = 50;
 
@@ -67,6 +71,7 @@ public sealed class UserService(IUserRepository userRepository) : IUserService
 
         await userRepository.AddAsync(user, cancellationToken);
         await userRepository.SaveChangesAsync(cancellationToken);
+        await SendAccountCreatedEmailAsync(user, temporaryPassword: null, cancellationToken);
 
         return user.Id;
     }
@@ -109,6 +114,7 @@ public sealed class UserService(IUserRepository userRepository) : IUserService
 
         await userRepository.AddAsync(user, cancellationToken);
         await userRepository.SaveChangesAsync(cancellationToken);
+        await SendAccountCreatedEmailAsync(user, command.Password, cancellationToken);
 
         return user.Id;
     }
@@ -222,6 +228,25 @@ public sealed class UserService(IUserRepository userRepository) : IUserService
     {
         return await userRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new ResourceNotFoundException("Không tìm thấy người dùng.");
+    }
+
+    private async Task SendAccountCreatedEmailAsync(
+        User user,
+        string? temporaryPassword,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await emailService.SendAccountCreatedAsync(
+                user.Email,
+                user.FullName,
+                temporaryPassword,
+                cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to send account created email for user {UserId}", user.Id);
+        }
     }
 
     private static UserSummaryDto MapSummary(User user)

@@ -16,12 +16,25 @@ public sealed class GmailEmailService(IOptions<EmailOptions> options) : IEmailSe
     public Task SendAccountCreatedAsync(
         string recipientEmail,
         string recipientName,
+        string? temporaryPassword,
         CancellationToken cancellationToken)
     {
         var safeName = WebUtility.HtmlEncode(recipientName);
+        var safeEmail = WebUtility.HtmlEncode(recipientEmail);
+        var passwordBlock = string.IsNullOrWhiteSpace(temporaryPassword)
+            ? "<p>Bạn có thể đăng nhập bằng email đã đăng ký và mật khẩu bạn vừa tạo.</p>"
+            : $"""
+                <p>Thông tin đăng nhập ban đầu của bạn:</p>
+                <ul>
+                    <li>Email: <strong>{safeEmail}</strong></li>
+                    <li>Mật khẩu tạm thời: <strong>{WebUtility.HtmlEncode(temporaryPassword)}</strong></li>
+                </ul>
+                <p>Vui lòng đổi mật khẩu sau lần đăng nhập đầu tiên.</p>
+                """;
         var body = $"""
             <h1>Chào mừng đến EduPlatform</h1>
             <p>Xin chào {safeName}, tài khoản của bạn đã được tạo thành công.</p>
+            {passwordBlock}
             <p>Bạn có thể đăng nhập và bắt đầu sử dụng nền tảng.</p>
             """;
 

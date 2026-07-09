@@ -66,6 +66,33 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-09 - Account creation email notification
+
+**Owner**
+
+- Nguyên user/auth scope (implemented by Codex).
+
+**Completed**
+
+- Wired `UserService.RegisterAsync` to send an account-created email to the newly registered email address after the user is persisted.
+- Wired `UserService.CreateAsync` to send account-created email for Admin-created and imported accounts, including the initial temporary password.
+- Updated `IEmailService.SendAccountCreatedAsync` and `GmailEmailService` to support optional temporary password content while keeping self-registration emails password-free.
+- Logged email delivery failures without rolling back an already-created account.
+- Added user service tests for self-registration email, admin-created account email, and persistence when email delivery fails.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 74 succeeded, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+
+**Remaining**
+
+- Real Gmail delivery still depends on valid local `Email` configuration or environment/user-secret values.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-08 - Chat markdown rendering
 
 **Owner**

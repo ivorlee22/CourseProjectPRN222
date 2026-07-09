@@ -5,6 +5,7 @@ public interface IEmailService
     Task SendAccountCreatedAsync(
         string recipientEmail,
         string recipientName,
+        string? temporaryPassword,
         CancellationToken cancellationToken);
 
     Task SendCourseInvitationAsync(
