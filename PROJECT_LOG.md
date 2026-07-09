@@ -66,6 +66,40 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-09 - Task 44 Chat UI Polish
+
+**Owner**
+
+- Bảo chat scope (implemented by Codex).
+
+**Design Read**
+
+- Chat is a product workflow, so the polish keeps the existing MVC/native JavaScript structure, improves readability, and adds source/code affordances without changing routes or data contracts.
+- Dials: design variance medium, motion intensity light, visual density medium.
+
+**Completed**
+
+- Added fenced code block support to the safe server-side chat markdown renderer.
+- Added matching fenced code block rendering for SignalR streaming responses.
+- Added lightweight syntax highlighting and copy buttons for chat code blocks.
+- Polished chat bubble radius, shadows, code block styling, and source card controls.
+- Added citation detail modal with source rank, similarity score, location, and excerpt.
+- Added citation chip tooltip text and accessible focus states for new controls.
+
+**Verification**
+
+- `node --check EduPlatform.Web\wwwroot\js\chat.js` passed.
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+
+**Remaining**
+
+- No remaining Bảo Phase 4 report/chat polish tasks in the current task range.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-09 - Task 41 Student Usage Report
 
 **Owner**

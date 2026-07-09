@@ -17,10 +17,48 @@ public static partial class ChatMarkdownRenderer
         var builder = new StringBuilder();
         var activeList = ListKind.None;
         var paragraphOpen = false;
+        var codeBlockOpen = false;
+        var codeLanguage = string.Empty;
 
         foreach (var rawLine in markdown.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'))
         {
             var line = rawLine.TrimEnd();
+            var trimmedLine = line.Trim();
+
+            if (trimmedLine.StartsWith("```", StringComparison.Ordinal))
+            {
+                if (codeBlockOpen)
+                {
+                    builder.Append("</code></pre>");
+                    codeBlockOpen = false;
+                    codeLanguage = string.Empty;
+                }
+                else
+                {
+                    CloseParagraph(builder, ref paragraphOpen);
+                    CloseList(builder, ref activeList);
+                    codeLanguage = trimmedLine[3..].Trim();
+                    builder.Append("<pre class=\"chat-code-block\"><code");
+                    if (!string.IsNullOrWhiteSpace(codeLanguage))
+                    {
+                        builder.Append(" data-code-language=\"");
+                        builder.Append(WebUtility.HtmlEncode(codeLanguage));
+                        builder.Append('"');
+                    }
+                    builder.Append('>');
+                    codeBlockOpen = true;
+                }
+
+                continue;
+            }
+
+            if (codeBlockOpen)
+            {
+                builder.Append(WebUtility.HtmlEncode(rawLine));
+                builder.Append('\n');
+                continue;
+            }
+
             if (string.IsNullOrWhiteSpace(line))
             {
                 CloseParagraph(builder, ref paragraphOpen);
@@ -66,6 +104,11 @@ public static partial class ChatMarkdownRenderer
 
         CloseParagraph(builder, ref paragraphOpen);
         CloseList(builder, ref activeList);
+        if (codeBlockOpen)
+        {
+            builder.Append("</code></pre>");
+        }
+
         return new HtmlString(builder.ToString());
     }
 

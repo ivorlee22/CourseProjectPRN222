@@ -152,6 +152,7 @@
                                         {
                                             <button type="button"
                                                     class="chat-citation-chip"
+                                                    title="Xem nguồn @citation.DocumentName"
                                                     data-source-group-target="source-group-@message.Id"
                                                     data-source-target="source-@message.Id-@citation.DocumentChunkId">
                                                 <span>@citation.Rank</span>
@@ -226,7 +227,19 @@
                                         <span>[@citation.Rank]</span>
                                         <span>@Math.Round(citation.SimilarityScore * 100)% phù hợp</span>
                                     </div>
-                                    <h2>@citation.DocumentName</h2>
+                                    <div class="chat-source-card__title-row">
+                                        <h2>@citation.DocumentName</h2>
+                                        <button type="button"
+                                                class="chat-source-detail-button"
+                                                data-citation-modal
+                                                data-citation-rank="@citation.Rank"
+                                                data-citation-score="@Math.Round(citation.SimilarityScore * 100)"
+                                                data-citation-title="@citation.DocumentName"
+                                                data-citation-location="Đoạn @(citation.Sequence + 1)@(citation.PageNumber.HasValue ? $" · Trang {citation.PageNumber}" : string.Empty)"
+                                                data-citation-content="@citation.Content">
+                                            Chi tiết
+                                        </button>
+                                    </div>
                                     <p class="chat-source-card__location">
                                         Đoạn @(citation.Sequence + 1)
                                         @if (citation.PageNumber.HasValue)
@@ -244,6 +257,24 @@
         </aside>
     </div>
     <div class="chat-backdrop" data-chat-backdrop hidden></div>
+
+    <div class="modal fade chat-citation-modal" id="citationDetailModal" tabindex="-1" aria-labelledby="citationDetailTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <p class="chat-citation-modal__eyebrow" data-citation-modal-meta></p>
+                        <h2 class="modal-title" id="citationDetailTitle" data-citation-modal-title>Nguồn tham khảo</h2>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="chat-citation-modal__location" data-citation-modal-location></p>
+                    <pre class="chat-citation-modal__excerpt" data-citation-modal-content></pre>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
