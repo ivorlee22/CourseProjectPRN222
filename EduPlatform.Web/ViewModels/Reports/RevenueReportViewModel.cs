@@ -13,3 +13,14 @@ public sealed class RevenueReportViewModel
 
     public ReportPeriodGrouping Grouping { get; set; } = ReportPeriodGrouping.Day;
 }
+
+public sealed class UserAnalyticsViewModel
+{
+    public UserAnalyticsReportDto Report { get; set; } = null!;
+
+    public DateOnly StartDate { get; set; }
+
+    public DateOnly EndDate { get; set; }
+
+    public ReportPeriodGrouping Grouping { get; set; } = ReportPeriodGrouping.Day;
+}

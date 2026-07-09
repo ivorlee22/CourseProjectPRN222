@@ -35,6 +35,28 @@ public sealed class ReportsController(IReportService reportService) : Controller
     }
 
     [HttpGet]
+    public async Task<IActionResult> UserAnalytics(
+        DateOnly? startDate,
+        DateOnly? endDate,
+        ReportPeriodGrouping grouping = ReportPeriodGrouping.Day,
+        CancellationToken cancellationToken = default)
+    {
+        var filter = BuildFilter(startDate, endDate, grouping);
+        var report = await reportService.GetUserAnalyticsAsync(
+            filter.Range,
+            filter.Grouping,
+            cancellationToken);
+
+        return View(new UserAnalyticsViewModel
+        {
+            Report = report,
+            StartDate = filter.StartDate,
+            EndDate = filter.EndDate,
+            Grouping = filter.Grouping
+        });
+    }
+
+    [HttpGet]
     public async Task<IActionResult> ExportRevenue(
         DateOnly? startDate,
         DateOnly? endDate,
@@ -63,7 +85,7 @@ public sealed class ReportsController(IReportService reportService) : Controller
             fileName);
     }
 
-    private static RevenueFilter BuildFilter(
+    private static ReportFilter BuildFilter(
         DateOnly? startDate,
         DateOnly? endDate,
         ReportPeriodGrouping grouping)
@@ -85,14 +107,14 @@ public sealed class ReportsController(IReportService reportService) : Controller
         var startUtc = new DateTimeOffset(start.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
         var endUtc = new DateTimeOffset(end.AddDays(1).ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
 
-        return new RevenueFilter(
+        return new ReportFilter(
             start,
             end,
             grouping,
             new ReportDateRange(startUtc, endUtc));
     }
 
-    private static void AddSummarySheet(ExcelPackage package, RevenueReportDto report, RevenueFilter filter)
+    private static void AddSummarySheet(ExcelPackage package, RevenueReportDto report, ReportFilter filter)
     {
         var culture = CultureInfo.GetCultureInfo("vi-VN");
         var sheet = package.Workbook.Worksheets.Add("Tong quan");
@@ -154,7 +176,7 @@ public sealed class ReportsController(IReportService reportService) : Controller
         sheet.Cells.AutoFitColumns();
     }
 
-    private sealed record RevenueFilter(
+    private sealed record ReportFilter(
         DateOnly StartDate,
         DateOnly EndDate,
         ReportPeriodGrouping Grouping,
