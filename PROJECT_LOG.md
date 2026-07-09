@@ -66,6 +66,38 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-09 - Task 38 Revenue Report
+
+**Owner**
+
+- Bảo report scope (implemented by Codex).
+
+**Design Read**
+
+- Revenue report is an Admin data workflow, so the UI keeps Bootstrap/MVC, clear filters, visible export action, readable charts, and compact data tables.
+- Dials: design variance low-medium, motion intensity light, visual density medium.
+
+**Completed**
+
+- Added Admin-only `ReportsController` with revenue report and Excel export actions.
+- Added `/Reports/Revenue` with date range filters, grouping by day/week/month, summary cards, Chart.js visualizations, and a revenue table.
+- Added `/Reports/ExportRevenue` to generate an `.xlsx` workbook with summary, revenue by period, revenue by package, and revenue by payment method sheets.
+- Added revenue report view model and Admin navigation link.
+- Added responsive report filter styling in `site.css`.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+
+**Remaining**
+
+- Tasks 39-41 and 44 remain separate branches.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-09 - Task 37 Admin Dashboard
 
 **Owner**

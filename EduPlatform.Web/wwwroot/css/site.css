@@ -620,6 +620,29 @@ h1 {
   line-height: 1.15;
 }
 
+.report-page {
+  display: grid;
+  gap: clamp(1.25rem, 3vw, 2rem);
+}
+
+.report-filter {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 1rem;
+  align-items: end;
+}
+
+.report-filter .form-label {
+  color: var(--edu-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.report-filter__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 @media (max-width: 1199.98px) {
   .admin-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -642,6 +665,10 @@ h1 {
   .admin-dashboard-grid {
     grid-template-columns: 1fr;
   }
+
+  .report-filter {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 575.98px) {
@@ -656,6 +683,15 @@ h1 {
 
   .admin-card-heading {
     display: grid;
+  }
+
+  .report-filter {
+    grid-template-columns: 1fr;
+  }
+
+  .report-filter__actions,
+  .report-filter__actions .btn {
+    width: 100%;
   }
 }
 
