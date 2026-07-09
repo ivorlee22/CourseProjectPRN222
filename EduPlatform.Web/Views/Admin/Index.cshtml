@@ -1,20 +1,14 @@
-@using System.Globalization
-@using System.Text.Json
+﻿@using System.Globalization
 @model EduPlatform.Web.ViewModels.Admin.AdminDashboardViewModel
 @{
     ViewData["Title"] = "Tổng quan Admin";
     var culture = CultureInfo.GetCultureInfo("vi-VN");
     var report = Model.Report;
     var rangeLabel = $"{Model.Range.StartUtc.ToLocalTime():dd/MM/yyyy} - {Model.Range.EndUtc.ToLocalTime():dd/MM/yyyy}";
-
-    var revenueLabels = JsonSerializer.Serialize(report.Revenue.Select(point => point.Label));
-    var revenueValues = JsonSerializer.Serialize(report.Revenue.Select(point => point.Value));
-    var userLabels = JsonSerializer.Serialize(report.UserGrowth.Select(point => point.Label));
-    var userValues = JsonSerializer.Serialize(report.UserGrowth.Select(point => point.Count));
-    var chatLabels = JsonSerializer.Serialize(report.ChatUsage.Select(point => point.Label));
-    var chatValues = JsonSerializer.Serialize(report.ChatUsage.Select(point => point.Count));
-    var subscriptionLabels = JsonSerializer.Serialize(report.SubscriptionDistribution.Select(point => point.Category));
-    var subscriptionValues = JsonSerializer.Serialize(report.SubscriptionDistribution.Select(point => point.Count));
+    var maxRevenue = Math.Max(report.Revenue.Select(point => point.Value).DefaultIfEmpty(0m).Max(), 1m);
+    var maxUserGrowth = Math.Max(report.UserGrowth.Select(point => (decimal)point.Count).DefaultIfEmpty(0m).Max(), 1m);
+    var maxChatUsage = Math.Max(report.ChatUsage.Select(point => (decimal)point.Count).DefaultIfEmpty(0m).Max(), 1m);
+    var maxSubscription = Math.Max(report.SubscriptionDistribution.Select(point => point.Count).DefaultIfEmpty(0).Max(), 1);
 }
 
 <div class="admin-dashboard">
@@ -62,7 +56,45 @@
                 </div>
                 <small>@rangeLabel</small>
             </div>
-            <canvas id="revenueChart" height="120" aria-label="Biểu đồ doanh thu theo ngày" role="img"></canvas>
+            @if (report.Revenue.Count == 0)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Chưa có doanh thu.</strong>
+                    <span>Khi có payment thành công, biểu đồ sẽ cập nhật.</span>
+                </div>
+            }
+            else
+            {
+                <div class="report-column-chart" role="img" aria-label="Biểu đồ doanh thu theo ngày">
+                    <div class="report-column-chart__summary">
+                        <span>Đỉnh</span>
+                        <strong>@maxRevenue.ToString("C0", culture)</strong>
+                    </div>
+                    <div class="report-column-chart__body">
+                        <div class="report-column-chart__axis" aria-hidden="true">
+                            <span>@maxRevenue.ToString("C0", culture)</span>
+                            <span>@(maxRevenue / 2m).ToString("C0", culture)</span>
+                            <span>0 đ</span>
+                        </div>
+                        <div class="report-column-chart__plot">
+                            @for (var i = 0; i < report.Revenue.Count; i++)
+                            {
+                                var point = report.Revenue[i];
+                                <div class="report-column-chart__group" style="--chart-index: @i;">
+                                    <div class="report-column-chart__bar-wrap">
+                                        <span class="report-column-chart__bar"
+                                              data-height="@Height(point.Value, maxRevenue)"
+                                              title="@point.Label: @point.Value.ToString("C0", culture)">
+                                            <strong>@point.Value.ToString("C0", culture)</strong>
+                                        </span>
+                                    </div>
+                                    <span class="report-column-chart__label">@point.Label</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
         </article>
 
         <article class="content-panel admin-chart-card">
@@ -72,7 +104,45 @@
                     <h2>User mới</h2>
                 </div>
             </div>
-            <canvas id="userGrowthChart" height="180" aria-label="Biểu đồ user mới" role="img"></canvas>
+            @if (report.UserGrowth.Count == 0)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Chưa có user mới.</strong>
+                    <span>Dữ liệu sẽ xuất hiện khi có đăng ký mới.</span>
+                </div>
+            }
+            else
+            {
+                <div class="report-column-chart" role="img" aria-label="Biểu đồ user mới">
+                    <div class="report-column-chart__summary">
+                        <span>Đỉnh</span>
+                        <strong>@maxUserGrowth.ToString("N0", culture)</strong>
+                    </div>
+                    <div class="report-column-chart__body">
+                        <div class="report-column-chart__axis" aria-hidden="true">
+                            <span>@maxUserGrowth.ToString("N0", culture)</span>
+                            <span>@(maxUserGrowth / 2m).ToString("N0", culture)</span>
+                            <span>0</span>
+                        </div>
+                        <div class="report-column-chart__plot">
+                            @for (var i = 0; i < report.UserGrowth.Count; i++)
+                            {
+                                var point = report.UserGrowth[i];
+                                <div class="report-column-chart__group" style="--chart-index: @i;">
+                                    <div class="report-column-chart__bar-wrap">
+                                        <span class="report-column-chart__bar report-column-chart__bar--sky"
+                                              data-height="@Height(point.Count, maxUserGrowth)"
+                                              title="@point.Label: @point.Count.ToString("N0", culture) user">
+                                            <strong>@point.Count.ToString("N0", culture)</strong>
+                                        </span>
+                                    </div>
+                                    <span class="report-column-chart__label">@point.Label</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
         </article>
 
         <article class="content-panel admin-chart-card">
@@ -82,7 +152,45 @@
                     <h2>Lượt hỏi tài liệu</h2>
                 </div>
             </div>
-            <canvas id="chatUsageChart" height="180" aria-label="Biểu đồ lượt hỏi tài liệu" role="img"></canvas>
+            @if (report.ChatUsage.Count == 0)
+            {
+                <div class="admin-empty-mini">
+                    <strong>Chưa có lượt hỏi.</strong>
+                    <span>Dữ liệu sẽ xuất hiện khi student chat với tài liệu.</span>
+                </div>
+            }
+            else
+            {
+                <div class="report-column-chart" role="img" aria-label="Biểu đồ lượt hỏi tài liệu">
+                    <div class="report-column-chart__summary">
+                        <span>Đỉnh</span>
+                        <strong>@maxChatUsage.ToString("N0", culture)</strong>
+                    </div>
+                    <div class="report-column-chart__body">
+                        <div class="report-column-chart__axis" aria-hidden="true">
+                            <span>@maxChatUsage.ToString("N0", culture)</span>
+                            <span>@(maxChatUsage / 2m).ToString("N0", culture)</span>
+                            <span>0</span>
+                        </div>
+                        <div class="report-column-chart__plot">
+                            @for (var i = 0; i < report.ChatUsage.Count; i++)
+                            {
+                                var point = report.ChatUsage[i];
+                                <div class="report-column-chart__group" style="--chart-index: @i;">
+                                    <div class="report-column-chart__bar-wrap">
+                                        <span class="report-column-chart__bar report-column-chart__bar--ink"
+                                              data-height="@Height(point.Count, maxChatUsage)"
+                                              title="@point.Label: @point.Count.ToString("N0", culture) luot hoi">
+                                            <strong>@point.Count.ToString("N0", culture)</strong>
+                                        </span>
+                                    </div>
+                                    <span class="report-column-chart__label">@point.Label</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
         </article>
 
         <article class="content-panel admin-chart-card">
@@ -101,7 +209,21 @@
             }
             else
             {
-                <canvas id="subscriptionChart" height="180" aria-label="Biểu đồ phân bố subscription" role="img"></canvas>
+                <div class="report-distribution" role="img" aria-label="Phân bố subscription">
+                    @foreach (var item in report.SubscriptionDistribution)
+                    {
+                        <div class="report-distribution__row">
+                            <span class="report-distribution__label">@item.Category</span>
+                            <span class="report-distribution__track" aria-hidden="true">
+                                <span class="report-distribution__fill @FillClass(item.Category)" data-width="@Width(item.Count, maxSubscription)"></span>
+                            </span>
+                            <div class="report-distribution__value">
+                                <strong>@item.Count.ToString("N0", culture)</strong>
+                                <small>@Percent(item.Count, maxSubscription)</small>
+                            </div>
+                        </div>
+                    }
+                </div>
             }
         </article>
 
@@ -187,97 +309,60 @@
     </section>
 </div>
 
-@section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-    <script>
-        (() => {
-            const css = getComputedStyle(document.documentElement);
-            const accent = css.getPropertyValue("--edu-accent").trim() || "#0f766e";
-            const ink = css.getPropertyValue("--edu-ink").trim() || "#122033";
-            const muted = css.getPropertyValue("--edu-muted").trim() || "#5f6f82";
-            const grid = "rgba(18, 32, 51, 0.08)";
+@functions {
+    private static string Height(decimal value, decimal max)
+    {
+        if (max <= 0 || value <= 0)
+        {
+            return "0";
+        }
 
-            Chart.defaults.color = muted;
-            Chart.defaults.font.family = "'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif";
-            Chart.defaults.plugins.legend.labels.usePointStyle = true;
+        var percent = value / max * 100m;
+        percent = Math.Max(6m, Math.Min(100m, percent));
+        return percent.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+    }
 
-            const money = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 });
+    private static string Width(decimal value, decimal max)
+    {
+        if (max <= 0 || value <= 0)
+        {
+            return "0";
+        }
 
-            const buildLineChart = (id, labels, values, label, formatValue) => {
-                const canvas = document.getElementById(id);
-                if (!canvas) {
-                    return;
-                }
+        var percent = value / max * 100m;
+        percent = Math.Max(5m, Math.Min(100m, percent));
+        return percent.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+    }
 
-                new Chart(canvas, {
-                    type: "line",
-                    data: {
-                        labels,
-                        datasets: [{
-                            label,
-                            data: values,
-                            borderColor: accent,
-                            backgroundColor: "rgba(15, 118, 110, 0.12)",
-                            fill: true,
-                            tension: 0.35,
-                            pointRadius: 2.5,
-                            pointHoverRadius: 5
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: { mode: "index", intersect: false },
-                        plugins: {
-                            tooltip: {
-                                callbacks: {
-                                    label: context => `${context.dataset.label}: ${formatValue(context.parsed.y)}`
-                                }
-                            }
-                        },
-                        scales: {
-                            x: { grid: { display: false } },
-                            y: {
-                                beginAtZero: true,
-                                grid: { color: grid },
-                                ticks: { callback: value => formatValue(value) }
-                            }
-                        }
-                    }
-                });
-            };
+    private static string Percent(int value, int max)
+    {
+        if (max <= 0 || value <= 0)
+        {
+            return "0%";
+        }
 
-            buildLineChart("revenueChart", @Html.Raw(revenueLabels), @Html.Raw(revenueValues), "Doanh thu", value => money.format(value));
-            buildLineChart("userGrowthChart", @Html.Raw(userLabels), @Html.Raw(userValues), "User mới", value => Number(value).toLocaleString("vi-VN"));
-            buildLineChart("chatUsageChart", @Html.Raw(chatLabels), @Html.Raw(chatValues), "Lượt hỏi", value => Number(value).toLocaleString("vi-VN"));
+        var pct = (decimal)value / max * 100m;
+        return pct.ToString("0.#", CultureInfo.InvariantCulture) + "%";
+    }
 
-            const subscriptionCanvas = document.getElementById("subscriptionChart");
-            if (subscriptionCanvas) {
-                new Chart(subscriptionCanvas, {
-                    type: "doughnut",
-                    data: {
-                        labels: @Html.Raw(subscriptionLabels),
-                        datasets: [{
-                            data: @Html.Raw(subscriptionValues),
-                            backgroundColor: [accent, ink, "#38bdf8", "#f59e0b", "#a78bfa"],
-                            borderColor: "#fff",
-                            borderWidth: 3
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        cutout: "64%",
-                        plugins: {
-                            tooltip: {
-                                callbacks: {
-                                    label: context => `${context.label}: ${Number(context.parsed).toLocaleString("vi-VN")}`
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-        })();
-    </script>
+    private static string FillClass(string value)
+    {
+        var normalized = value.ToLowerInvariant();
+        if (normalized.Contains("free"))
+        {
+            return "report-distribution__fill--sky";
+        }
+
+        if (normalized.Contains("pro") || normalized.Contains("max"))
+        {
+            return "report-distribution__fill--ink";
+        }
+
+        if (normalized.Contains("plus"))
+        {
+            return "report-distribution__fill--amber";
+        }
+
+        return "report-distribution__fill--violet";
+    }
 }

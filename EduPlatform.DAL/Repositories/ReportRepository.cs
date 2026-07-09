@@ -62,12 +62,24 @@ public sealed class ReportRepository(AppDbContext dbContext) : IReportRepository
         DateTimeOffset endUtc,
         CancellationToken cancellationToken)
     {
-        return await SucceededPaymentsInRange(startUtc, endUtc)
-            .GroupBy(payment => payment.Package.Name)
+        var packageRevenue = await SucceededPaymentsInRange(startUtc, endUtc)
+            .Join(
+                dbContext.Packages.AsNoTracking(),
+                payment => payment.PackageId,
+                package => package.Id,
+                (payment, package) => new
+                {
+                    PackageName = package.Name,
+                    payment.Amount
+                })
+            .ToListAsync(cancellationToken);
+
+        return packageRevenue
+            .GroupBy(payment => payment.PackageName)
             .Select(group => new ReportCategoryAmount(group.Key, group.Sum(payment => payment.Amount)))
             .OrderByDescending(item => item.Amount)
             .ThenBy(item => item.Category)
-            .ToListAsync(cancellationToken);
+            .ToArray();
     }
 
     public async Task<IReadOnlyList<ReportCategoryAmount>> GetSucceededRevenueByPaymentMethodAsync(
@@ -75,12 +87,20 @@ public sealed class ReportRepository(AppDbContext dbContext) : IReportRepository
         DateTimeOffset endUtc,
         CancellationToken cancellationToken)
     {
-        return await SucceededPaymentsInRange(startUtc, endUtc)
+        var payments = await SucceededPaymentsInRange(startUtc, endUtc)
+            .Select(payment => new
+            {
+                payment.Method,
+                payment.Amount
+            })
+            .ToListAsync(cancellationToken);
+
+        return payments
             .GroupBy(payment => payment.Method)
             .Select(group => new ReportCategoryAmount(group.Key.ToString(), group.Sum(payment => payment.Amount)))
             .OrderByDescending(item => item.Amount)
             .ThenBy(item => item.Category)
-            .ToListAsync(cancellationToken);
+            .ToArray();
     }
 
     public async Task<IReadOnlyList<ReportDateCount>> GetUserGrowthDailyAsync(
@@ -103,12 +123,16 @@ public sealed class ReportRepository(AppDbContext dbContext) : IReportRepository
 
     public async Task<IReadOnlyList<ReportCategoryCount>> GetUsersByRoleAsync(CancellationToken cancellationToken)
     {
-        return await dbContext.Users
+        var userRoles = await dbContext.Users
             .AsNoTracking()
-            .GroupBy(user => user.Role)
+            .Select(user => user.Role)
+            .ToListAsync(cancellationToken);
+
+        return userRoles
+            .GroupBy(role => role)
             .Select(group => new ReportCategoryCount(group.Key.ToString(), group.Count()))
             .OrderBy(item => item.Category)
-            .ToListAsync(cancellationToken);
+            .ToArray();
     }
 
     public async Task<IReadOnlyList<ReportDateCount>> GetChatUsageDailyAsync(
@@ -136,12 +160,20 @@ public sealed class ReportRepository(AppDbContext dbContext) : IReportRepository
         DateTimeOffset nowUtc,
         CancellationToken cancellationToken)
     {
-        return await ActiveSubscriptions(nowUtc)
-            .GroupBy(subscription => subscription.Package.Name)
+        var subscriptionPackages = await ActiveSubscriptions(nowUtc)
+            .Join(
+                dbContext.Packages.AsNoTracking(),
+                subscription => subscription.PackageId,
+                package => package.Id,
+                (subscription, package) => package.Name)
+            .ToListAsync(cancellationToken);
+
+        return subscriptionPackages
+            .GroupBy(packageName => packageName)
             .Select(group => new ReportCategoryCount(group.Key, group.Count()))
             .OrderByDescending(item => item.Count)
             .ThenBy(item => item.Category)
-            .ToListAsync(cancellationToken);
+            .ToArray();
     }
 
     public async Task<IReadOnlyList<TopCourseSnapshot>> GetTopCoursesAsync(

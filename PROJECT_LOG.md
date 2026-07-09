@@ -66,6 +66,38 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-10 - Report chart UI and Npgsql query fixes
+
+**Owner**
+
+- Bảo report scope (UI updated by Antigravity, query fixes completed by Codex).
+
+**Design Read**
+
+- Admin and report pages are internal product dashboards, so the UI keeps MVC, Bootstrap 5, native JavaScript, strong data hierarchy, accessible labels, and restrained motion instead of marketing-style visuals.
+- Dials: design variance medium, motion intensity light-dynamic, visual density medium.
+
+**Completed**
+
+- Reworked Admin overview, Revenue, User Analytics, and Teacher Statistics chart presentation with a shared chart card system.
+- Added `report-column-chart` and `report-distribution` styling, animated bars, hover states, chart gridlines, stagger support through `--chart-index`, and percentage/value presentation for distribution rows.
+- Aligned Teacher Statistics chart markup with the shared `content-panel chart-card` structure and existing semantic legend classes.
+- Restored EF Core/Npgsql-safe report queries for revenue by package, revenue by payment method, users by role, and subscription distribution.
+- Moved enum/string conversion and grouped navigation-name aggregation out of SQL translation by materializing scalar values first, then grouping in memory.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini integration test skipped.
+
+**Remaining**
+
+- Manual browser check recommended for `/Admin`, `/Reports/Revenue`, `/Reports/UserAnalytics`, and `/Reports/TeacherStatistics` after merge.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-10 - Fixed Admin dashboard top courses query
 
 **Owner**
