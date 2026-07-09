@@ -14,6 +14,7 @@ namespace EduPlatform.BLL.Services;
 
 public sealed class CourseService(
     ICourseRepository courseRepository,
+    ICourseQuotaService courseQuotaService,
     TimeProvider timeProvider) : ICourseService
 {
     private const int MaximumPageSize = 50;
@@ -100,9 +101,13 @@ public sealed class CourseService(
         EnsureCanCreate(actor);
         ValidateCourse(command.Title, command.Description, command.Type, command.EnrollmentPassword);
 
+        var ownerId = command.OwnerId ?? actor.UserId;
+        var currentCourseCount = await courseRepository.CountByOwnerAsync(ownerId, cancellationToken);
+        await courseQuotaService.EnsureCanCreateCourseAsync(ownerId, currentCourseCount, cancellationToken);
+
         var course = new Course
         {
-            OwnerId = command.OwnerId ?? actor.UserId,
+            OwnerId = ownerId,
             Title = command.Title.Trim(),
             Description = command.Description.Trim(),
             Type = ToDal(command.Type),

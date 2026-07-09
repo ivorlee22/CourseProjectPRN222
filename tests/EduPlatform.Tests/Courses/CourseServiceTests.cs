@@ -3,6 +3,7 @@ using EduPlatform.BLL.Exceptions;
 using EduPlatform.BLL.Models;
 using EduPlatform.BLL.Services;
 using EduPlatform.DAL.Entities;
+using EduPlatform.BLL.Interfaces;
 using EduPlatform.DAL.Repositories;
 using BllCourseType = EduPlatform.BLL.Enums.CourseType;
 using BllUserRole = EduPlatform.BLL.Enums.UserRole;
@@ -19,12 +20,14 @@ public sealed class CourseServiceTests
     private static readonly Guid StudentId = Guid.Parse("20000000-0000-0000-0000-000000000002");
 
     private readonly FakeCourseRepository _repository = new();
+    private readonly FakeCourseQuotaService _quotaService = new();
     private readonly CourseService _service;
 
     public CourseServiceTests()
     {
         _service = new CourseService(
             _repository,
+            _quotaService,
             new FixedTimeProvider(new DateTimeOffset(2026, 7, 2, 8, 0, 0, TimeSpan.Zero)));
     }
 
@@ -375,6 +378,27 @@ public sealed class CourseServiceTests
     }
 
     [TestMethod]
+    public async Task CreateAsync_CallsQuotaService_ToVerifyIntegration()
+    {
+        var adminActor = new ActorContext(Guid.NewGuid(), BllUserRole.Admin);
+        var command = new CreateCourseCommand(
+            "C# nâng cao",
+            "Nội dung lập trình C#.",
+            BllCourseType.Public,
+            IsVisible: true,
+            EnrollmentPassword: null,
+            OwnerId);
+
+        _repository.Courses.Add(new Course { OwnerId = OwnerId, Title = "C# 1", Description = "Desc", Type = CourseType.Public, IsVisible = true });
+
+        var id = await _service.CreateAsync(command, adminActor, CancellationToken.None);
+
+        Assert.AreEqual(1, _quotaService.EnsureCanCreateCourseCallCount);
+        Assert.AreEqual(OwnerId, _quotaService.LastUserId);
+        Assert.AreEqual(1, _quotaService.LastCurrentCourseCount);
+    }
+
+    [TestMethod]
     public async Task SearchAsync_AnonymousUser_RequestsVisibleCoursesOnly()
     {
         _repository.Courses.Add(CreateCourse());
@@ -545,6 +569,21 @@ public sealed class CourseServiceTests
         {
             SaveChangesCallCount++;
             return Task.FromResult(1);
+        }
+    }
+
+    private sealed class FakeCourseQuotaService : ICourseQuotaService
+    {
+        public int EnsureCanCreateCourseCallCount { get; private set; }
+        public Guid LastUserId { get; private set; }
+        public int LastCurrentCourseCount { get; private set; }
+
+        public Task EnsureCanCreateCourseAsync(Guid userId, int currentCourseCount, CancellationToken cancellationToken)
+        {
+            EnsureCanCreateCourseCallCount++;
+            LastUserId = userId;
+            LastCurrentCourseCount = currentCourseCount;
+            return Task.CompletedTask;
         }
     }
 }
