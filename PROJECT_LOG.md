@@ -66,6 +66,38 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-09 - Task 39 User Analytics
+
+**Owner**
+
+- Bảo report scope (implemented by Codex).
+
+**Design Read**
+
+- User analytics is an Admin data workflow, so the UI keeps filter controls visible, charts readable, and role/subscription summaries compact.
+- Dials: design variance low-medium, motion intensity light, visual density medium.
+
+**Completed**
+
+- Added Admin-only `/Reports/UserAnalytics` backed by `IReportService.GetUserAnalyticsAsync`.
+- Added date range and day/week/month grouping filters.
+- Added summary cards for total users, new users, role count, and active subscription count.
+- Added Chart.js visualizations for new users over time, role distribution, and subscription distribution.
+- Added role breakdown cards and Admin navigation link.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+
+**Remaining**
+
+- Tasks 40-41 and 44 remain separate branches.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-09 - Task 38 Revenue Report
 
 **Owner**
