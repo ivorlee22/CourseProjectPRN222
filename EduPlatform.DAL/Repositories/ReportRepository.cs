@@ -148,22 +148,34 @@ public sealed class ReportRepository(AppDbContext dbContext) : IReportRepository
         int limit,
         CancellationToken cancellationToken)
     {
-        return await dbContext.Courses
+        var topCourses = await dbContext.Courses
             .AsNoTracking()
-            .Select(course => new TopCourseSnapshot(
+            .Select(course => new
+            {
                 course.Id,
                 course.Title,
-                course.Owner.FullName,
-                course.Enrollments.Count(enrollment => enrollment.Status == EnrollmentStatus.Active),
-                course.Documents.Count,
-                course.ChatSessions
-                    .SelectMany(session => session.Messages)
-                    .Count(message => message.Role == MessageRole.User)))
+                InstructorName = course.Owner.FullName,
+                EnrollmentCount = course.Enrollments.Count(enrollment => enrollment.Status == EnrollmentStatus.Active),
+                DocumentCount = course.Documents.Count,
+                ChatMessageCount = dbContext.Messages.Count(message =>
+                    message.Role == MessageRole.User &&
+                    message.ChatSession.CourseId == course.Id)
+            })
             .OrderByDescending(course => course.ChatMessageCount)
             .ThenByDescending(course => course.EnrollmentCount)
             .ThenBy(course => course.Title)
             .Take(Math.Max(limit, 1))
             .ToListAsync(cancellationToken);
+
+        return topCourses
+            .Select(course => new TopCourseSnapshot(
+                course.Id,
+                course.Title,
+                course.InstructorName,
+                course.EnrollmentCount,
+                course.DocumentCount,
+                course.ChatMessageCount))
+            .ToArray();
     }
 
     public async Task<IReadOnlyList<TeacherCourseStatsSnapshot>> GetTeacherCourseStatsAsync(

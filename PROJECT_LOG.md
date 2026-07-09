@@ -66,6 +66,27 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-10 - Fixed Admin dashboard top courses query
+
+**Owner**
+
+- Bảo report scope (implemented by Codex).
+
+**Completed**
+
+- Fixed `ReportRepository.GetTopCoursesAsync` so the Admin dashboard no longer asks EF Core/Npgsql to order by properties on a projected `TopCourseSnapshot` record.
+- Split the database projection from the BLL snapshot mapping: SQL now returns an anonymous scalar shape first, then maps to `TopCourseSnapshot` after materialization.
+- Replaced the nested `SelectMany(...).Count(...)` message count with an explicit correlated count over `Messages` by `ChatSession.CourseId`.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 live Gemini integration test skipped.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-10 - Redesigned Teacher Statistics chart UI and animation
 
 **Owner**
