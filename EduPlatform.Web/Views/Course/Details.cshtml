@@ -49,7 +49,7 @@
                 </a>
             }
             <form asp-action="SetVisibility" asp-route-id="@Model.Course.Id" method="post">
-                <input type="hidden" name="isVisible" value="@(!Model.Course.IsVisible).ToString().ToLowerInvariant()" />
+                <input type="hidden" name="isVisible" value="@((!Model.Course.IsVisible).ToString().ToLowerInvariant())" />
                 <button class="btn btn-outline-secondary" type="submit">
                     @(Model.Course.IsVisible ? "Ẩn khóa học" : "Hiển thị khóa học")
                 </button>

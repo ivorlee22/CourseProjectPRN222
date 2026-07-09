@@ -7,10 +7,11 @@
     var subscription = report.ActiveSubscription;
     var quotaPercent = report.DailyChatLimit <= 0
         ? 0
-        : Math.Clamp((int)Math.Round(report.ChatsUsedToday * 100m / report.DailyChatLimit), 0, 100);
+        : Math.Clamp((int)Math.Round(report.ChatsRemainingToday * 100m / report.DailyChatLimit), 0, 100);
+    var courseRemaining = subscription is null ? 0 : Math.Max(0, subscription.MaxCourses - report.EnrolledCourses);
     var coursePercent = subscription is null || subscription.MaxCourses <= 0
         ? 0
-        : Math.Clamp((int)Math.Round(report.EnrolledCourses * 100m / subscription.MaxCourses), 0, 100);
+        : Math.Clamp((int)Math.Round(courseRemaining * 100m / subscription.MaxCourses), 0, 100);
 }
 
 <div class="report-page">
@@ -56,11 +57,11 @@
                     <span>Quota chat</span>
                     <h2>Lượt hỏi hôm nay</h2>
                 </div>
-                <small>@quotaPercent.ToString("N0", culture)% đã dùng</small>
+                <small>@quotaPercent.ToString("N0", culture)% còn lại</small>
             </div>
             <div class="usage-progress" aria-label="Tiến độ quota chat">
                 <div class="usage-progress__bar">
-                    <span style="width: @quotaPercent%"></span>
+                    <span data-width="@quotaPercent%"></span>
                 </div>
                 <div class="usage-progress__meta">
                     <strong>@report.ChatsUsedToday.ToString("N0", culture) / @report.DailyChatLimit.ToString("N0", culture)</strong>
@@ -77,7 +78,7 @@
                 </div>
                 @if (subscription is not null)
                 {
-                    <small>@coursePercent.ToString("N0", culture)% giới hạn khóa học</small>
+                    <small>@coursePercent.ToString("N0", culture)% còn lại</small>
                 }
             </div>
             @if (subscription is null)
@@ -91,7 +92,7 @@
             {
                 <div class="usage-progress" aria-label="Tiến độ giới hạn khóa học">
                     <div class="usage-progress__bar">
-                        <span style="width: @coursePercent%"></span>
+                        <span data-width="@coursePercent%"></span>
                     </div>
                     <div class="usage-progress__meta">
                         <strong>@report.EnrolledCourses.ToString("N0", culture) / @subscription.MaxCourses.ToString("N0", culture)</strong>

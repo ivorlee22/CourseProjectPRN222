@@ -1,4 +1,4 @@
-﻿@using System.Globalization
+@using System.Globalization
 @model EduPlatform.Web.ViewModels.Admin.AdminDashboardViewModel
 @{
     ViewData["Title"] = "Tổng quan Admin";
@@ -9,6 +9,7 @@
     var maxUserGrowth = Math.Max(report.UserGrowth.Select(point => (decimal)point.Count).DefaultIfEmpty(0m).Max(), 1m);
     var maxChatUsage = Math.Max(report.ChatUsage.Select(point => (decimal)point.Count).DefaultIfEmpty(0m).Max(), 1m);
     var maxSubscription = Math.Max(report.SubscriptionDistribution.Select(point => point.Count).DefaultIfEmpty(0).Max(), 1);
+    var totalSubUsers = report.SubscriptionDistribution.Sum(s => s.Count);
 }
 
 <div class="admin-dashboard">
@@ -73,7 +74,7 @@
                     <div class="report-column-chart__body">
                         <div class="report-column-chart__axis" aria-hidden="true">
                             <span>@maxRevenue.ToString("C0", culture)</span>
-                            <span>@(maxRevenue / 2m).ToString("C0", culture)</span>
+                            <span>@((maxRevenue / 2m).ToString("C0", culture))</span>
                             <span>0 đ</span>
                         </div>
                         <div class="report-column-chart__plot">
@@ -121,7 +122,7 @@
                     <div class="report-column-chart__body">
                         <div class="report-column-chart__axis" aria-hidden="true">
                             <span>@maxUserGrowth.ToString("N0", culture)</span>
-                            <span>@(maxUserGrowth / 2m).ToString("N0", culture)</span>
+                            <span>@((maxUserGrowth / 2m).ToString("N0", culture))</span>
                             <span>0</span>
                         </div>
                         <div class="report-column-chart__plot">
@@ -169,7 +170,7 @@
                     <div class="report-column-chart__body">
                         <div class="report-column-chart__axis" aria-hidden="true">
                             <span>@maxChatUsage.ToString("N0", culture)</span>
-                            <span>@(maxChatUsage / 2m).ToString("N0", culture)</span>
+                            <span>@((maxChatUsage / 2m).ToString("N0", culture))</span>
                             <span>0</span>
                         </div>
                         <div class="report-column-chart__plot">
@@ -209,20 +210,38 @@
             }
             else
             {
-                <div class="report-distribution" role="img" aria-label="Phân bố subscription">
-                    @foreach (var item in report.SubscriptionDistribution)
-                    {
-                        <div class="report-distribution__row">
-                            <span class="report-distribution__label">@item.Category</span>
-                            <span class="report-distribution__track" aria-hidden="true">
-                                <span class="report-distribution__fill @FillClass(item.Category)" data-width="@Width(item.Count, maxSubscription)"></span>
-                            </span>
-                            <div class="report-distribution__value">
-                                <strong>@item.Count.ToString("N0", culture)</strong>
-                                <small>@Percent(item.Count, maxSubscription)</small>
+                var segments = new List<string>();
+                var currentSum = 0m;
+                foreach (var item in report.SubscriptionDistribution)
+                {
+                    var percent = totalSubUsers <= 0 ? 0m : (decimal)item.Count / totalSubUsers * 100m;
+                    if (percent <= 0) continue;
+
+                    var color = GetColorHex(item.Category);
+                    var start = currentSum.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+                    currentSum += percent;
+                    var end = currentSum.ToString("0.##", CultureInfo.InvariantCulture) + "%";
+                    segments.Add($"{color} {start} {end}");
+                }
+                var conicGradientValue = segments.Count > 0 ? "conic-gradient(" + string.Join(", ", segments) + ")" : "none";
+
+                <div class="report-pie-container" role="img" aria-label="Phân bố subscription">
+                    <div class="report-pie-chart" data-segments="@conicGradientValue"></div>
+                    <div class="report-pie-legend">
+                        @foreach (var item in report.SubscriptionDistribution)
+                        {
+                            <div class="report-pie-legend__item">
+                                <div class="report-pie-legend__info">
+                                    <i class="report-pie-legend__dot @LegendDotClass(item.Category)"></i>
+                                    <span class="report-pie-legend__label">@item.Category</span>
+                                </div>
+                                <div class="report-pie-legend__value">
+                                    <strong>@item.Count.ToString("N0", culture)</strong>
+                                    <small>@Percent(item.Count, totalSubUsers)</small>
+                                </div>
                             </div>
-                        </div>
-                    }
+                        }
+                    </div>
                 </div>
             }
         </article>
@@ -364,5 +383,47 @@
         }
 
         return "report-distribution__fill--violet";
+    }
+
+    private static string LegendDotClass(string value)
+    {
+        var normalized = value.ToLowerInvariant();
+        if (normalized.Contains("student") || normalized.Contains("free"))
+        {
+            return "report-pie-legend__dot--sky";
+        }
+
+        if (normalized.Contains("admin") || normalized.Contains("pro") || normalized.Contains("max"))
+        {
+            return "report-pie-legend__dot--ink";
+        }
+
+        if (normalized.Contains("teacher") || normalized.Contains("plus"))
+        {
+            return "report-pie-legend__dot--amber";
+        }
+
+        return "report-pie-legend__dot--violet";
+    }
+
+    private static string GetColorHex(string category)
+    {
+        var normalized = category.ToLowerInvariant();
+        if (normalized.Contains("student") || normalized.Contains("free"))
+        {
+            return "#0ea5e9";
+        }
+
+        if (normalized.Contains("admin") || normalized.Contains("pro") || normalized.Contains("max"))
+        {
+            return "#122033";
+        }
+
+        if (normalized.Contains("teacher") || normalized.Contains("plus"))
+        {
+            return "#f59e0b";
+        }
+
+        return "#7c3aed";
     }
 }
