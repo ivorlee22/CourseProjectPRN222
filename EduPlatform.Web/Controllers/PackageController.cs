@@ -80,9 +80,15 @@ public sealed class PackageController(
         return new PackagePricingItemViewModel(
             package,
             currentPackageId == package.Id,
+            IsFeatured(package.Name),
             GetTagline(package.Name),
             GetAccentLabel(package.Name),
             GetHighlights(package));
+    }
+
+    private static bool IsFeatured(string packageName)
+    {
+        return string.Equals(packageName, "Plus", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string GetTagline(string packageName)

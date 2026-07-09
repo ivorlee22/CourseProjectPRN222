@@ -8,7 +8,7 @@
     <h1>Quản lý người dùng</h1>
     <div class="d-flex gap-2">
         <a asp-action="CreateUser" class="btn btn-primary">Thêm mới</a>
-        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-toggle="modal" data-bs-target="#importModal">
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#importModal">
             Import Excel
         </button>
     </div>
@@ -26,10 +26,10 @@
 
 </form>
 
-<div class="content-panel shadow-sm border-0 overflow-hidden">
+<div class="content-panel p-0 overflow-hidden">
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" style="--bs-table-bg: transparent;">
-            <thead class="bg-light text-muted small text-uppercase" style="letter-spacing: 0.5px;">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
                 <tr>
                     <th class="py-3 px-4 fw-semibold border-bottom-0">Họ và tên</th>
                     <th class="py-3 px-4 fw-semibold border-bottom-0">Email</th>
@@ -42,7 +42,7 @@
             <tbody class="border-top-0">
                 @foreach (var user in Model.Users.Items)
                 {
-                    <tr style="transition: background-color 0.2s ease;">
+                    <tr>
                         <td class="px-4 py-3 fw-semibold text-dark">@user.FullName</td>
                         <td class="px-4 py-3 text-muted">@user.Email</td>
                         <td class="px-4 py-3">
@@ -73,7 +73,7 @@
                                 <button class="btn btn-sm btn-light dropdown-toggle text-muted rounded-pill px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     Tùy chọn
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="border-radius: 0.75rem;">
+                                <ul class="dropdown-menu dropdown-menu-end">
                                     <li>
                                         <a class="dropdown-item py-2" asp-action="EditUser" asp-route-id="@user.Id">Đổi vai trò</a>
                                     </li>
@@ -102,7 +102,7 @@
                     <tr>
                         <td colspan="6" class="text-center py-5 text-muted">
                             <div class="d-flex flex-column align-items-center">
-                                <span class="fs-4 mb-2">📭</span>
+                                <span class="empty-state__mark" aria-hidden="true">0</span>
                                 <p class="mb-0 fw-medium">Không có người dùng nào.</p>
                             </div>
                         </td>

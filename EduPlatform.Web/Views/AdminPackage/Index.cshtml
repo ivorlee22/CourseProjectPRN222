@@ -12,10 +12,10 @@
     </div>
 </div>
 
-<div class="content-panel shadow-sm border-0 overflow-hidden">
+<div class="content-panel p-0 overflow-hidden">
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" style="--bs-table-bg: transparent;">
-            <thead class="bg-light text-muted small text-uppercase" style="letter-spacing: 0.5px;">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
                 <tr>
                     <th class="py-3 px-4 fw-semibold border-bottom-0">Tên gói</th>
                     <th class="py-3 px-4 fw-semibold border-bottom-0">Giá (VNĐ)</th>
@@ -29,7 +29,7 @@
             <tbody class="border-top-0">
                 @foreach (var item in Model)
                 {
-                    <tr style="transition: background-color 0.2s ease;">
+                    <tr>
                         <td class="px-4 py-3 fw-semibold text-dark">@item.Name</td>
                         <td class="px-4 py-3 text-muted">@item.Price.ToString("N0")</td>
                         <td class="px-4 py-3 text-muted">@item.MaxCourses</td>
@@ -50,7 +50,7 @@
                                 <button class="btn btn-sm btn-light dropdown-toggle text-muted rounded-pill px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     Tùy chọn
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="border-radius: 0.75rem;">
+                                <ul class="dropdown-menu dropdown-menu-end">
                                     <li>
                                         <a class="dropdown-item py-2" asp-action="Edit" asp-route-id="@item.Id">Sửa gói cước</a>
                                     </li>
@@ -79,7 +79,7 @@
                     <tr>
                         <td colspan="7" class="text-center py-5 text-muted">
                             <div class="d-flex flex-column align-items-center">
-                                <span class="fs-4 mb-2">📭</span>
+                                <span class="empty-state__mark" aria-hidden="true">0</span>
                                 <p class="mb-0 fw-medium">Chưa có gói cước nào.</p>
                             </div>
                         </td>

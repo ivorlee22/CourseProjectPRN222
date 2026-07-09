@@ -10,100 +10,120 @@
     </ol>
 </nav>
 
-<section class="course-detail-header">
-    <div>
+<div class="course-detail-layout">
+    <section class="content-panel course-detail-card">
         <div class="d-flex flex-wrap gap-2 mb-3">
-            <span class="course-type">@(
-                Model.Course.Type == CourseType.Private ? "Riêng tư" : "Công khai"
-            )</span>
+            <span class="course-type">@(Model.Course.Type == CourseType.Private ? "Riêng tư" : "Công khai")</span>
             @if (!Model.Course.IsVisible)
             {
                 <span class="badge text-bg-secondary">Đang ẩn</span>
             }
         </div>
+
         <h1>@Model.Course.Title</h1>
         <p class="lead">@Model.Course.Description</p>
-        <div class="course-meta mt-4">
-            <span>Giảng viên: @(Model.Course.OwnerRole == UserRole.Teacher ? Model.Course.OwnerName : "Chưa chọn giáo viên")</span>
-            <span>@Model.Course.EnrollmentCount học viên</span>
-        </div>
-    </div>
-</section>
 
-<section class="action-panel">
-    @if (Model.CanManage)
-    {
-        <div class="d-flex flex-wrap gap-2">
-            <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.Course.Id">Chỉnh sửa</a>
-            <a class="btn btn-outline-primary" asp-action="Students" asp-route-id="@Model.Course.Id">Học viên</a>
-            <a class="btn btn-outline-primary" asp-action="Invite" asp-route-id="@Model.Course.Id">Mời thành viên</a>
-            <a class="btn btn-outline-primary"
-               asp-controller="Document" asp-action="Index" asp-route-courseId="@Model.Course.Id">
-                Tài liệu
-            </a>
-            @if (!User.IsInRole("Admin"))
-            {
-                <a class="btn btn-outline-primary"
-                   asp-controller="Chat" asp-action="Index" asp-route-courseId="@Model.Course.Id">
-                    Hỏi từ tài liệu
-                </a>
-            }
-            <form asp-action="SetVisibility" asp-route-id="@Model.Course.Id" method="post">
-                <input type="hidden" name="isVisible" value="@((!Model.Course.IsVisible).ToString().ToLowerInvariant())" />
-                <button class="btn btn-outline-secondary" type="submit">
-                    @(Model.Course.IsVisible ? "Ẩn khóa học" : "Hiển thị khóa học")
-                </button>
-            </form>
-            <form asp-action="Delete" asp-route-id="@Model.Course.Id" method="post"
-                  data-confirm="Bạn có chắc muốn xóa khóa học này?">
-                <button class="btn btn-outline-danger" type="submit">Xóa khóa học</button>
-            </form>
-        </div>
-    }
-    else if (Model.IsAuthenticated)
-    {
-        @if (!Model.Course.IsEnrolled)
+        <dl class="course-stat-grid">
+            <div>
+                <dt>Giảng viên</dt>
+                <dd>@(Model.Course.OwnerRole == UserRole.Teacher ? Model.Course.OwnerName : "Chưa chọn giảng viên")</dd>
+            </div>
+            <div>
+                <dt>Thành viên</dt>
+                <dd>@Model.Course.EnrollmentCount học viên</dd>
+            </div>
+        </dl>
+
+        <aside class="course-ai-panel">
+            <div class="course-ai-panel__mark" aria-hidden="true">AI</div>
+            <div>
+                <h2>Trợ lý học tập sẵn sàng hỗ trợ</h2>
+                <p>
+                    Tải tài liệu của khóa học lên để bắt đầu hỏi đáp theo ngữ cảnh. Câu trả lời sẽ đi kèm nguồn trích dẫn từ tài liệu của bạn.
+                </p>
+            </div>
+        </aside>
+    </section>
+
+    <aside class="action-panel course-action-panel">
+        <h2>@(Model.CanManage ? "Quản trị khóa học" : "Không gian học tập")</h2>
+
+        @if (Model.CanManage)
         {
-            <form asp-action="Enroll" asp-route-id="@Model.Course.Id" method="post"
-                  class="enroll-form d-flex flex-wrap gap-3 align-items-end mb-4">
-                @if (Model.Course.RequiresEnrollmentPassword)
+            <div class="action-stack">
+                <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.Course.Id">Chỉnh sửa</a>
+
+                <div class="action-grid">
+                    <a class="btn btn-outline-primary" asp-action="Students" asp-route-id="@Model.Course.Id">Học viên</a>
+                    <a class="btn btn-outline-primary" asp-action="Invite" asp-route-id="@Model.Course.Id">Mời học viên</a>
+                </div>
+
+                <a class="btn btn-outline-primary" asp-controller="Document" asp-action="Index" asp-route-courseId="@Model.Course.Id">
+                    Tài liệu giảng dạy
+                </a>
+
+                @if (!User.IsInRole("Admin"))
                 {
-                    <div>
-                        <label class="form-label" for="enrollmentPassword">Mật khẩu tham gia</label>
-                        <div class="input-group">
-                            <input class="form-control" id="enrollmentPassword"
-                                   name="EnrollmentPassword" type="password"
-                                   autocomplete="current-password" required style="max-width: 200px;" />
-                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#enrollmentPassword">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                        </div>
-                    </div>
+                    <a class="btn btn-outline-primary" asp-controller="Chat" asp-action="Index" asp-route-courseId="@Model.Course.Id">
+                        Hỏi đáp tài liệu
+                    </a>
                 }
-                <button class="btn btn-primary" type="submit">Tham gia khóa học</button>
-            </form>
-        }
 
-        @if (Model.CanViewDocuments)
-        {
-            <div class="d-flex flex-wrap gap-2">
-                <a class="btn btn-outline-primary"
-                   asp-controller="Document" asp-action="Index" asp-route-courseId="@Model.Course.Id">
-                    Xem tài liệu
-                </a>
-                <a class="btn btn-outline-primary"
-                   asp-controller="Chat" asp-action="Index" asp-route-courseId="@Model.Course.Id">
-                    Mở trợ lý học tập
-                </a>
+                <form asp-action="SetVisibility" asp-route-id="@Model.Course.Id" method="post" class="m-0">
+                    <input type="hidden" name="isVisible" value="@(!Model.Course.IsVisible).ToString().ToLowerInvariant()" />
+                    <button class="btn btn-outline-secondary w-100" type="submit">
+                        @(Model.Course.IsVisible ? "Ẩn khóa học" : "Hiển thị khóa học")
+                    </button>
+                </form>
+
+                <form asp-action="Delete" asp-route-id="@Model.Course.Id" method="post" class="m-0"
+                      data-confirm="Bạn có chắc muốn xóa khóa học này?">
+                    <button class="btn btn-outline-danger w-100" type="submit">Xóa khóa học</button>
+                </form>
             </div>
         }
-    }
-    else
-    {
-        <div>
-            <h2>Tham gia khóa học</h2>
-            <p>Đăng nhập để tham gia và truy cập nội dung khóa học.</p>
-            <a class="btn btn-primary" asp-controller="Account" asp-action="Login">Đăng nhập</a>
-        </div>
-    }
-</section>
+        else if (Model.IsAuthenticated)
+        {
+            <div class="action-stack">
+                @if (!Model.Course.IsEnrolled)
+                {
+                    <form asp-action="Enroll" asp-route-id="@Model.Course.Id" method="post" class="action-stack m-0">
+                        @if (Model.Course.RequiresEnrollmentPassword)
+                        {
+                            <div>
+                                <label class="form-label" for="enrollmentPassword">Mật khẩu tham gia</label>
+                                <div class="input-group">
+                                    <input class="form-control" id="enrollmentPassword"
+                                           name="EnrollmentPassword" type="password"
+                                           autocomplete="current-password" required />
+                                    <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#enrollmentPassword">
+                                        <span aria-hidden="true">Hiện</span>
+                                        <span class="visually-hidden">Hiện mật khẩu</span>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        <button class="btn btn-primary w-100" type="submit">Tham gia khóa học</button>
+                    </form>
+                }
+
+                @if (Model.CanViewDocuments)
+                {
+                    <a class="btn btn-primary" asp-controller="Chat" asp-action="Index" asp-route-courseId="@Model.Course.Id">
+                        Mở trợ lý học tập
+                    </a>
+                    <a class="btn btn-outline-primary" asp-controller="Document" asp-action="Index" asp-route-courseId="@Model.Course.Id">
+                        Xem tài liệu học
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="action-stack">
+                <p class="text-secondary mb-0">Đăng nhập để tham gia và truy cập nội dung khóa học này.</p>
+                <a class="btn btn-primary" asp-controller="Account" asp-action="Login">Đăng nhập ngay</a>
+            </div>
+        }
+    </aside>
+</div>

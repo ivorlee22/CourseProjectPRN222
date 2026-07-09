@@ -8,6 +8,12 @@
   --edu-accent-dark: #0b5f59;
   --edu-accent-soft: #dff4f1;
   --edu-danger: #b42318;
+  --edu-warning: #b45309;
+  --edu-success: #047857;
+  --edu-info: #0369a1;
+  --edu-shadow-soft: 0 0.6rem 1.4rem rgb(18 32 51 / 7%);
+  --edu-shadow-lift: 0 1rem 2rem rgb(18 32 51 / 10%);
+  --edu-transition: 180ms cubic-bezier(0.22, 1, 0.36, 1);
   --edu-radius-control: 0.65rem;
   --edu-radius-panel: 0.9rem;
 }
@@ -112,6 +118,10 @@ h1 {
   padding-block: 2.5rem 5rem;
 }
 
+.site-main > .container {
+  width: min(100% - 1.5rem, 1140px);
+}
+
 .site-footer {
   padding-block: 1.5rem;
   color: var(--edu-muted);
@@ -129,6 +139,7 @@ h1 {
 
 .btn {
   font-weight: 650;
+  transition: background-color var(--edu-transition), border-color var(--edu-transition), color var(--edu-transition), box-shadow var(--edu-transition), transform var(--edu-transition);
 }
 
 .btn-primary {
@@ -187,6 +198,23 @@ h1 {
 
 .hero-section {
   padding-block: clamp(3rem, 8vw, 6rem);
+}
+
+.breadcrumb {
+  --bs-breadcrumb-divider-color: var(--edu-muted);
+  margin-bottom: 0;
+  color: var(--edu-muted);
+  font-size: 0.92rem;
+}
+
+.breadcrumb a {
+  color: var(--edu-muted);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  color: var(--edu-accent-dark);
 }
 
 .hero-copy {
@@ -249,6 +277,14 @@ h1 {
   margin-bottom: 2rem;
 }
 
+.page-heading > div {
+  min-width: 0;
+}
+
+.page-heading p:not(.section-label) {
+  color: var(--edu-muted);
+}
+
 .page-heading h1,
 .form-heading h1,
 .course-detail-header h1 {
@@ -279,11 +315,61 @@ h1 {
   background: var(--edu-panel);
 }
 
+.content-panel,
+.action-panel,
+.empty-state,
+.status-panel {
+  box-shadow: var(--edu-shadow-soft);
+}
+
 .course-card {
+  position: relative;
   display: flex;
   min-height: 17rem;
   flex-direction: column;
   padding: 1.5rem;
+  box-shadow: 0 0.35rem 1rem rgb(18 32 51 / 4%);
+  transition: border-color var(--edu-transition), box-shadow var(--edu-transition), transform var(--edu-transition), background-color var(--edu-transition);
+}
+
+.course-card:hover,
+.course-card:focus-visible,
+.document-card:hover,
+.document-card:focus-visible,
+.pricing-card:hover,
+.clickable-row:hover {
+  border-color: rgb(15 118 110 / 34%);
+  box-shadow: var(--edu-shadow-lift);
+  transform: translateY(-2px);
+}
+
+.course-card:focus-visible,
+.document-card:focus-visible,
+.pricing-card:focus-visible,
+.clickable-row:focus-visible {
+  outline: 0.2rem solid rgb(15 118 110 / 26%);
+  outline-offset: 0.18rem;
+}
+
+[data-clickable-card] {
+  cursor: pointer;
+}
+
+[data-clickable-card] a[data-card-link]::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  content: "";
+}
+
+[data-clickable-card] a:not([data-card-link]),
+[data-clickable-card] button,
+[data-clickable-card] input,
+[data-clickable-card] select,
+[data-clickable-card] textarea,
+[data-clickable-card] label {
+  position: relative;
+  z-index: 2;
 }
 
 .course-card h2 {
@@ -332,6 +418,29 @@ h1 {
   font-size: 0.9rem;
 }
 
+.invitation-card {
+  padding: 1.2rem;
+  border: 1px solid rgb(15 118 110 / 22%);
+  border-radius: var(--edu-radius-panel);
+  background: linear-gradient(135deg, #fff, var(--edu-accent-soft));
+  box-shadow: var(--edu-shadow-soft);
+}
+
+.invitation-card__label {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--edu-accent-dark);
+  font-size: 0.75rem;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.invitation-card h3 {
+  margin: 0 0 0.2rem;
+  font-size: 1.35rem;
+}
+
 .empty-state,
 .status-panel {
   padding: clamp(2rem, 5vw, 4rem);
@@ -341,6 +450,18 @@ h1 {
 .empty-state p,
 .status-panel p {
   color: var(--edu-muted);
+}
+
+.empty-state__mark {
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  margin-bottom: 0.65rem;
+  place-items: center;
+  border-radius: 0.7rem;
+  color: var(--edu-accent-dark);
+  background: var(--edu-accent-soft);
+  font-weight: 800;
 }
 
 .status-code {
@@ -360,6 +481,110 @@ h1 {
   max-width: 52rem;
   color: var(--edu-muted);
   line-height: 1.7;
+}
+
+.course-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 23rem);
+  gap: clamp(1.25rem, 4vw, 2rem);
+  align-items: start;
+}
+
+.course-detail-card {
+  padding: clamp(1.4rem, 4vw, 2.2rem);
+}
+
+.course-detail-card h1 {
+  max-width: 52rem;
+  margin-bottom: 1rem;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+}
+
+.course-detail-card .lead {
+  max-width: 58rem;
+  color: var(--edu-muted);
+  line-height: 1.7;
+}
+
+.course-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin: 1.75rem 0;
+}
+
+.course-stat-grid > div {
+  padding: 1rem;
+  border: 1px solid var(--edu-line);
+  border-radius: var(--edu-radius-control);
+  background: var(--edu-surface);
+}
+
+.course-stat-grid dt {
+  color: var(--edu-muted);
+  font-size: 0.8rem;
+  font-weight: 760;
+}
+
+.course-stat-grid dd {
+  margin: 0.25rem 0 0;
+  font-weight: 720;
+}
+
+.course-ai-panel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1rem;
+  margin-top: 1.8rem;
+  padding: 1.2rem;
+  border-radius: var(--edu-radius-panel);
+  color: #fff;
+  background: linear-gradient(135deg, var(--edu-accent), var(--edu-accent-dark));
+}
+
+.course-ai-panel__mark {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  place-items: center;
+  border-radius: 0.75rem;
+  background: rgb(255 255 255 / 16%);
+  font-weight: 800;
+}
+
+.course-ai-panel h2 {
+  margin: 0 0 0.4rem;
+  color: #fff;
+  font-size: 1.15rem;
+}
+
+.course-ai-panel p {
+  margin: 0;
+  color: rgb(255 255 255 / 84%);
+  line-height: 1.6;
+}
+
+.course-action-panel {
+  position: sticky;
+  top: 6rem;
+}
+
+.course-action-panel h2 {
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--edu-line);
+  font-size: 1rem;
+}
+
+.action-stack {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
 }
 
 .action-panel {
@@ -405,6 +630,91 @@ h1 {
 .table > :not(caption) > * > * {
   padding: 1rem 1.25rem;
   border-color: var(--edu-line);
+}
+
+.table {
+  color: var(--edu-ink);
+}
+
+.table thead th {
+  background: #f1f5f9;
+  color: #405268;
+  font-size: 0.78rem;
+  font-weight: 760;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.table-hover > tbody > tr {
+  transition: background-color var(--edu-transition);
+}
+
+.table-hover > tbody > tr:hover > * {
+  --bs-table-bg-state: rgb(15 118 110 / 5%);
+}
+
+.clickable-row {
+  position: relative;
+  cursor: pointer;
+  transition: box-shadow var(--edu-transition), transform var(--edu-transition);
+}
+
+.clickable-row a[data-card-link]::after {
+  display: none;
+}
+
+.dropdown-menu {
+  border-color: var(--edu-line);
+  border-radius: var(--edu-radius-control);
+  box-shadow: var(--edu-shadow-lift);
+}
+
+.modal-content {
+  border: 1px solid var(--edu-line);
+  border-radius: var(--edu-radius-panel);
+}
+
+.badge {
+  font-weight: 700;
+}
+
+.detail-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.detail-list > div {
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.36fr) minmax(0, 1fr);
+  gap: 1rem;
+  padding-block: 1rem;
+  border-bottom: 1px solid var(--edu-line);
+}
+
+.detail-list > div:first-child {
+  padding-top: 0;
+}
+
+.detail-list > div:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.detail-list dt {
+  color: var(--edu-muted);
+  font-weight: 720;
+}
+
+.detail-list dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--edu-ink);
+}
+
+.payment-detail-panel {
+  max-width: 58rem;
 }
 
 .pagination {
@@ -2668,10 +2978,13 @@ h1 {
 }
 
 .document-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   padding: 1.5rem;
   gap: 0.75rem;
+  box-shadow: 0 0.35rem 1rem rgb(18 32 51 / 4%);
+  transition: border-color var(--edu-transition), box-shadow var(--edu-transition), transform var(--edu-transition), background-color var(--edu-transition);
 }
 
 .document-card h2 {
@@ -2866,7 +3179,8 @@ h1 {
 .pricing-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 1.15rem;
+  align-items: stretch;
 }
 
 .pricing-card {
@@ -2875,16 +3189,40 @@ h1 {
   min-height: 28rem;
   flex-direction: column;
   gap: 1rem;
-  padding: 1.25rem;
+  overflow: hidden;
+  padding: 1.35rem;
   border: 1px solid var(--edu-line);
   border-radius: var(--edu-radius-panel);
   background: var(--edu-panel);
   box-shadow: 0 0.85rem 2.2rem rgb(18 32 51 / 6%);
+  transition: border-color var(--edu-transition), box-shadow var(--edu-transition), transform var(--edu-transition), background-color var(--edu-transition);
 }
 
 .pricing-card.is-current {
   border-color: var(--edu-accent);
-  box-shadow: 0 1rem 2.6rem rgb(15 118 110 / 14%);
+  background: linear-gradient(180deg, #fff, rgb(223 244 241 / 55%));
+  box-shadow: 0 1rem 2.6rem rgb(15 118 110 / 16%);
+}
+
+.pricing-card.is-featured {
+  border-color: rgb(15 118 110 / 58%);
+  box-shadow: 0 1.25rem 3rem rgb(15 118 110 / 17%);
+  transform: translateY(-0.45rem);
+}
+
+.pricing-card.is-featured:hover {
+  transform: translateY(-0.65rem);
+}
+
+.pricing-card.is-current.is-featured {
+  border-color: var(--edu-accent-dark);
+  background: linear-gradient(180deg, var(--edu-accent-soft), #fff 38%);
+}
+
+.pricing-card:has(form:hover),
+.pricing-card:has(button:hover),
+.pricing-card:has(a:hover) {
+  transform: translateY(-2px);
 }
 
 .pricing-card__header {
@@ -2913,6 +3251,21 @@ h1 {
 .pricing-current-badge {
   color: #fff;
   background: var(--edu-accent);
+}
+
+.pricing-hot-ribbon {
+  position: absolute;
+  top: 0.8rem;
+  right: -2.7rem;
+  width: 9rem;
+  padding: 0.25rem 0;
+  color: #fff;
+  background: var(--edu-accent-dark);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-align: center;
+  transform: rotate(38deg);
+  box-shadow: 0 0.5rem 1rem rgb(18 32 51 / 14%);
 }
 
 .pricing-card h2 {
@@ -2977,6 +3330,10 @@ h1 {
   margin-top: auto;
 }
 
+.pricing-card .btn {
+  min-height: 2.85rem;
+}
+
 .pricing-comparison {
   margin-top: clamp(2rem, 6vw, 4rem);
 }
@@ -2989,6 +3346,14 @@ h1 {
   .pricing-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .pricing-card.is-featured {
+    transform: none;
+  }
+
+  .pricing-card.is-featured:hover {
+    transform: translateY(-2px);
+  }
 }
 
 @media (max-width: 767.98px) {
@@ -3000,6 +3365,111 @@ h1 {
   .pricing-card,
   .pricing-card p {
     min-height: auto;
+  }
+}
+
+/* Payment checkout */
+
+.checkout-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
+  gap: clamp(1.25rem, 4vw, 2rem);
+  align-items: start;
+}
+
+.checkout-heading {
+  margin-bottom: 1rem;
+}
+
+.checkout-methods {
+  display: grid;
+  gap: 1rem;
+}
+
+.payment-method-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.25rem;
+  border: 1px solid var(--edu-line);
+  border-radius: var(--edu-radius-panel);
+  background: var(--edu-panel);
+  box-shadow: var(--edu-shadow-soft);
+  transition: border-color var(--edu-transition), box-shadow var(--edu-transition), transform var(--edu-transition);
+}
+
+.payment-method-card:hover,
+.payment-method-card:focus-within {
+  border-color: rgb(15 118 110 / 34%);
+  box-shadow: var(--edu-shadow-lift);
+  transform: translateY(-2px);
+}
+
+.payment-method-card__mark {
+  display: inline-grid;
+  width: 2.3rem;
+  height: 2.3rem;
+  margin-bottom: 0.75rem;
+  place-items: center;
+  border-radius: 0.65rem;
+  color: #fff;
+  background: var(--edu-accent);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.payment-method-card--momo .payment-method-card__mark {
+  background: #be185d;
+}
+
+.payment-method-card h2 {
+  margin: 0 0 0.3rem;
+  font-size: 1.25rem;
+}
+
+.payment-method-card p {
+  max-width: 42rem;
+  margin: 0;
+  color: var(--edu-muted);
+  line-height: 1.6;
+}
+
+.checkout-summary {
+  position: sticky;
+  top: 6rem;
+  display: grid;
+  gap: 1rem;
+  padding: 1.35rem;
+}
+
+.checkout-summary h2 {
+  margin: 0;
+}
+
+.checkout-summary p {
+  margin: 0;
+  color: var(--edu-muted);
+  line-height: 1.6;
+}
+
+@media (max-width: 991.98px) {
+  .checkout-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .checkout-summary {
+    position: static;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .payment-method-card {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-method-card .btn {
+    width: 100%;
   }
 }
 
@@ -3078,6 +3548,14 @@ h1 {
 }
 
 @media (max-width: 991.98px) {
+  .course-detail-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .course-action-panel {
+    position: static;
+  }
+
   .subscription-current {
     grid-template-columns: 1fr;
   }
@@ -3095,6 +3573,11 @@ h1 {
   }
 
   .subscription-current dl {
+    grid-template-columns: 1fr;
+  }
+
+  .course-stat-grid,
+  .detail-list > div {
     grid-template-columns: 1fr;
   }
 }

@@ -25,16 +25,25 @@
     @foreach (var item in Model.Packages)
     {
         var package = item.Package;
-        <article class="pricing-card @(item.IsCurrent ? "is-current" : null)">
+        var cardClass = $"pricing-card{(item.IsCurrent ? " is-current" : "")}{(item.IsFeatured ? " is-featured" : "")}";
+
+        <article class="@cardClass">
+            @if (item.IsFeatured)
+            {
+                <span class="pricing-hot-ribbon">Hot nhất</span>
+            }
+
             <div class="pricing-card__header">
-                <span class="pricing-badge">@item.AccentLabel</span>
+                <span class="pricing-badge">@(item.IsFeatured ? "Phổ biến" : item.AccentLabel)</span>
                 @if (item.IsCurrent)
                 {
-                    <span class="pricing-current-badge">Gói hiện tại</span>
+                    <span class="pricing-current-badge">Đang sử dụng</span>
                 }
             </div>
+
             <h2>@package.Name</h2>
             <p>@item.Tagline</p>
+
             <div class="pricing-price">
                 @if (package.Price == 0)
                 {
@@ -46,22 +55,30 @@
                     <span>/ @package.DurationDays ngày</span>
                 }
             </div>
+
             <ul class="pricing-feature-list">
                 @foreach (var highlight in item.Highlights)
                 {
                     <li>@highlight</li>
                 }
             </ul>
+
             @if (item.IsCurrent)
             {
                 <button class="btn btn-outline-primary w-100" type="button" disabled>Đang sử dụng</button>
             }
+            else if (package.Price <= 0)
+            {
+                <button class="btn btn-outline-secondary w-100" type="button" disabled>Mặc định</button>
+            }
             else if (User.IsInRole("Student"))
             {
-                <form asp-action="Buy" method="post">
-                    <input type="hidden" name="packageId" value="@package.Id" />
-                    <button class="btn btn-primary w-100" type="submit">Mua ngay</button>
-                </form>
+                <a class="btn btn-primary w-100"
+                   asp-controller="Payment"
+                   asp-action="Checkout"
+                   asp-route-packageId="@package.Id">
+                    Mua ngay
+                </a>
             }
             else if (User.Identity?.IsAuthenticated == true)
             {
@@ -72,7 +89,7 @@
                 <a class="btn btn-primary w-100"
                    asp-controller="Account"
                    asp-action="Login"
-                   asp-route-returnUrl="@Url.Action("Index", "Package")">
+                   asp-route-returnUrl="@Url.Action("Checkout", "Payment", new { packageId = package.Id })">
                     Mua ngay
                 </a>
             }
@@ -128,6 +145,10 @@
                             @if (item.IsCurrent)
                             {
                                 <span class="badge text-bg-success">Đang dùng</span>
+                            }
+                            else if (item.IsFeatured)
+                            {
+                                <span class="badge text-bg-info">Hot nhất</span>
                             }
                             else if (User.IsInRole("Student") || User.Identity?.IsAuthenticated != true)
                             {

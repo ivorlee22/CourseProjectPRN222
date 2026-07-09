@@ -10,6 +10,11 @@ public sealed record PackagePricingViewModel(
 public sealed record PackagePricingItemViewModel(
     PackageDto Package,
     bool IsCurrent,
+    bool IsFeatured,
     string Tagline,
     string AccentLabel,
     IReadOnlyList<string> Highlights);
+
+public sealed record PaymentCheckoutViewModel(
+    PackageDto Package,
+    bool IsCurrent);

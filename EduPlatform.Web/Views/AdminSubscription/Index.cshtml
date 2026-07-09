@@ -8,10 +8,10 @@
     <h1>Danh sách đăng ký gói</h1>
 </div>
 
-<div class="content-panel shadow-sm border-0 overflow-hidden">
+<div class="content-panel p-0 overflow-hidden">
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" style="--bs-table-bg: transparent;">
-            <thead class="bg-light text-muted small text-uppercase" style="letter-spacing: 0.5px;">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
                 <tr>
                     <th class="py-3 px-4 fw-semibold border-bottom-0">Người dùng</th>
                     <th class="py-3 px-4 fw-semibold border-bottom-0">Gói cước</th>
@@ -24,7 +24,7 @@
             <tbody class="border-top-0">
                 @foreach (var item in Model.Subscriptions.Items)
                 {
-                    <tr style="transition: background-color 0.2s ease;">
+                    <tr>
                         <td class="px-4 py-3">
                             <div class="fw-semibold text-dark">@item.UserFullName</div>
                             <div class="text-muted small">@item.UserEmail</div>

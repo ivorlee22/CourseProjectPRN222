@@ -24,6 +24,39 @@ document.addEventListener('click', function (e) {
   }
 });
 
+const interactiveSelector = "a, button, input, select, textarea, label, summary, [role='button'], [data-card-ignore]";
+
+document.addEventListener("click", (event) => {
+  const target = event.target instanceof Element ? event.target : event.target.parentElement;
+  const card = target?.closest("[data-clickable-card]");
+  if (!card || target.closest(interactiveSelector)) {
+    return;
+  }
+
+  const link = card.querySelector("[data-card-link]") || card.querySelector("a[href]");
+  if (link) {
+    link.click();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") {
+    return;
+  }
+
+  const target = event.target instanceof Element ? event.target : event.target.parentElement;
+  const card = target?.closest("[data-clickable-card]");
+  if (!card || target.closest(interactiveSelector)) {
+    return;
+  }
+
+  const link = card.querySelector("[data-card-link]") || card.querySelector("a[href]");
+  if (link) {
+    event.preventDefault();
+    link.click();
+  }
+});
+
 // Initialize Toasts
 document.addEventListener("DOMContentLoaded", function () {
     var toastElList = [].slice.call(document.querySelectorAll('.toast'));
