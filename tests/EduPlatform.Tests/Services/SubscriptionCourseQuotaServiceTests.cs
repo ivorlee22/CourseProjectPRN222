@@ -11,6 +11,7 @@ public sealed class SubscriptionCourseQuotaServiceTests
     private static readonly Guid UserId = Guid.Parse("10000000-0000-0000-0000-000000000001");
     private readonly FakePackageRepository _packageRepository = new();
     private readonly FakeSubscriptionRepository _subscriptionRepository = new();
+    private readonly FakeUserRepository _userRepository = new();
     private readonly SubscriptionCourseQuotaService _service;
     private readonly DateTimeOffset _now = new(2026, 7, 7, 0, 0, 0, TimeSpan.Zero);
 
@@ -18,7 +19,17 @@ public sealed class SubscriptionCourseQuotaServiceTests
     {
         _service = new SubscriptionCourseQuotaService(
             _subscriptionRepository,
-            _packageRepository);
+            _packageRepository,
+            _userRepository);
+
+        _userRepository.Users.Add(new User
+        {
+            Id = UserId,
+            FullName = "Test Student",
+            Email = "student@example.test",
+            Role = UserRole.Student,
+            IsActive = true
+        });
     }
 
     [TestMethod]
@@ -119,6 +130,24 @@ public sealed class SubscriptionCourseQuotaServiceTests
                     CancellationToken.None)));
 
         await Task.WhenAll(tasks);
+    }
+
+    [TestMethod]
+    public async Task EnsureCanCreateCourseAsync_AdminUser_BypassesQuota()
+    {
+        var adminId = Guid.NewGuid();
+        _userRepository.Users.Add(new User
+        {
+            Id = adminId,
+            Role = UserRole.Admin,
+            IsActive = true
+        });
+
+        AddActiveSubscription(maxCourses: 5);
+
+        await _service.EnsureCanCreateCourseAsync(adminId, 6, CancellationToken.None);
+        
+        Assert.AreEqual(0, _subscriptionRepository.GetActiveSubscriptionCallCount);
     }
 
     private void AddFreePackage(int maxCourses)
@@ -237,5 +266,22 @@ public sealed class SubscriptionCourseQuotaServiceTests
         {
             return Task.FromResult(1);
         }
+    }
+
+    private sealed class FakeUserRepository : IUserRepository
+    {
+        public List<User> Users { get; } = [];
+
+        public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(Users.FirstOrDefault(x => x.Id == id));
+        }
+
+        public Task AddAsync(User user, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<User?> GetByNormalizedEmailAsync(string normalizedEmail, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<(IReadOnlyList<User> Items, int TotalCount)> GetAllAsync(string? keyword, int pageNumber, int pageSize, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<IReadOnlyList<User>> GetByRoleAsync(EduPlatform.DAL.Entities.UserRole role, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public void Remove(User user) => throw new NotImplementedException();
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
     }
 }

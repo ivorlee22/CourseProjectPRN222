@@ -7,13 +7,22 @@ namespace EduPlatform.BLL.Services;
 
 public sealed class SubscriptionCourseQuotaService(
     ISubscriptionRepository subscriptionRepository,
-    IPackageRepository packageRepository) : ICourseQuotaService
+    IPackageRepository packageRepository,
+    IUserRepository userRepository) : ICourseQuotaService
 {
     public async Task EnsureCanCreateCourseAsync(
         Guid userId,
         int currentCourseCount,
         CancellationToken cancellationToken)
     {
+        var user = await userRepository.GetByIdAsync(userId, cancellationToken)
+            ?? throw new ResourceNotFoundException("Không tìm thấy người dùng.");
+
+        if (user.Role == UserRole.Admin)
+        {
+            return;
+        }
+
         var subscription = await subscriptionRepository.GetActiveSubscriptionAsync(
             userId,
             cancellationToken);
@@ -23,7 +32,7 @@ public sealed class SubscriptionCourseQuotaService(
         if (currentCourseCount >= package.MaxCourses)
         {
             throw new CourseQuotaExceededException(
-                "Ban da het quota tao khoa hoc. Hay nang cap goi de tao them khoa hoc.");
+                "Bạn đã hết quota tạo khóa học. Hãy nâng cấp gói để tạo thêm khóa học.");
         }
     }
 
