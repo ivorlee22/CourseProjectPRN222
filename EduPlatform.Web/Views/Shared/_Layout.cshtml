@@ -33,9 +33,12 @@
                                 <a class="nav-link" asp-controller="Admin" asp-action="Index">Tổng quan</a>
                             </li>
                         }
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Course" asp-action="Index">Khóa học</a>
-                        </li>
+                        @if (User.Identity?.IsAuthenticated != true || User.IsInRole("Student") || User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Course" asp-action="Index">Khóa học</a>
+                            </li>
+                        }
                         @if (User.Identity?.IsAuthenticated != true || User.IsInRole("Student"))
                         {
                             <li class="nav-item">

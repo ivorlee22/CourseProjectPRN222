@@ -66,6 +66,126 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-10 - Fix Admin course delete redirect
+
+**Owner**
+
+- Codex (Agent) / Admin delete-course redirect bug report.
+
+**Completed**
+
+- Fixed `CourseController.Delete` so Admin is redirected back to `Course/Index` after deleting a course.
+- Removed the incorrect post-delete redirect to `Course/Mine`, which caused Admin to land on the `Khóa học của tôi` page.
+- Preserved existing delete authorization, CourseService delete behavior, SignalR notification, and success TempData message.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+- `dotnet test .\tests\EduPlatform.Tests\EduPlatform.Tests.csproj -c Release --no-build --no-restore` passed: 92 succeeded, 1 skipped live Gemini credential test.
+
+**Remaining**
+
+- Manual browser check recommended with an Admin account: delete a course from details and confirm the app returns to `Khóa học`, not `Khóa học của tôi`.
+
+**Blocked**
+
+- None.
+
+### 2026-07-10 - Teacher assigned-course permissions cleanup
+
+**Owner**
+
+- Codex (Agent) / Teacher course detail UI and logic correction.
+
+**Completed**
+
+- Split course detail permissions into Admin administration and Teacher teaching actions.
+- Kept Admin-only actions for editing, hiding/showing, and deleting courses.
+- Kept Teacher assigned-course actions focused on students, invitations, teaching documents, and document Q&A.
+- Redirected authenticated Teachers from the public Course search/index page to `Khóa học của tôi`.
+- Updated Course and Document breadcrumbs so Teacher users return to `Khóa học của tôi` instead of public course search.
+- Enforced the rule in BLL: `CourseService.UpdateAsync`, `DeleteAsync`, and `SetVisibilityAsync` now require Admin.
+- Added Admin role authorization on Course edit, delete, and visibility MVC actions.
+- Preserved Teacher access for assigned-course student and invitation operations behind the existing owner/Admin check.
+- Added CourseService tests for assigned Teacher being forbidden from update, delete, and visibility changes.
+
+**UI/UX**
+
+- Design Read: Teacher is an assigned-course workflow, so the course detail panel should show teaching tools only while Admin retains full course administration.
+- Dials: `DESIGN_VARIANCE 2`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 5`.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+- `dotnet test .\tests\EduPlatform.Tests\EduPlatform.Tests.csproj -c Release --no-build --no-restore` passed: 92 succeeded, 1 skipped live Gemini credential test.
+
+**Remaining**
+
+- Manual browser check recommended with both Admin and Teacher accounts on course details, document list, upload, and breadcrumbs.
+
+**Blocked**
+
+- None.
+
+### 2026-07-10 - Teacher course navigation cleanup
+
+**Owner**
+
+- Codex (Agent) / Teacher navigation request.
+
+**Completed**
+
+- Updated the shared header navigation so the public `Khóa học` course search link is hidden for authenticated Teacher users.
+- Kept Teacher navigation focused on `Khóa học của tôi` and `Thống kê`, matching the Admin-assigned teaching flow.
+- Preserved existing Course routes, controllers, services, authorization policies, and course search behavior for anonymous users, Students, and Admins.
+
+**UI/UX**
+
+- Design Read: Teacher is an assigned-course workflow, so navigation should avoid sending them into public course discovery/search.
+- Dials: `DESIGN_VARIANCE 2`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 5`.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+
+**Remaining**
+
+- Manual browser check recommended with a Teacher account to confirm the header shows `Khóa học của tôi` and `Thống kê`, without the public `Khóa học` link.
+
+**Blocked**
+
+- None.
+
+### 2026-07-10 - Hide small page eyebrow labels
+
+**Owner**
+
+- Codex (Agent) / UI polish request.
+
+**Completed**
+
+- Hid the shared `.section-label` page eyebrow style so small uppercase labels such as the Course page "Khong gian hoc tap" no longer render visually.
+- Kept the change scoped to `EduPlatform.Web/wwwroot/css/site.css`.
+- Preserved Razor views, routes, controllers, actions, model binding, and backend logic.
+
+**UI/UX**
+
+- Design Read: This is a product education UI polish pass, so the change removes noisy small uppercase page labels while keeping the existing Bootstrap MVC visual system.
+- Dials: `DESIGN_VARIANCE 2`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 5`.
+- The optional local taste-skill file was not present in the repository path; the project rules and available `$fk` product guidance were applied.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+
+**Remaining**
+
+- Manual browser check recommended on pages that previously showed `.section-label` to confirm the cleaner heading rhythm.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-10 - Admin header navigation order
 
 **Owner**

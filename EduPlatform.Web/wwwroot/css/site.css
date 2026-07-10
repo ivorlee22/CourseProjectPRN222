@@ -226,12 +226,7 @@ h1 {
 }
 
 .section-label {
-  margin-bottom: 0.75rem;
-  color: var(--edu-accent-dark);
-  font-size: 0.8rem;
-  font-weight: 760;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  display: none;
 }
 
 .learning-flow {

@@ -130,7 +130,7 @@ public sealed class CourseService(
         ValidateCourse(command.Title, command.Description, command.Type, command.EnrollmentPassword);
 
         var course = await GetCourseAsync(id, cancellationToken);
-        EnsureCanManage(course, actor);
+        EnsureCanAdminister(actor);
 
         course.Title = command.Title.Trim();
         course.Description = command.Description.Trim();
@@ -175,7 +175,7 @@ public sealed class CourseService(
         CancellationToken cancellationToken)
     {
         var course = await GetCourseAsync(id, cancellationToken);
-        EnsureCanManage(course, actor);
+        EnsureCanAdminister(actor);
 
         courseRepository.Remove(course);
         await courseRepository.SaveChangesAsync(cancellationToken);
@@ -188,7 +188,7 @@ public sealed class CourseService(
         CancellationToken cancellationToken)
     {
         var course = await GetCourseAsync(id, cancellationToken);
-        EnsureCanManage(course, actor);
+        EnsureCanAdminister(actor);
 
         course.IsVisible = isVisible;
         await courseRepository.SaveChangesAsync(cancellationToken);
@@ -484,6 +484,15 @@ public sealed class CourseService(
         {
             throw new ForbiddenOperationException(
                 "Chi Quan tri vien moi co quyen tao khoa hoc.");
+        }
+    }
+
+    private static void EnsureCanAdminister(ActorContext actor)
+    {
+        if (!actor.IsAdmin)
+        {
+            throw new ForbiddenOperationException(
+                "Chỉ quản trị viên mới có quyền chỉnh sửa, ẩn hoặc xóa khóa học.");
         }
     }
 

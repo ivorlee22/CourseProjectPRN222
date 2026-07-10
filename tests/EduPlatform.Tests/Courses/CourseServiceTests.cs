@@ -219,6 +219,65 @@ public sealed class CourseServiceTests
     }
 
     [TestMethod]
+    public async Task UpdateAsync_AssignedTeacher_ThrowsForbidden()
+    {
+        var course = CreateCourse();
+        _repository.Courses.Add(course);
+        var teacherActor = new ActorContext(OwnerId, BllUserRole.Teacher);
+        var command = new UpdateCourseCommand(
+            course.Title,
+            course.Description,
+            BllCourseType.Public,
+            IsVisible: true,
+            EnrollmentPassword: null,
+            RemoveEnrollmentPassword: false);
+
+        await Assert.ThrowsExactlyAsync<ForbiddenOperationException>(
+            async () => await _service.UpdateAsync(
+                course.Id,
+                command,
+                teacherActor,
+                CancellationToken.None));
+
+        Assert.AreEqual(0, _repository.SaveChangesCallCount);
+    }
+
+    [TestMethod]
+    public async Task DeleteAsync_AssignedTeacher_ThrowsForbidden()
+    {
+        var course = CreateCourse();
+        _repository.Courses.Add(course);
+        var teacherActor = new ActorContext(OwnerId, BllUserRole.Teacher);
+
+        await Assert.ThrowsExactlyAsync<ForbiddenOperationException>(
+            async () => await _service.DeleteAsync(
+                course.Id,
+                teacherActor,
+                CancellationToken.None));
+
+        Assert.HasCount(1, _repository.Courses);
+        Assert.AreEqual(0, _repository.SaveChangesCallCount);
+    }
+
+    [TestMethod]
+    public async Task SetVisibilityAsync_AssignedTeacher_ThrowsForbidden()
+    {
+        var course = CreateCourse();
+        _repository.Courses.Add(course);
+        var teacherActor = new ActorContext(OwnerId, BllUserRole.Teacher);
+
+        await Assert.ThrowsExactlyAsync<ForbiddenOperationException>(
+            async () => await _service.SetVisibilityAsync(
+                course.Id,
+                isVisible: false,
+                teacherActor,
+                CancellationToken.None));
+
+        Assert.IsTrue(course.IsVisible);
+        Assert.AreEqual(0, _repository.SaveChangesCallCount);
+    }
+
+    [TestMethod]
     public async Task EnrollAsync_PrivateCourseWithWrongPassword_ThrowsValidation()
     {
         var course = CreateCourse(DalCourseType.Private);

@@ -25,6 +25,11 @@ public sealed class CourseController(
         CancellationToken cancellationToken = default)
     {
         var actor = User.GetActorOrDefault();
+        if (actor?.Role == EduPlatform.BLL.Enums.UserRole.Teacher)
+        {
+            return RedirectToAction(nameof(Mine), new { page });
+        }
+
         var result = await courseService.SearchAsync(
             new CourseSearchQuery(keyword, page),
             actor,
@@ -116,15 +121,17 @@ public sealed class CourseController(
                 User.GetActorOrDefault(),
                 cancellationToken);
             var actor = User.GetActorOrDefault();
-            var canManage = actor is not null
+            var canAdminister = actor?.IsAdmin == true;
+            var canTeach = actor is not null
                 && (actor.IsAdmin || actor.UserId == course.OwnerId);
-            var canViewDocuments = canManage
+            var canViewDocuments = canTeach
                 || course.IsEnrolled
                 || (actor is not null && course.IsVisible && course.Type == EduPlatform.BLL.Enums.CourseType.Public);
 
             return View(new CourseDetailsViewModel(
                 course,
-                canManage,
+                canAdminister,
+                canTeach,
                 User.Identity?.IsAuthenticated == true,
                 canViewDocuments));
         }
@@ -188,7 +195,7 @@ public sealed class CourseController(
         }
     }
 
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     [HttpGet]
     public async Task<IActionResult> Edit(
         Guid id,
@@ -198,7 +205,7 @@ public sealed class CourseController(
             id,
             User.GetRequiredActor(),
             cancellationToken);
-        EnsureCanManage(course);
+        EnsureCanAdminister(course);
         await PopulateTeachersViewBagAsync(cancellationToken);
 
         return View(new CourseFormViewModel
@@ -213,7 +220,7 @@ public sealed class CourseController(
         });
     }
 
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> Edit(
         Guid id,
@@ -257,7 +264,7 @@ public sealed class CourseController(
         }
     }
 
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> Delete(
         Guid id,
@@ -266,10 +273,10 @@ public sealed class CourseController(
         await courseService.DeleteAsync(id, User.GetRequiredActor(), cancellationToken);
         await NotifyCourseChangedAsync(cancellationToken);
         TempData["SuccessMessage"] = "Đã xóa khóa học.";
-        return RedirectToAction(nameof(Mine));
+        return RedirectToAction(nameof(Index));
     }
 
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> SetVisibility(
         Guid id,
@@ -458,6 +465,17 @@ public sealed class CourseController(
         {
             throw new ForbiddenOperationException(
                 "Bạn không có quyền quản lý khóa học này.");
+        }
+    }
+
+    private void EnsureCanAdminister(CourseDetailsDto course)
+    {
+        var actor = User.GetRequiredActor();
+
+        if (!actor.IsAdmin)
+        {
+            throw new ForbiddenOperationException(
+                "Chỉ quản trị viên mới có quyền chỉnh sửa, ẩn hoặc xóa khóa học.");
         }
     }
 
