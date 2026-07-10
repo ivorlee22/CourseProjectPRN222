@@ -66,6 +66,38 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-11 - Align Teacher statistics with Admin-only course creation
+
+**Owner**
+
+- Bảo / Codex (Teacher Statistics UI correction).
+
+**Completed**
+
+- Removed the incorrect `Tạo khóa học` call to action from the Teacher Statistics page.
+- Updated the empty-state guidance to explain that an Admin assigns courses to Teachers.
+- Preserved the Teacher's `Khóa học của tôi` navigation and all report, chart, controller, and service behavior.
+
+**UI/UX**
+
+- Design Read: Teacher is an assigned-course workflow, so the dashboard should present teaching information and assigned-course navigation without an Admin-only creation action.
+- Dials: `DESIGN_VARIANCE 2`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 5`.
+- Product-screen pre-flight: existing MVC and Bootstrap conventions preserved; empty state, keyboard link behavior, and responsive action layout retained.
+
+**Verification**
+
+- `dotnet build .\\EduPlatform.sln -c Release --no-restore`: passed with 0 warnings and 0 errors.
+- `dotnet test .\\tests\\EduPlatform.Tests\\EduPlatform.Tests.csproj -c Release --no-build --no-restore`: passed: 92 succeeded, 1 skipped live Gemini credential test.
+- `git diff --check`: passed.
+
+**Remaining**
+
+- Manual browser check with a Teacher account is recommended: the page should show only `Khóa học của tôi`, and its empty state should mention Admin assignment.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-10 - Fix Admin course delete redirect
 
 **Owner**
