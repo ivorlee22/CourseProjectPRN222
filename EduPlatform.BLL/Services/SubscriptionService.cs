@@ -87,25 +87,37 @@ public sealed class SubscriptionService(
 
     private static SubscriptionSummaryDto Map(Subscription subscription)
     {
+        var status = subscription.Status;
+        if (status == SubscriptionStatus.Pending && DateTimeOffset.UtcNow - subscription.CreatedAtUtc > TimeSpan.FromMinutes(15))
+        {
+            status = SubscriptionStatus.Expired;
+        }
+
         return new SubscriptionSummaryDto(
             subscription.Id,
             subscription.PackageId,
             subscription.Package.Name,
             subscription.Package.MaxCourses,
             subscription.Package.DailyChats,
-            subscription.Status.ToString(),
+            status.ToString(),
             subscription.StartsAtUtc,
             subscription.EndsAtUtc);
     }
 
     private static SubscriptionAdminDto MapAdmin(Subscription subscription)
     {
+        var status = subscription.Status;
+        if (status == SubscriptionStatus.Pending && DateTimeOffset.UtcNow - subscription.CreatedAtUtc > TimeSpan.FromMinutes(15))
+        {
+            status = SubscriptionStatus.Expired;
+        }
+
         return new SubscriptionAdminDto(
             subscription.Id,
             subscription.User.Email ?? string.Empty,
             subscription.User.FullName,
             subscription.Package.Name,
-            subscription.Status.ToString(),
+            status.ToString(),
             subscription.StartsAtUtc,
             subscription.EndsAtUtc,
             subscription.CreatedAtUtc);

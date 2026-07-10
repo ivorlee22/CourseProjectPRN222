@@ -78,7 +78,7 @@ app.Use(async (context, next) =>
     context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
     context.Response.Headers["Content-Security-Policy"] =
         "default-src 'self'; script-src 'self'; style-src 'self'; "
-        + "img-src 'self' data:; font-src 'self'; form-action 'self' https://sandbox.vnpayment.vn https://test-payment.momo.vn; "
+        + "img-src 'self' data:; font-src 'self'; form-action 'self' https://sandbox.vnpayment.vn; "
         + "frame-ancestors 'none'; base-uri 'self'";
 
     await next();
