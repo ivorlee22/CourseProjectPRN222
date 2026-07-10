@@ -65,6 +65,40 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-11 - Correct Report and Statistics dashboard copy
+
+**Owner**
+
+- Bảo / Codex (Tasks 36-41 copy correction).
+
+**Completed**
+
+- Corrected unclear or grammatically mixed labels across the Admin dashboard, Revenue report, and Teacher Statistics page without replacing established technical terms.
+- Corrected the revenue grouping caption so the selected period renders as `Ngày`, `Tuần`, or `Tháng` rather than the English enum value.
+- Replaced the unclear `Sức khỏe nội dung` heading with `Tình trạng nội dung`.
+- Corrected the Teacher empty state to reflect Admin-assigned courses.
+
+**UI/UX**
+
+- Design Read: operational dashboards need concise copy that is clear in Vietnamese while keeping familiar domain terms such as payment, quota, and session where they aid scanning.
+- Dials: `DESIGN_VARIANCE 2`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 5`.
+- Product-screen pre-flight: retained Bootstrap MVC components, responsive layouts, focus behavior, empty states, and existing semantic chart labels. No animation or layout change was needed.
+
+**Verification**
+
+- `dotnet build .\\EduPlatform.sln -c Release --no-restore`: passed with 0 warnings and 0 errors.
+- `dotnet test .\\tests\\EduPlatform.Tests\\EduPlatform.Tests.csproj -c Release --no-build --no-restore`: passed: 94 succeeded, 1 skipped live Gemini credential test.
+- `git diff --check`: passed.
+- Targeted copy scan found no remaining `Sức khỏe nội dung`, English period enum captions, `Theo payment`, `chart sẽ`, or Teacher course-creation empty-state copy.
+
+**Remaining**
+
+- Manual browser check recommended on Admin, Revenue, and Teacher Statistics pages.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-11 - Remove Redundant Navigation Buttons from Admin Reports
 
 **Owner**
