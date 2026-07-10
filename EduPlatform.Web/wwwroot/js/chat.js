@@ -14,7 +14,7 @@ if (workspace) {
   const sourcePanel = workspace.querySelector("[data-source-panel]");
   const sourceCount = workspace.querySelector("[data-source-count]");
   const backdrop = workspace.querySelector("[data-chat-backdrop]");
-  const citationModalElement = workspace.querySelector("#citationDetailModal");
+  const citationModalElement = document.getElementById("citationDetailModal");
   const citationModal = citationModalElement && window.bootstrap
     ? new window.bootstrap.Modal(citationModalElement)
     : null;
@@ -261,6 +261,169 @@ if (workspace) {
     return contentNode;
   };
 
+  const citationLocation = (citation) => {
+    const segment = `Đoạn ${Number(citation.sequence) + 1}`;
+    return citation.pageNumber ? `${segment} · Trang ${citation.pageNumber}` : segment;
+  };
+
+  const showCitationModal = (button) => {
+    if (!citationModalElement || !citationModal) return;
+
+    const meta = citationModalElement.querySelector("[data-citation-modal-meta]");
+    const title = citationModalElement.querySelector("[data-citation-modal-title]");
+    const location = citationModalElement.querySelector("[data-citation-modal-location]");
+    const content = citationModalElement.querySelector("[data-citation-modal-content]");
+
+    if (meta) {
+      meta.textContent = `[${button.dataset.citationRank}] ${button.dataset.citationScore}% phù hợp`;
+    }
+    if (title) {
+      title.textContent = button.dataset.citationTitle || "Nguồn tham khảo";
+    }
+    if (location) {
+      location.textContent = button.dataset.citationLocation || "";
+    }
+    if (content) {
+      content.textContent = button.dataset.citationContent || "";
+    }
+
+    citationModal.show();
+  };
+
+  const showSource = (button) => {
+    const id = button.dataset.sourceTarget;
+    const groupId = button.dataset.sourceGroupTarget;
+    const target = id ? document.getElementById(id) : null;
+    const group = groupId ? document.getElementById(groupId) : null;
+    if (!target) return;
+
+    workspace.querySelectorAll("[data-source-group]").forEach((item) => {
+      item.hidden = item !== group;
+    });
+    if (sourceCount && group) {
+      sourceCount.textContent = `${group.dataset.sourceGroupCount || 0} đoạn được dùng`;
+    }
+
+    if (window.matchMedia("(max-width: 1199.98px)").matches) {
+      openPanel(sourcePanel);
+    }
+
+    workspace.querySelectorAll(".chat-source-card.is-highlighted").forEach((card) => {
+      card.classList.remove("is-highlighted");
+    });
+    target.classList.add("is-highlighted");
+    window.setTimeout(() => {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      target.focus({ preventScroll: true });
+    }, 180);
+  };
+
+  const bindCitationModal = (button) => {
+    button.addEventListener("click", () => showCitationModal(button));
+  };
+
+  const bindSourceChip = (button) => {
+    button.addEventListener("click", () => showSource(button));
+  };
+
+  const createCitationDetailButton = (citation) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "chat-source-detail-button";
+    button.textContent = "Chi tiết";
+    button.dataset.citationModal = "";
+    button.dataset.citationRank = String(citation.rank);
+    button.dataset.citationScore = String(Math.round(Number(citation.similarityScore) * 100));
+    button.dataset.citationTitle = citation.documentName || "Nguồn tham khảo";
+    button.dataset.citationLocation = citationLocation(citation);
+    button.dataset.citationContent = citation.content || "";
+    bindCitationModal(button);
+    return button;
+  };
+
+  const renderCompletedCitations = (answer, citations, messageId) => {
+    if (!answer || !Array.isArray(citations) || citations.length === 0) return;
+
+    const safeMessageId = String(messageId || `stream-${Date.now()}`);
+    const groupId = `source-group-${safeMessageId}`;
+    const message = answer.closest(".chat-message");
+    const citationRow = document.createElement("div");
+    citationRow.className = "chat-citation-row";
+    citationRow.setAttribute("aria-label", "Nguồn của câu trả lời");
+
+    citations.forEach((citation) => {
+      const sourceId = `source-${safeMessageId}-${citation.documentChunkId}`;
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "chat-citation-chip";
+      chip.title = `Xem nguồn ${citation.documentName || "tham khảo"}`;
+      chip.dataset.sourceGroupTarget = groupId;
+      chip.dataset.sourceTarget = sourceId;
+      const rank = document.createElement("span");
+      rank.textContent = String(citation.rank);
+      chip.append(rank, document.createTextNode(citation.documentName || "Nguồn tham khảo"));
+      bindSourceChip(chip);
+      citationRow.append(chip);
+    });
+    message?.querySelector(".chat-citation-row")?.remove();
+    message?.querySelector(".chat-message__body")?.append(citationRow);
+
+    sourcePanel?.querySelector(".chat-source-empty")?.remove();
+    let sourceList = sourcePanel?.querySelector(".chat-source-list");
+    if (!sourceList && sourcePanel) {
+      sourceList = document.createElement("div");
+      sourceList.className = "chat-source-list";
+      sourcePanel.append(sourceList);
+    }
+    if (!sourceList) return;
+
+    workspace.querySelectorAll("[data-source-group]").forEach((group) => {
+      group.hidden = true;
+    });
+    const sourceGroup = document.createElement("section");
+    sourceGroup.className = "chat-source-group";
+    sourceGroup.id = groupId;
+    sourceGroup.dataset.sourceGroup = "";
+    sourceGroup.dataset.sourceGroupCount = String(citations.length);
+    const label = document.createElement("p");
+    label.className = "chat-source-group__label";
+    label.textContent = "Nguồn cho câu trả lời vừa nhận";
+    sourceGroup.append(label);
+
+    citations.forEach((citation) => {
+      const sourceCard = document.createElement("article");
+      sourceCard.className = "chat-source-card";
+      sourceCard.id = `source-${safeMessageId}-${citation.documentChunkId}`;
+      sourceCard.tabIndex = -1;
+
+      const meta = document.createElement("div");
+      meta.className = "chat-source-card__meta";
+      const rank = document.createElement("span");
+      rank.textContent = `[${citation.rank}]`;
+      const score = document.createElement("span");
+      score.textContent = `${Math.round(Number(citation.similarityScore) * 100)}% phù hợp`;
+      meta.append(rank, score);
+
+      const titleRow = document.createElement("div");
+      titleRow.className = "chat-source-card__title-row";
+      const title = document.createElement("h2");
+      title.textContent = citation.documentName || "Nguồn tham khảo";
+      titleRow.append(title, createCitationDetailButton(citation));
+
+      const location = document.createElement("p");
+      location.className = "chat-source-card__location";
+      location.textContent = citationLocation(citation);
+      const excerpt = document.createElement("p");
+      excerpt.className = "chat-source-card__excerpt";
+      excerpt.textContent = citation.content || "";
+      sourceCard.append(meta, titleRow, location, excerpt);
+      sourceGroup.append(sourceCard);
+    });
+
+    sourceList.prepend(sourceGroup);
+    if (sourceCount) sourceCount.textContent = `${citations.length} đoạn được dùng`;
+  };
+
   const startConnection = async () => {
     if (!form || !window.signalR) return;
     connection = new window.signalR.HubConnectionBuilder()
@@ -307,6 +470,7 @@ if (workspace) {
     resizeInput();
     setComposerBusy(true, "Đang đọc tài liệu và tạo câu trả lời...");
     let completed = false;
+    let completedItem = null;
     let streamError = "";
     let streamedAnswer = "";
 
@@ -332,7 +496,10 @@ if (workspace) {
             stream.scrollTop = stream.scrollHeight;
           }
         }
-        if (item.type === "completed") completed = true;
+        if (item.type === "completed") {
+          completed = true;
+          completedItem = item;
+        }
       },
       error: () => {
         setComposerBusy(false, "Chưa gửi xong. Qb thử lại giúp xha nhen.");
@@ -347,7 +514,8 @@ if (workspace) {
           return;
         }
         if (completed) {
-          window.location.reload();
+          renderCompletedCitations(answer, completedItem?.citations, completedItem?.messageId);
+          setComposerBusy(false);
           return;
         }
         setComposerBusy(false, "Luồng trả lời kết thúc sớm. Qb thử lại nhen.");
@@ -367,61 +535,8 @@ if (workspace) {
   workspace.querySelector("[data-close-sources]")?.addEventListener("click", closePanels);
   backdrop?.addEventListener("click", closePanels);
 
-  workspace.querySelectorAll("[data-source-target]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const id = button.dataset.sourceTarget;
-      const groupId = button.dataset.sourceGroupTarget;
-      const target = id ? document.getElementById(id) : null;
-      const group = groupId ? document.getElementById(groupId) : null;
-      if (!target) return;
-
-      workspace.querySelectorAll("[data-source-group]").forEach((item) => {
-        item.hidden = item !== group;
-      });
-      if (sourceCount && group) {
-        sourceCount.textContent = `${group.dataset.sourceGroupCount || 0} đoạn được dùng`;
-      }
-
-      if (window.matchMedia("(max-width: 1199.98px)").matches) {
-        openPanel(sourcePanel);
-      }
-
-      workspace.querySelectorAll(".chat-source-card.is-highlighted").forEach((card) => {
-        card.classList.remove("is-highlighted");
-      });
-      target.classList.add("is-highlighted");
-      window.setTimeout(() => {
-        target.scrollIntoView({ behavior: "smooth", block: "center" });
-        target.focus({ preventScroll: true });
-      }, 180);
-    });
-  });
-
-  workspace.querySelectorAll("[data-citation-modal]").forEach((button) => {
-    button.addEventListener("click", () => {
-      if (!citationModalElement || !citationModal) return;
-
-      const meta = citationModalElement.querySelector("[data-citation-modal-meta]");
-      const title = citationModalElement.querySelector("[data-citation-modal-title]");
-      const location = citationModalElement.querySelector("[data-citation-modal-location]");
-      const content = citationModalElement.querySelector("[data-citation-modal-content]");
-
-      if (meta) {
-        meta.textContent = `[${button.dataset.citationRank}] ${button.dataset.citationScore}% phù hợp`;
-      }
-      if (title) {
-        title.textContent = button.dataset.citationTitle || "Nguồn tham khảo";
-      }
-      if (location) {
-        location.textContent = button.dataset.citationLocation || "";
-      }
-      if (content) {
-        content.textContent = button.dataset.citationContent || "";
-      }
-
-      citationModal.show();
-    });
-  });
+  workspace.querySelectorAll("[data-source-target]").forEach(bindSourceChip);
+  workspace.querySelectorAll("[data-citation-modal]").forEach(bindCitationModal);
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closePanels();
