@@ -47,10 +47,6 @@ else
             <article class="course-card" data-clickable-card data-course-id="@course.Id" tabindex="0" role="link" aria-label="Xem chi tiet khoa hoc @course.Title">
                 <div class="d-flex justify-content-between align-items-start gap-3">
                     <span class="course-type">@(course.Type == CourseType.Private ? "Riêng tư" : "Công khai")</span>
-                    @if (!course.IsVisible)
-                    {
-                        <span class="badge text-bg-secondary">Đang ẩn</span>
-                    }
                 </div>
                 <h2>
                     <a asp-action="Details" asp-route-id="@course.Id" data-card-link>@course.Title</a>

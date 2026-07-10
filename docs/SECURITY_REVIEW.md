@@ -30,7 +30,7 @@ Scope: Huy-owned foundation, Course module, Gmail service, MVC layout, and proje
 - [ ] AccountController login, logout, registration, password reset, and claims issuance. Owner: Nguyên.
 - [ ] Subscription quota enforcement concrete implementation. Owner: Nguyên.
 - [ ] Document upload file validation, storage authorization, and malware controls. Owner: Nhân.
-- [ ] VNPay and MoMo signature validation and callback idempotency. Owner: Nhân.
+- [ ] VNPay signature validation and callback idempotency. Owner: Nhân.
 - [ ] Gemini prompt injection controls, output encoding, and API timeout/retry behavior. Owners: Nhân and Bảo.
 - [ ] SignalR authorization and per-user session isolation. Owner: Bảo.
 - [ ] Full end-to-end authorization test after all modules are integrated.
@@ -39,4 +39,4 @@ Scope: Huy-owned foundation, Course module, Gmail service, MVC layout, and proje
 
 ## Known Limitation
 
-`DeferredCourseQuotaService` currently allows course creation because the SubscriptionService task has not been implemented. CourseService already calls the quota contract before persistence, so the temporary implementation must be replaced during Nguyên's subscription integration.
+Course quota now runs through `SubscriptionCourseQuotaService`. The next Package/Subscription pass should verify active subscription, expired subscription, missing subscription, under-limit, exact-limit, Admin bypass, and concurrent creation behavior against real database state.

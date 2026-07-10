@@ -24,8 +24,7 @@ public sealed class ReportServiceTests
         _repository.RevenueDaily.Add(new ReportDateAmount(new DateTimeOffset(2026, 7, 2, 0, 0, 0, TimeSpan.Zero), 200m));
         _repository.RevenueDaily.Add(new ReportDateAmount(new DateTimeOffset(2026, 8, 1, 0, 0, 0, TimeSpan.Zero), 50m));
         _repository.RevenueByPackage.Add(new ReportCategoryAmount("Plus", 250m));
-        _repository.RevenueByMethod.Add(new ReportCategoryAmount("VNPay", 100m));
-        _repository.RevenueByMethod.Add(new ReportCategoryAmount("MoMo", 250m));
+        _repository.RevenueByMethod.Add(new ReportCategoryAmount("VNPay", 350m));
 
         var result = await _service.GetRevenueReportAsync(
             new ReportDateRange(
@@ -42,7 +41,7 @@ public sealed class ReportServiceTests
         Assert.AreEqual("08/2026", result.RevenueByPeriod[1].Label);
         Assert.AreEqual(50m, result.RevenueByPeriod[1].Value);
         Assert.HasCount(1, result.RevenueByPackage);
-        Assert.HasCount(2, result.RevenueByPaymentMethod);
+        Assert.HasCount(1, result.RevenueByPaymentMethod);
     }
 
     [TestMethod]

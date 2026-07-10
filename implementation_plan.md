@@ -45,7 +45,7 @@ graph TB
     subgraph "External"
         DB["Neon PostgreSQL + pgvector"]
         AI["Gemini API"]
-        PAY["VNPay + MoMo"]
+        PAY["VNPay"]
         SMTP["Gmail SMTP"]
     end
 
@@ -78,7 +78,7 @@ EduPlatform.Web → EduPlatform.BLL → EduPlatform.DAL
 - Neon `pgvector` phục vụ lưu và tìm kiếm embedding.
 - Cookie Authentication + claims + role-based authorization; mật khẩu hash bằng BCrypt.
 - Gmail SMTP qua MailKit.
-- Thanh toán VNPay và MoMo.
+- Thanh toán VNPay. Giá trị enum MoMo cũ chỉ được giữ để tương thích dữ liệu, không expose hoặc xử lý trong production flow.
 - Bootstrap 5.
 
 ### Cấu Hình Môi Trường
@@ -109,14 +109,6 @@ EduPlatform.Web → EduPlatform.BLL → EduPlatform.DAL
     "PaymentUrl": "",
     "ReturnUrl": "",
     "IpnUrl": ""
-  },
-  "MoMo": {
-    "PartnerCode": "",
-    "AccessKey": "",
-    "SecretKey": "",
-    "PaymentUrl": "",
-    "ReturnUrl": "",
-    "IpnUrl": ""
   }
 }
 ```
@@ -129,7 +121,7 @@ Host=<NEON_HOST>;Port=5432;Database=<DATABASE>;Username=<USERNAME>;Password=<PAS
 
 - `DefaultConnection`: pooled endpoint của Neon cho runtime.
 - `MigrationConnection`: direct endpoint của Neon cho EF Core migration.
-- Khi chạy thật, ưu tiên biến môi trường như `ConnectionStrings__DefaultConnection`, `Email__AppPassword`, `Gemini__ApiKey`, `VNPay__HashSecret`, `MoMo__SecretKey`.
+- Khi chạy thật, ưu tiên biến môi trường như `ConnectionStrings__DefaultConnection`, `Email__AppPassword`, `Gemini__ApiKey`, `VNPay__HashSecret`.
 - Migration đầu tiên phải bật extension: `CREATE EXTENSION IF NOT EXISTS vector;`.
 - Không tự động chạy migration khi production startup. Migration được chạy chủ động bằng CLI hoặc deployment pipeline.
 - Gmail dùng Google App Password; tài khoản Google phải bật xác minh hai bước.
@@ -159,7 +151,7 @@ erDiagram
     Subscription ||--o{ Payment : paid_by
 ```
 
-`Payment` phải lưu `PaymentMethod`, mã giao dịch nội bộ, mã giao dịch từ gateway và trạng thái xử lý để callback VNPay/MoMo có thể chạy idempotent.
+`Payment` phải lưu `PaymentMethod`, mã giao dịch nội bộ, mã giao dịch từ gateway và trạng thái xử lý để callback VNPay có thể chạy idempotent.
 
 ---
 
@@ -168,7 +160,7 @@ erDiagram
 | Thành viên | Vai trò | Module chính |
 |------------|---------|--------------|
 | **Huy** | Leader | Foundation, Course, Email, Integration & Review |
-| **Nhân** | Developer | Document, Payment/VNPay/MoMo |
+| **Nhân** | Developer | Document, Payment/VNPay |
 | **Bảo** | Developer | Chatbot RAG, SignalR, Report & Statistics |
 | **Nguyên** | Developer | User, Authentication, Package, Subscription |
 
@@ -227,9 +219,9 @@ erDiagram
 |---|------|-------|-----------------|------------|-------------|
 | 26 | PackageController + Views | **Nguyên** | Pricing page: hiển thị 4 gói, so sánh tính năng, highlight gói hiện tại, nút "Mua ngay". | Task 24 | Pricing page |
 | 27 | SubscriptionController + Views | **Nguyên** | Xem subscription hiện tại, lịch sử subscriptions, nút Renew/Cancel. | Task 25 | Subscription management UI |
-| 28 | VNPay + MoMo Integration | **Nhân** | Tích hợp sandbox của cả VNPay và MoMo: tạo payment request, ký request, xác minh chữ ký, xử lý ReturnUrl/IPN và cấu hình riêng cho từng gateway. | Task 25 | VNPay và MoMo flow hoạt động |
-| 29 | PaymentService | **Nhân** | `IPaymentService` hỗ trợ chọn VNPay/MoMo, cập nhật trạng thái và kích hoạt subscription trong transaction. Callback phải idempotent, không kích hoạt subscription hai lần. | Task 28 | PaymentService an toàn với callback lặp |
-| 30 | PaymentController | **Nhân** | MVC actions cho CreatePayment, Return, IPN, PaymentHistory và PaymentDetail của cả VNPay/MoMo. Không dùng Razor Pages. | Task 29 | Hai payment flow end-to-end |
+| 28 | VNPay Integration | **Nhân** | Tích hợp sandbox VNPay: tạo payment request, ký request, xác minh chữ ký, xử lý ReturnUrl/IPN và cấu hình VNPay. | Task 25 | VNPay flow hoạt động |
+| 29 | PaymentService | **Nhân** | `IPaymentService` tạo thanh toán VNPay, cập nhật trạng thái và kích hoạt subscription trong transaction. Callback phải idempotent, không kích hoạt subscription hai lần. | Task 28 | PaymentService an toàn với callback lặp |
+| 30 | PaymentController | **Nhân** | MVC actions cho CreatePayment, VNPay Return, VNPay IPN, PaymentHistory và PaymentDetail. Không dùng Razor Pages. | Task 29 | VNPay payment flow end-to-end |
 | 31 | Admin Package Management | **Nguyên** | Admin: CRUD Package (thêm/sửa/ẩn gói), xem danh sách tất cả subscriptions, xem payment history. | Task 26 | Admin quản lý gói & thanh toán |
 | 32 | Subscription Limit Enforcement | **Nguyên** | Đưa kiểm tra quota vào BLL và cập nhật usage trong transaction để tránh race condition. Trả thông báo nâng cấp khi hết MaxCourses hoặc DailyChats. | Task 27 | Limit check hoạt động |
 | 33 | Course limit integration | **Huy** | Khi tạo Course mới, gọi SubscriptionService check limit. Hiển thị thông báo "Bạn đã hết quota, hãy nâng cấp gói" nếu vượt. | Task 32 | Course creation respects limits |
@@ -285,7 +277,7 @@ erDiagram
 | Phase | Tasks | Nội dung |
 |-------|-------|----------|
 | 2 | 14, 15, 16, 17, 18 | DocumentService, TextExtractor, Chunking, Embedding, DocumentController |
-| 3 | 28, 29, 30, 35 | VNPay/MoMo Integration, PaymentService, PaymentController, Payment emails |
+| 3 | 28, 29, 30, 35 | VNPay Integration, PaymentService, PaymentController, Payment emails |
 | 4 | 43b | UI/UX Polish — Document & Payment |
 
 ### 👤 Bảo (11 tasks)
@@ -335,7 +327,7 @@ graph LR
     T14 --> T19["19-21: Bảo - Chatbot RAG"]
     T1 --> T23["23-25: Nguyên - Package/Subscription"]
     T23 --> T26["26-27, 31-32: Nguyên - Package UI + Limits"]
-    T23 --> T28["28-30, 35: Nhân - Payment/VNPay/MoMo"]
+    T23 --> T28["28-30, 35: Nhân - Payment/VNPay"]
     T26 --> T33["33: Huy - Course limits"]
     T26 --> T34["34: Bảo - Chat limits"]
     T28 --> T36["36-41: Bảo - Reports"]
@@ -373,7 +365,7 @@ graph LR
 | F9 | Chatbot | Hỏi → Retrieve → Generate. Citation hiển thị |
 | F10 | Real-time Chat | SignalR streaming. Multiple sessions |
 | F11 | Package Display | Pricing page 4 gói, so sánh tính năng |
-| F12 | Payment | Chọn VNPay hoặc MoMo → callback hợp lệ → Subscription activated đúng một lần |
+| F12 | Payment | Chọn VNPay → callback hợp lệ → Subscription activated đúng một lần |
 | F13 | Subscription Limits | MaxCourses, DailyChats enforce đúng |
 | F14 | Admin Dashboard | Tổng users, courses, revenue, charts |
 | F15 | Reports | Revenue theo period, export Excel |
@@ -400,7 +392,7 @@ graph LR
 - Presentation: ASP.NET Core MVC; không dùng Razor Pages.
 - Authentication: Cookie Authentication.
 - Database: EF Core 10 + Neon PostgreSQL + pgvector.
-- Payment: hỗ trợ cả VNPay và MoMo.
+- Payment: chỉ hỗ trợ VNPay trong production flow.
 - Email: Gmail SMTP bằng Google App Password.
 - UI: Bootstrap 5.
 - Module tài liệu: Nhân chủ động thiết kế và triển khai.

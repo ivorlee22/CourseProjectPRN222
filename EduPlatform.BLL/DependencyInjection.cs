@@ -27,10 +27,8 @@ public static class DependencyInjection
         services.AddScoped<ICourseQuotaService, SubscriptionCourseQuotaService>();
 
         services.Configure<EduPlatform.BLL.Options.VNPayOptions>(configuration.GetSection(EduPlatform.BLL.Options.VNPayOptions.SectionName));
-        services.Configure<EduPlatform.BLL.Options.MoMoOptions>(configuration.GetSection(EduPlatform.BLL.Options.MoMoOptions.SectionName));
 
         services.AddScoped<IVNPayService, VNPayService>();
-        services.AddScoped<IMoMoService, MoMoService>();
         services.AddScoped<IPaymentService, PaymentService>();
 
         services.AddScoped<IChatQuotaService, SubscriptionChatQuotaService>();

@@ -51,11 +51,10 @@
                     </div>
                 </div>
 
-                <div class="pricing-price">
+                <div class="pricing-price @(package.Price == 0 ? "pricing-price--free" : "")">
                     @if (package.Price == 0)
                     {
                         <strong>Miễn phí</strong>
-                        <span>Free forever</span>
                     }
                     else
                     {
@@ -109,7 +108,7 @@
         <div class="page-heading">
             <div>
                 <p class="section-label">So sánh tính năng</p>
-                <h2 id="pricingComparisonTitle">Quota theo từng gói</h2>
+                <h2 id="pricingComparisonTitle">So sánh quyền lợi</h2>
             </div>
         </div>
         <div class="table-responsive content-panel p-0">
@@ -142,7 +141,16 @@
                         <th scope="row">Thời hạn gói</th>
                         @foreach (var item in Model.Packages)
                         {
-                            <td class="text-center">@item.Package.DurationDays ngày</td>
+                            <td class="text-center">
+                                @if (item.Package.Price == 0)
+                                {
+                                    <span>Không giới hạn</span>
+                                }
+                                else
+                                {
+                                    <span>@item.Package.DurationDays ngày</span>
+                                }
+                            </td>
                         }
                     </tr>
                     <tr>

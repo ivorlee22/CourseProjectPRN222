@@ -10,7 +10,7 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 - Architecture: Strict `Web → BLL → DAL`.
 - Test baseline: 50 tests passing, 1 opt-in live Gemini test skipped without credentials.
 - Database: Initial migration applied to Neon; pgvector 0.8.1 verified.
-- Next milestone: Nguyên implements User/Account authentication flow, then replaces deferred quota integration.
+- Next milestone: Nguyên continues Package/Subscription polish and quota verification after the payment scope was reduced to VNPay only.
 
 ## Completed
 
@@ -18,7 +18,7 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 - [x] Finalized three-layer MVC architecture and dependency rules.
 - [x] Finalized .NET 10, EF Core 10, Neon PostgreSQL, and pgvector.
 - [x] Finalized Cookie Authentication and prohibition of Razor Pages.
-- [x] Finalized Bootstrap 5, Gmail SMTP, VNPay, and MoMo.
+- [x] Finalized Bootstrap 5, Gmail SMTP, and VNPay-only payments.
 - [x] Added project-specific Codex skill and team agent guidance.
 - [x] Integrated the optional personal local taste-skill into the frontend UI/UX workflow.
 - [x] Huy tasks 1–8: solution, entities, contracts, EF Core, repositories, DI, layout, Cookie Auth policies.
@@ -34,14 +34,14 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 - [ ] Nguyên task 9: implement `IUserService` and authentication logic.
 - [ ] Nguyên task 10: implement AccountController, login/logout/register, and issue Cookie claims.
-- [ ] Replace `DeferredCourseQuotaService` with Nguyên's subscription-backed implementation.
+- [x] Replace `DeferredCourseQuotaService` with Nguyên's subscription-backed implementation.
 - [x] Apply the initial migration to Neon and verify pgvector.
 
 ### Implementation
 
 - [ ] Finish Phase 1 User/Account/Admin tasks owned by Nguyên.
 - [ ] Phase 2: Documents, RAG chatbot, packages, and subscriptions.
-- [ ] Phase 3: VNPay, MoMo, payment processing, and quota enforcement.
+- [ ] Phase 3: VNPay payment processing and quota enforcement.
 - [ ] Phase 4: Reports and full cross-module integration/security testing.
 
 ### Credentials Needed Before Integration Testing
@@ -51,12 +51,11 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 - [ ] Gemini API key.
 - [x] Gmail address and Google App Password.
 - [ ] VNPay sandbox credentials and callback URLs.
-- [ ] MoMo sandbox credentials and callback URLs.
 
 ## Known Debt and Risks
 
 - Full Register → Login → Payment → Course → Document → Chat → Report E2E remains blocked by unimplemented team modules.
-- `DeferredCourseQuotaService` intentionally allows creation until Nguyên provides subscription limits.
+- Course quota now uses `SubscriptionCourseQuotaService`; verify edge cases during the next Package/Subscription pass.
 - Seed accounts are development-only and must be replaced or disabled before production.
 - Payment callbacks must be designed for retries and duplicate delivery.
 - Quota checks and usage updates must be transactional.
@@ -65,6 +64,218 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 - The populated Neon and Gmail secrets are currently in `appsettings.json`; move them to User Secrets or environment variables and leave only placeholders in tracked configuration.
 
 ## Activity Log
+
+### 2026-07-11 - Remove Redundant Navigation Buttons from Admin Reports
+
+**Owner**
+
+- Antigravity (Agent) / user request.
+
+**Completed**
+
+- Removed the "Về tổng quan" button from the Revenue report page (`Revenue.cshtml`).
+- Removed both "Quản lý người dùng" and "Về tổng quan" buttons from the User Analytics report page (`UserAnalytics.cshtml`).
+- Removed both "Quản lý người dùng" and "Quản lý gói cước" buttons from the System Overview dashboard (`Admin/Index.cshtml`).
+
+**Verification**
+
+- Rebuilt the project successfully.
+- Ran all 94 unit tests successfully.
+
+### 2026-07-11 - Remove Redundant Actions from Teacher Statistics Dashboard
+
+**Owner**
+
+- Antigravity (Agent) / user request.
+
+**Completed**
+
+- Removed the redundant actions block from `TeacherStatistics.cshtml` that displayed the "Khóa học của tôi" (duplicated from the main header) and "Tạo khóa học" (teachers are not authorized to create courses) buttons.
+
+**Verification**
+
+- Rebuilt the project successfully.
+
+### 2026-07-11 - Remove User ID Display from Profile Page
+
+**Owner**
+
+- Antigravity (Agent) / user request.
+
+**Completed**
+
+- Removed the User ID (Mã người dùng) row and its copy button from the personal profile view `Profile.cshtml` since displaying database GUID identifiers to users is unnecessary and cluttered. Adjusted layout borders accordingly.
+
+**Verification**
+
+- Rebuilt the project successfully.
+- Ran all 94 unit tests successfully.
+
+### 2026-07-11 - Restrict Admin Subscription View to Student Users
+
+**Owner**
+
+- Antigravity (Agent) / user request.
+
+**Completed**
+
+- Filtered `SubscriptionRepository.GetAllPagedAsync` query to only return subscriptions belonging to users with the role of `Student` (since only students are allowed to buy packages, and Admins/Teachers should not appear in the subscription dashboard list).
+- Ran a database cleanup script to delete existing invalid test subscriptions and payments associated with non-Student users (Admin and Teacher accounts).
+
+**Verification**
+
+- Rebuilt the project successfully.
+- Ran all 94 unit tests successfully.
+
+### 2026-07-11 - Remove Redundant Hidden Badge Completely
+
+**Owner**
+
+- Antigravity (Agent) / user request.
+
+**Completed**
+
+- Completely removed the redundant and obsolete "Đang ẩn" (Currently hidden) badge from `_CourseList.cshtml` and `Details.cshtml` views since course visibility is now tied directly to the course type (Public = always visible, Private = always hidden from students/public listings).
+
+**Verification**
+
+- Rebuilt the project successfully.
+
+### 2026-07-11 - Hide Redundant Hidden Badge on Private Courses
+
+**Owner**
+
+- Antigravity (Agent) / user request.
+
+**Completed**
+
+- Updated `_CourseList.cshtml` and `Details.cshtml` to hide the redundant "Đang ẩn" (Currently hidden) badge on courses that are already marked as "Riêng tư" (Private). The "Đang ẩn" badge is now only displayed for Public courses that are set to invisible.
+
+**Verification**
+
+- Rebuilt the project successfully.
+
+### 2026-07-11 - Correct Admin Course Visibility and Private Course Count
+
+**Owner**
+
+- Antigravity (Agent) / user-reported course list visibility bug.
+
+**Completed**
+
+- Fixed `CourseService.SearchAsync` where `visibleOnly` was computed with the incorrect OR (`||`) operator instead of AND (`&&`) operator. This fixes the issue where Admins could not see Private and Hidden courses on the `/Course/Index` search listing page.
+- Explained to the user that the private course count of 1 in the dashboard is correct because only `prn` is marked as `Private` in the database, while `swd` is database-flagged as `Public` despite being previously hidden (`IsVisible = false`).
+
+**Verification**
+
+- Cleaned and rebuilt the solution.
+- Ran all 94 unit tests successfully.
+- Verified query results via DB diagnostics.
+
+### 2026-07-11 - Simplify course visibility and fix pending subscription status
+
+**Owner**
+
+- Antigravity (Agent) / user-reported dashboard and course visibility issues.
+
+**Completed**
+
+- Tied `IsVisible` directly to the course type: `Public` courses are always visible (`IsVisible = true`), and `Private` courses are hidden from public listings (`IsVisible = false`).
+- Removed the redundant and conflicting "Hiển thị khóa học" (IsVisible) checkbox from `_CourseForm.cshtml`.
+- Removed the "Ẩn khóa học" / "Hiển thị khóa học" toggle form from `Details.cshtml`.
+- Updated the BLL `SubscriptionService` (`Map` and `MapAdmin`) to dynamically map any `Pending` subscription older than 15 minutes to `Expired` status. They now show up as "Hết hạn" in the Admin subscription list rather than staying "Chờ thanh toán" indefinitely.
+
+**Verification**
+
+- Ran `dotnet build` and `dotnet test`. All 94 unit tests passed.
+
+### 2026-07-11 - Fix VNPay cancel payment unique constraint violation
+
+**Owner**
+
+- Antigravity (Agent) / user-reported payment cancellation bug.
+
+**Completed**
+
+- Fixed the unique constraint violation when cancelling a payment by mapping `vnp_TransactionNo = "0"` (or empty values) to `null` instead of `"0"` or empty string. Since the `IX_Payments_Method_GatewayTransactionId` index has a filter `GatewayTransactionId IS NOT NULL`, null values do not trigger duplicate key violations.
+- Created `PaymentServiceTests.cs` covering both cancelled payment (gateway transaction ID mapped to null, status set to Failed) and successful payment (gateway transaction ID populated correctly, status set to Succeeded).
+
+**Verification**
+
+- Added and ran unit tests in `PaymentServiceTests.cs` using `dotnet test`.
+- All 94 unit tests successfully passed.
+
+### 2026-07-11 - Switch payment scope to VNPay only
+
+**Owner**
+
+- Codex (Agent) / user-confirmed VNPay-only payment scope for Nguyên continuation.
+
+**Completed**
+
+- Removed MoMo from production payment flow while keeping the legacy `PaymentMethod.MoMo` enum value for database compatibility.
+- Removed MoMo service, interface, options, dependency injection registration, checkout UI, return/IPN routes, CSP form target, config example section, report copy, and unused MoMo payment asset.
+- Updated payment creation so Student checkout always creates VNPay payments and rejects non-VNPay methods in BLL before persisting payment rows.
+- Updated payment history/detail to show VNPay for supported records and a generic unsupported badge for legacy non-VNPay records.
+- Updated the legacy payment package view to route paid packages into the VNPay checkout flow.
+- Updated report tests to reflect VNPay-only revenue methods.
+- Updated `AGENTS.md`, `implementation_plan.md`, `README.md`, `docs/SECURITY_REVIEW.md`, and current project log status to document VNPay-only payments and the completed course quota integration.
+
+**UI/UX**
+
+- Design Read: Checkout is now a single-method product payment flow, so the UI should remove choice friction and guide students directly into VNPay.
+- Dials: `DESIGN_VARIANCE 3`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 5`.
+- `$fk plan` was used. `$fk` reported `NO_PRODUCT_MD`, but the referenced `reference/init.md` file was unavailable in the installed skill bundle; existing project docs and source were used as the authoritative context.
+
+**Verification**
+
+- `rg "MoMo|momo|MOMO"` across Web/BLL/tests found no remaining matches.
+- `rg "MoMo|momo|MOMO"` across DAL found only the intentionally retained legacy enum value.
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+- `dotnet test .\tests\EduPlatform.Tests\EduPlatform.Tests.csproj -c Release --no-build --no-restore` passed: 92 succeeded, 1 skipped live Gemini credential test.
+
+**Remaining**
+
+- Manual browser check recommended on `/Package`, `/payment/checkout/{packageId}`, `/payment/history`, and revenue report pages.
+- VNPay sandbox credentials and callback URLs are still needed for full end-to-end payment verification.
+
+**Blocked**
+
+- None for code changes. Full VNPay E2E remains blocked on valid VNPay sandbox configuration.
+
+### 2026-07-11 - Pricing free-plan and admin dropdown polish
+
+**Owner**
+
+- Codex (Agent) / user visual QA feedback on Admin Users and Package Pricing.
+
+**Completed**
+
+- Fixed the Admin Users row action dropdown so it is no longer clipped by the user table panel on desktop.
+- Removed the `Free forever` subline from the Free pricing card.
+- Rebalanced the Free card price block so `Miễn phí` is vertically aligned with paid package prices.
+- Changed the Free package duration display from `36500 ngày` to unlimited-time wording in pricing highlights and the comparison table.
+- Renamed the comparison heading from quota-focused wording to `So sánh quyền lợi` while keeping the useful package comparison table.
+
+**UI/UX**
+
+- Design Read: Package pricing and Admin Users are product UI surfaces, so this polish reduces confusing copy and keeps task controls predictable.
+- Dials: `DESIGN_VARIANCE 3`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 5`.
+- The optional local `taste-skill` path was unavailable in the repository; `$fk` product guidance and EduPlatform Bootstrap MVC rules were applied. `$fk` reported `NO_PRODUCT_MD`, but `reference/init.md` was unavailable in the installed skill bundle, so the existing project guide, plan, and log were used as context.
+
+**Verification**
+
+- `rg "Free forever|36500 ngày|Quota theo từng gói"` across Web/BLL/DAL found no remaining pricing UI matches.
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+- `dotnet test .\tests\EduPlatform.Tests\EduPlatform.Tests.csproj -c Release --no-build --no-restore` passed: 92 succeeded, 1 skipped live Gemini credential test.
+
+**Remaining**
+
+- Manual browser check recommended on `/Admin/Users` and `/Package` to confirm the dropdown and optical card alignment against the live viewport.
+
+**Blocked**
+
+- None.
 
 ### 2026-07-10 - Fix Admin course delete redirect
 
