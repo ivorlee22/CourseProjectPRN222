@@ -66,6 +66,331 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-10 - Fix Admin course delete redirect
+
+**Owner**
+
+- Codex (Agent) / Admin delete-course redirect bug report.
+
+**Completed**
+
+- Fixed `CourseController.Delete` so Admin is redirected back to `Course/Index` after deleting a course.
+- Removed the incorrect post-delete redirect to `Course/Mine`, which caused Admin to land on the `Khóa học của tôi` page.
+- Preserved existing delete authorization, CourseService delete behavior, SignalR notification, and success TempData message.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+- `dotnet test .\tests\EduPlatform.Tests\EduPlatform.Tests.csproj -c Release --no-build --no-restore` passed: 92 succeeded, 1 skipped live Gemini credential test.
+
+**Remaining**
+
+- Manual browser check recommended with an Admin account: delete a course from details and confirm the app returns to `Khóa học`, not `Khóa học của tôi`.
+
+**Blocked**
+
+- None.
+
+### 2026-07-10 - Teacher assigned-course permissions cleanup
+
+**Owner**
+
+- Codex (Agent) / Teacher course detail UI and logic correction.
+
+**Completed**
+
+- Split course detail permissions into Admin administration and Teacher teaching actions.
+- Kept Admin-only actions for editing, hiding/showing, and deleting courses.
+- Kept Teacher assigned-course actions focused on students, invitations, teaching documents, and document Q&A.
+- Redirected authenticated Teachers from the public Course search/index page to `Khóa học của tôi`.
+- Updated Course and Document breadcrumbs so Teacher users return to `Khóa học của tôi` instead of public course search.
+- Enforced the rule in BLL: `CourseService.UpdateAsync`, `DeleteAsync`, and `SetVisibilityAsync` now require Admin.
+- Added Admin role authorization on Course edit, delete, and visibility MVC actions.
+- Preserved Teacher access for assigned-course student and invitation operations behind the existing owner/Admin check.
+- Added CourseService tests for assigned Teacher being forbidden from update, delete, and visibility changes.
+
+**UI/UX**
+
+- Design Read: Teacher is an assigned-course workflow, so the course detail panel should show teaching tools only while Admin retains full course administration.
+- Dials: `DESIGN_VARIANCE 2`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 5`.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+- `dotnet test .\tests\EduPlatform.Tests\EduPlatform.Tests.csproj -c Release --no-build --no-restore` passed: 92 succeeded, 1 skipped live Gemini credential test.
+
+**Remaining**
+
+- Manual browser check recommended with both Admin and Teacher accounts on course details, document list, upload, and breadcrumbs.
+
+**Blocked**
+
+- None.
+
+### 2026-07-10 - Teacher course navigation cleanup
+
+**Owner**
+
+- Codex (Agent) / Teacher navigation request.
+
+**Completed**
+
+- Updated the shared header navigation so the public `Khóa học` course search link is hidden for authenticated Teacher users.
+- Kept Teacher navigation focused on `Khóa học của tôi` and `Thống kê`, matching the Admin-assigned teaching flow.
+- Preserved existing Course routes, controllers, services, authorization policies, and course search behavior for anonymous users, Students, and Admins.
+
+**UI/UX**
+
+- Design Read: Teacher is an assigned-course workflow, so navigation should avoid sending them into public course discovery/search.
+- Dials: `DESIGN_VARIANCE 2`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 5`.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+
+**Remaining**
+
+- Manual browser check recommended with a Teacher account to confirm the header shows `Khóa học của tôi` and `Thống kê`, without the public `Khóa học` link.
+
+**Blocked**
+
+- None.
+
+### 2026-07-10 - Hide small page eyebrow labels
+
+**Owner**
+
+- Codex (Agent) / UI polish request.
+
+**Completed**
+
+- Hid the shared `.section-label` page eyebrow style so small uppercase labels such as the Course page "Khong gian hoc tap" no longer render visually.
+- Kept the change scoped to `EduPlatform.Web/wwwroot/css/site.css`.
+- Preserved Razor views, routes, controllers, actions, model binding, and backend logic.
+
+**UI/UX**
+
+- Design Read: This is a product education UI polish pass, so the change removes noisy small uppercase page labels while keeping the existing Bootstrap MVC visual system.
+- Dials: `DESIGN_VARIANCE 2`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 5`.
+- The optional local taste-skill file was not present in the repository path; the project rules and available `$fk` product guidance were applied.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+
+**Remaining**
+
+- Manual browser check recommended on pages that previously showed `.section-label` to confirm the cleaner heading rhythm.
+
+**Blocked**
+
+- None.
+
+### 2026-07-10 - Admin header navigation order
+
+**Owner**
+
+- Codex (Agent) / Admin navbar ordering request.
+
+**Completed**
+
+- Moved the Admin dashboard link `Tổng quan` out of the `Quản trị` dropdown and into the top-level header before `Khóa học`.
+- Preserved existing routes and actions: `Admin/Index`, `Course/Index`, and the remaining admin dropdown links.
+- Kept the change scoped to the shared layout navigation.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+
+**Remaining**
+
+- Manual browser check recommended with an Admin account to confirm the header order reads `Tổng quan`, `Khóa học`, `Quản trị`.
+
+**Blocked**
+
+- None.
+
+### 2026-07-10 - Pricing alignment and spacing polish
+
+**Owner**
+
+- Codex (Agent) / `$fk build` pricing alignment polish request.
+
+**Completed**
+
+- Tightened the Pricing hero spacing and adjusted the heading scale so the desktop title stays on one clean line.
+- Kept the existing Pricing view logic, current-package highlight logic, route/action targets, package IDs, and CTA bindings unchanged.
+- Rebalanced pricing card spacing, fixed card sections to a consistent vertical rhythm, and kept all card CTAs pinned to the bottom.
+- Reduced the highlighted Pro/current card lift to a transform-only treatment so it stands out without disturbing grid alignment.
+- Standardized card price sizing, button height, feature-list growth, and mobile/tablet breakpoints for a steadier 4/2/1 layout.
+
+**UI/UX**
+
+- Design Read: Pricing is a SaaS-style comparison surface, so the polish focused on calm alignment, equal scanning rhythm, and a stronger but non-disruptive recommended plan.
+- Dials: `DESIGN_VARIANCE 3`, `MOTION_INTENSITY 2`, `VISUAL_DENSITY 5`.
+- `$fk` reported `NO_PRODUCT_MD`, but the referenced `init.md`, `layout.md`, and `typeset.md` files were unavailable in the local skill folder; project rules and existing EduPlatform UI conventions were used without adding new files outside the user's Pricing-only scope.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 skipped live Gemini credential test.
+
+**Remaining**
+
+- Manual browser check recommended on `/Package` across desktop, tablet, and mobile to confirm final optical balance with real viewport rendering.
+
+**Blocked**
+
+- None.
+
+### 2026-07-10 - Pricing section polish pass
+
+**Owner**
+
+- Codex (Agent) / `$fk build` pricing polish request.
+
+**Completed**
+
+- Reduced the Pricing hero scale, tightened subtitle spacing, and kept the Vietnamese copy.
+- Preserved Package view model binding, package IDs, existing routes, actions, and CTA behavior.
+- Added view-only highlight selection: current package is highlighted first; when no current package exists, Pro is highlighted by default.
+- Refined pricing cards with larger radius, softer shadow, balanced padding, equal-height layout, and desktop/tablet/mobile grid behavior.
+- Updated highlighted card treatment with brand teal background, white text, small label, and a light CTA style.
+- Changed feature bullets to CSS checkmarks without adding icon libraries or external dependencies.
+- Added a soft teal-tinted pricing section background while preserving EduPlatform's color system.
+
+**UI/UX**
+
+- Design Read: Pricing should feel like a compact SaaS comparison section, with the selected or recommended plan visually dominant but not off-brand.
+- Dials: `DESIGN_VARIANCE 4`, `MOTION_INTENSITY 2`, `VISUAL_DENSITY 5`.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 skipped live Gemini credential test.
+
+**Remaining**
+
+- Manual browser check recommended on `/Package` at desktop, tablet, and mobile widths to judge final visual balance against real browser rendering.
+
+**Blocked**
+
+- None.
+
+### 2026-07-10 - Pricing page card redesign
+
+**Owner**
+
+- Codex (Agent) / `$fk build` Pricing UI request.
+
+**Completed**
+
+- Redesigned `Views/Package/Index.cshtml` into a centered pricing page with a modern four-card grid for Free, Plus, Pro, and Max.
+- Preserved all existing package data binding, route/action targets, package IDs, and CTA conditions.
+- Reworked pricing CSS so non-current plans use bright cards with thin borders and soft shadows.
+- Highlighted the user's current package with a dark teal card treatment inspired by the reference Pro card while preserving the project color palette.
+- Kept responsive behavior for desktop, tablet, and mobile without adding any external library.
+
+**UI/UX**
+
+- Design Read: Pricing should read as a focused comparison surface first, with the owned package clearly distinguished from purchasable plans.
+- Dials: `DESIGN_VARIANCE 4`, `MOTION_INTENSITY 2`, `VISUAL_DENSITY 5`.
+- `$fk build` reference files `layout.md` and `typeset.md` were unavailable in the local skill folder, so existing `fk` and EduPlatform Bootstrap/MVC rules were applied.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 skipped live Gemini credential test.
+
+**Remaining**
+
+- Manual browser check recommended on `/Package` with Student and anonymous users to visually confirm card balance with live package data.
+
+**Blocked**
+
+- None.
+
+### 2026-07-10 - Crop VNPay checkout logo
+
+**Owner**
+
+- Codex (Agent) / user visual QA feedback.
+
+**Completed**
+
+- Cropped the provided VNPay image from its wide canvas into a square app-icon style asset so it displays at the same visual weight as MoMo.
+- Updated payment logo shell CSS so VNPay and MoMo use the same square sizing and rounded treatment.
+- Removed temporary SVG payment placeholders and the crop backup file so only the final PNG payment logos remain.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 skipped live Gemini credential test.
+
+**Remaining**
+
+- None.
+
+**Blocked**
+
+- None.
+
+### 2026-07-10 - Replace payment placeholders with provided logos
+
+**Owner**
+
+- Codex (Agent) / user-provided payment brand assets.
+
+**Completed**
+
+- Added the provided VNPay and MoMo PNG logo assets to `EduPlatform.Web/wwwroot/img/payments/`.
+- Updated checkout payment method cards to use `vnpay.png` and `momo.png` instead of the temporary generated SVG placeholders.
+- Adjusted payment logo shell sizing so the square MoMo mark and wider VNPay image both render cleanly.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 skipped live Gemini credential test.
+
+**Remaining**
+
+- None.
+
+**Blocked**
+
+- None.
+
+### 2026-07-10 - Payment logos and student navigation cleanup
+
+**Owner**
+
+- Codex (Agent) / checkout visual polish requested by user.
+
+**Completed**
+
+- Added payment logo assets for VNPay and MoMo under `EduPlatform.Web/wwwroot/img/payments/`.
+- Replaced the text-only VN/Mo markers on the checkout page with logo cards using the new payment assets.
+- Updated checkout card layout and CSS so payment methods use recognizable brand visuals with cleaner alignment and hover/focus states.
+- Removed the Student header link to `Gói của tôi` because the `Sử dụng` page already covers subscription/package usage context.
+
+**UI/UX**
+
+- Design Read: Payment methods should use recognizable gateway logos so checkout feels trustworthy and less text-heavy.
+- Dials: `DESIGN_VARIANCE 4`, `MOTION_INTENSITY 2`, `VISUAL_DENSITY 6`.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+- `dotnet test .\EduPlatform.sln -c Release --no-build --no-restore` passed: 89 succeeded, 1 skipped live Gemini credential test.
+
+**Remaining**
+
+- Manual browser check recommended on the checkout page to compare the SVG approximations against any official brand assets the team may later provide.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-10 - Pricing checkout flow and package highlighting
 
 **Owner**

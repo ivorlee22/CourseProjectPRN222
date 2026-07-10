@@ -6,7 +6,9 @@
 <nav aria-label="Đường dẫn" class="mb-4">
     <ol class="breadcrumb">
         <li class="breadcrumb-item">
-            <a asp-controller="Course" asp-action="Index">Khóa học</a>
+            <a asp-controller="Course" asp-action="@(User.IsInRole("Teacher") ? "Mine" : "Index")">
+                @(User.IsInRole("Teacher") ? "Khóa học của tôi" : "Khóa học")
+            </a>
         </li>
         <li class="breadcrumb-item">
             <a asp-controller="Course" asp-action="Details" asp-route-id="@Model.CourseId">

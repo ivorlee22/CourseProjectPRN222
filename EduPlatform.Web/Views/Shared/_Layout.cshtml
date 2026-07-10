@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 
 <head>
@@ -27,9 +27,18 @@
                 </button>
                 <div class="collapse navbar-collapse" id="primaryNavigation">
                     <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1">
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Course" asp-action="Index">Khóa học</a>
-                        </li>
+                        @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Admin" asp-action="Index">Tổng quan</a>
+                            </li>
+                        }
+                        @if (User.Identity?.IsAuthenticated != true || User.IsInRole("Student") || User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Course" asp-action="Index">Khóa học</a>
+                            </li>
+                        }
                         @if (User.Identity?.IsAuthenticated != true || User.IsInRole("Student"))
                         {
                             <li class="nav-item">
@@ -42,9 +51,6 @@
                             {
                                 <li class="nav-item">
                                     <a class="nav-link" asp-controller="Course" asp-action="Mine">Khóa học của tôi</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" asp-controller="Subscription" asp-action="Index">Gói của tôi</a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link" asp-controller="Reports" asp-action="StudentUsage">Sử dụng</a>
@@ -67,8 +73,6 @@
                                         Quản trị
                                     </a>
                                     <ul class="dropdown-menu shadow-sm" aria-labelledby="admin-menu-btn">
-                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Index">Tổng quan</a>
-                                        </li>
                                         <li><a class="dropdown-item" asp-controller="Admin" asp-action="Users">Người dùng</a>
                                         </li>
                                         <li><a class="dropdown-item" asp-controller="AdminPackage" asp-action="Index">Gói
@@ -178,3 +182,4 @@
 </body>
 
 </html>
+

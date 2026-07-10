@@ -5,7 +5,11 @@
 
 <nav aria-label="Đường dẫn" class="mb-4">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a asp-action="Index">Khóa học</a></li>
+        <li class="breadcrumb-item">
+            <a asp-action="@(User.IsInRole("Teacher") ? "Mine" : "Index")">
+                @(User.IsInRole("Teacher") ? "Khóa học của tôi" : "Khóa học")
+            </a>
+        </li>
         <li class="breadcrumb-item active" aria-current="page">@Model.Course.Title</li>
     </ol>
 </nav>
@@ -46,12 +50,15 @@
     </section>
 
     <aside class="action-panel course-action-panel">
-        <h2>@(Model.CanManage ? "Quản trị khóa học" : "Không gian học tập")</h2>
+        <h2>@(Model.CanAdminister ? "Quản trị khóa học" : Model.CanTeach ? "Công cụ giảng dạy" : "Không gian học tập")</h2>
 
-        @if (Model.CanManage)
+        @if (Model.CanTeach)
         {
             <div class="action-stack">
-                <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.Course.Id">Chỉnh sửa</a>
+                @if (Model.CanAdminister)
+                {
+                    <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.Course.Id">Chỉnh sửa</a>
+                }
 
                 <div class="action-grid">
                     <a class="btn btn-outline-primary" asp-action="Students" asp-route-id="@Model.Course.Id">Học viên</a>
@@ -62,24 +69,27 @@
                     Tài liệu giảng dạy
                 </a>
 
-                @if (!User.IsInRole("Admin"))
+                @if (!Model.CanAdminister)
                 {
                     <a class="btn btn-outline-primary" asp-controller="Chat" asp-action="Index" asp-route-courseId="@Model.Course.Id">
                         Hỏi đáp tài liệu
                     </a>
                 }
 
-                <form asp-action="SetVisibility" asp-route-id="@Model.Course.Id" method="post" class="m-0">
-                    <input type="hidden" name="isVisible" value="@(!Model.Course.IsVisible).ToString().ToLowerInvariant()" />
-                    <button class="btn btn-outline-secondary w-100" type="submit">
-                        @(Model.Course.IsVisible ? "Ẩn khóa học" : "Hiển thị khóa học")
-                    </button>
-                </form>
+                @if (Model.CanAdminister)
+                {
+                    <form asp-action="SetVisibility" asp-route-id="@Model.Course.Id" method="post" class="m-0">
+                        <input type="hidden" name="isVisible" value="@(!Model.Course.IsVisible).ToString().ToLowerInvariant()" />
+                        <button class="btn btn-outline-secondary w-100" type="submit">
+                            @(Model.Course.IsVisible ? "Ẩn khóa học" : "Hiển thị khóa học")
+                        </button>
+                    </form>
 
-                <form asp-action="Delete" asp-route-id="@Model.Course.Id" method="post" class="m-0"
-                      data-confirm="Bạn có chắc muốn xóa khóa học này?">
-                    <button class="btn btn-outline-danger w-100" type="submit">Xóa khóa học</button>
-                </form>
+                    <form asp-action="Delete" asp-route-id="@Model.Course.Id" method="post" class="m-0"
+                          data-confirm="Bạn có chắc muốn xóa khóa học này?">
+                        <button class="btn btn-outline-danger w-100" type="submit">Xóa khóa học</button>
+                    </form>
+                }
             </div>
         }
         else if (Model.IsAuthenticated)
