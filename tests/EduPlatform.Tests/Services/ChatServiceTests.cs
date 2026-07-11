@@ -135,7 +135,11 @@ public sealed class ChatServiceTests
 
         Assert.AreEqual("Đây là câu trả lời [1].", string.Concat(
             events.Where(item => item.Type == "delta").Select(item => item.Content)));
-        Assert.AreEqual("completed", events[^1].Type);
+        var completed = events[^1];
+        Assert.AreEqual("completed", completed.Type);
+        Assert.AreEqual(_repository.AddedMessages[1].Id, completed.MessageId);
+        var completedCitation = Assert.ContainsSingle(completed.Citations ?? []);
+        Assert.AreEqual("lesson.pdf", completedCitation.DocumentName);
         Assert.AreEqual("Đây là câu trả lời [1].", _repository.AddedMessages[1].Content);
         Assert.HasCount(1, _repository.AddedRetrievalLogs);
         Assert.AreEqual(1, _repository.SaveChangesCallCount);

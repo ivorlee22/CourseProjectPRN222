@@ -180,6 +180,108 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 - `dotnet build .\EduPlatform.sln -c Release --no-restore` - passed.
 - `dotnet test .\tests\EduPlatform.Tests\EduPlatform.Tests.csproj -c Release --no-build --no-restore` - passed: 99 succeeded, 1 skipped live Gemini smoke test because `GEMINI_API_KEY` is not set.
+### 2026-07-11 - Preserve chat state after streaming completes
+
+**Owner**
+
+- Bảo / Codex (Chat streaming UX fix, Tasks 19-21 and 44).
+
+**Completed**
+
+- Removed the full-page reload after a SignalR chat stream completes.
+- Extended the completed stream event with the persisted assistant message ID and citations.
+- Rendered citation chips and the matching source-panel group in place after the streamed answer finishes.
+- Kept the composer, conversation scroll position, and current chat session in place while restoring the composer for the next question.
+- Added a ChatService test that verifies completed stream events expose the persisted message and citation data.
+
+**UI/UX**
+
+- Design Read: realtime chat should preserve the user's place in the conversation and show citations as soon as the answer is complete, without a disruptive page transition.
+- Dials: `DESIGN_VARIANCE 2`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 5`.
+- Product-screen pre-flight: preserved Bootstrap MVC and SignalR, existing citation interactions, keyboard focus behavior, responsive source panel, and reduced-motion-safe scrolling behavior.
+
+**Verification**
+
+- `node --check .\\EduPlatform.Web\\wwwroot\\js\\chat.js`: passed.
+- `dotnet build .\\EduPlatform.sln -c Release --no-restore`: passed with 0 warnings and 0 errors.
+- `dotnet test .\\tests\\EduPlatform.Tests\\EduPlatform.Tests.csproj -c Release --no-build --no-restore`: passed: 94 succeeded, 1 skipped live Gemini credential test.
+- Static stream check confirmed the client no longer calls `window.location.reload()` and renders completed citations in place.
+
+**Remaining**
+
+- Manual browser check: after a streamed answer finishes, verify no page reload occurs, the composer is enabled, citation chips appear, and `Chi tiết` opens the citation modal.
+
+**Blocked**
+
+- None.
+
+### 2026-07-11 - Fix citation detail modal stacking
+
+**Owner**
+
+- Bảo / Codex (Chat UI bug fix, Tasks 20 and 44).
+
+**Completed**
+
+- Moved the citation detail modal outside the transformed chat workspace so Bootstrap's modal sits above its backdrop.
+- Updated the chat script to locate the modal from the document while preserving the existing citation data binding and Bootstrap modal behavior.
+- Preserved the existing close button, backdrop click, Escape behavior, and mobile source-panel behavior.
+
+**UI/UX**
+
+- Design Read: citation detail is a focused product workflow, so the modal must remain visually above the backdrop and reliably return control to the chat.
+- Dials: `DESIGN_VARIANCE 2`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 5`.
+- Product-screen pre-flight: retained Bootstrap modal semantics, keyboard dismissal, focus restoration, responsive dialog sizing, and existing visual tokens. No new animation or design system was added.
+
+**Verification**
+
+- `node --check .\\EduPlatform.Web\\wwwroot\\js\\chat.js`: passed.
+- `dotnet build .\\EduPlatform.sln -c Release --no-restore`: passed with 0 warnings and 0 errors.
+- `dotnet test .\\tests\\EduPlatform.Tests\\EduPlatform.Tests.csproj -c Release --no-build --no-restore`: passed: 94 succeeded, 1 skipped live Gemini credential test.
+- Static view check confirmed `citationDetailModal` starts after the transformed `data-chat-workspace` container closes.
+- Browser verification could not run because `http://localhost:7209` refused the connection while the local app was stopped.
+
+**Remaining**
+
+- Manual browser check recommended with a citation: open `Chi tiết`, close with the X button, click outside the dialog, and press Escape.
+
+**Blocked**
+
+- None.
+
+### 2026-07-11 - Correct Report and Statistics dashboard copy
+
+**Owner**
+
+- Bảo / Codex (Tasks 36-41 copy correction).
+
+**Completed**
+
+- Corrected unclear or grammatically mixed labels across the Admin dashboard, Revenue report, and Teacher Statistics page without replacing established technical terms.
+- Corrected the revenue grouping caption so the selected period renders as `Ngày`, `Tuần`, or `Tháng` rather than the English enum value.
+- Replaced the unclear `Sức khỏe nội dung` heading with `Tình trạng nội dung`.
+- Corrected the Teacher empty state to reflect Admin-assigned courses.
+
+**UI/UX**
+
+- Design Read: operational dashboards need concise copy that is clear in Vietnamese while keeping familiar domain terms such as payment, quota, and session where they aid scanning.
+- Dials: `DESIGN_VARIANCE 2`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 5`.
+- Product-screen pre-flight: retained Bootstrap MVC components, responsive layouts, focus behavior, empty states, and existing semantic chart labels. No animation or layout change was needed.
+
+**Verification**
+
+- `dotnet build .\\EduPlatform.sln -c Release --no-restore`: passed with 0 warnings and 0 errors.
+- `dotnet test .\\tests\\EduPlatform.Tests\\EduPlatform.Tests.csproj -c Release --no-build --no-restore`: passed: 94 succeeded, 1 skipped live Gemini credential test.
+- `git diff --check`: passed.
+- Targeted copy scan found no remaining `Sức khỏe nội dung`, English period enum captions, `Theo payment`, `chart sẽ`, or Teacher course-creation empty-state copy.
+
+**Remaining**
+
+- Manual browser check recommended on Admin, Revenue, and Teacher Statistics pages.
+
+**Blocked**
+
+- None.
 
 ### 2026-07-11 - Remove Redundant Navigation Buttons from Admin Reports
 

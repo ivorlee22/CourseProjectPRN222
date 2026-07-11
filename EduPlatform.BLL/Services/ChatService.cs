@@ -141,8 +141,11 @@ public sealed partial class ChatService(
             throw new BusinessValidationException("Gemini did not return a usable answer.");
         }
 
-        await PersistResponseAsync(prepared, answer, actor.UserId, cancellationToken);
-        yield return new ChatStreamEventDto("completed");
+        var response = await PersistResponseAsync(prepared, answer, actor.UserId, cancellationToken);
+        yield return new ChatStreamEventDto(
+            "completed",
+            MessageId: response.AssistantMessage.Id,
+            Citations: response.AssistantMessage.Citations);
     }
 
     private async Task<PreparedMessage> PrepareMessageAsync(
