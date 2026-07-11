@@ -123,7 +123,7 @@ public sealed class PackageController(
 
         return
         [
-            $"{package.MaxCourses} khóa học",
+            $"{package.MaxCourses} khóa học được tham gia",
             $"{package.DailyChats} lượt chat mỗi ngày",
             usageText
         ];

@@ -31,28 +31,9 @@ public sealed class SubscriptionController(ISubscriptionService subscriptionServ
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Renew(Guid packageId, CancellationToken cancellationToken)
+    public IActionResult Renew(Guid packageId)
     {
-        var actor = User.GetRequiredActor();
-
-        try
-        {
-            await subscriptionService.CreateSubscriptionAsync(
-                new CreateSubscriptionCommand(actor.UserId, packageId),
-                cancellationToken);
-            TempData["SuccessMessage"] =
-                "Đã tạo yêu cầu gia hạn. Thanh toán sẽ được xử lý khi cổng thanh toán sẵn sàng.";
-        }
-        catch (ResourceNotFoundException exception)
-        {
-            TempData["ErrorMessage"] = exception.Message;
-        }
-        catch (BusinessValidationException exception)
-        {
-            TempData["ErrorMessage"] = exception.Message;
-        }
-
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction("Checkout", "Payment", new { packageId });
     }
 
     [HttpPost]
@@ -67,7 +48,7 @@ public sealed class SubscriptionController(ISubscriptionService subscriptionServ
                 subscriptionId,
                 actor.UserId,
                 cancellationToken);
-            TempData["SuccessMessage"] = "Đã hủy gói đăng ký.";
+            TempData["SuccessMessage"] = "Đã hủy yêu cầu gói chưa hiệu lực.";
         }
         catch (ResourceNotFoundException exception)
         {
@@ -91,13 +72,15 @@ public sealed class SubscriptionController(ISubscriptionService subscriptionServ
         var isActive = string.Equals(normalizedStatus, "Active", StringComparison.OrdinalIgnoreCase);
         var isPending = string.Equals(normalizedStatus, "Pending", StringComparison.OrdinalIgnoreCase);
         var isCancelled = string.Equals(normalizedStatus, "Cancelled", StringComparison.OrdinalIgnoreCase);
+        var isScheduled = string.Equals(normalizedStatus, "Scheduled", StringComparison.OrdinalIgnoreCase);
+        var isExpired = string.Equals(normalizedStatus, "Expired", StringComparison.OrdinalIgnoreCase);
 
         return new SubscriptionHistoryItemViewModel(
             subscription,
             GetStatusLabel(normalizedStatus),
-            GetStatusBadgeClass(isActive, isPending, isCancelled),
-            isActive || isPending,
-            true);
+            GetStatusBadgeClass(isActive, isPending, isCancelled, isScheduled),
+            false,
+            isActive || isExpired || isScheduled);
     }
 
     private static string GetStatusLabel(string status)
@@ -106,20 +89,26 @@ public sealed class SubscriptionController(ISubscriptionService subscriptionServ
         {
             "ACTIVE" => "Đang hiệu lực",
             "PENDING" => "Chờ thanh toán",
+            "SCHEDULED" => "Sắp hiệu lực",
+            "REPLACED" => "Đã thay thế",
             "CANCELLED" => "Đã hủy",
             "EXPIRED" => "Hết hạn",
             _ => status
         };
     }
 
-    private static string GetStatusBadgeClass(bool isActive, bool isPending, bool isCancelled)
+    private static string GetStatusBadgeClass(
+        bool isActive,
+        bool isPending,
+        bool isCancelled,
+        bool isScheduled)
     {
         if (isActive)
         {
             return "text-bg-success";
         }
 
-        if (isPending)
+        if (isPending || isScheduled)
         {
             return "text-bg-warning";
         }

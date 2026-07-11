@@ -15,7 +15,9 @@ public sealed class PaymentService(
     IEmailService emailService,
     ILogger<PaymentService> logger) : IPaymentService
 {
-    public async Task<PaymentUrlResponse> CreatePaymentAsync(CreatePaymentCommand command, CancellationToken cancellationToken = default)
+    public async Task<PaymentUrlResponse> CreatePaymentAsync(
+        CreatePaymentCommand command,
+        CancellationToken cancellationToken = default)
     {
         if (command.Method != PaymentMethod.VNPay)
         {
@@ -34,6 +36,11 @@ public sealed class PaymentService(
             throw new ArgumentException("User not found.");
         }
 
+        if (user.Role != UserRole.Student)
+        {
+            throw new ArgumentException("Only students can buy packages.");
+        }
+
         var internalReference = $"PAY-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString()[..6].ToUpperInvariant()}";
 
         var payment = new Payment
@@ -50,11 +57,12 @@ public sealed class PaymentService(
         await paymentRepository.SaveChangesAsync(cancellationToken);
 
         var paymentUrl = vnPayService.CreatePaymentUrl(payment, command.ClientIpAddress);
-
         return new PaymentUrlResponse(paymentUrl);
     }
 
-    public async Task<bool> ProcessCallbackAsync(PaymentCallbackCommand command, CancellationToken cancellationToken = default)
+    public async Task<bool> ProcessCallbackAsync(
+        PaymentCallbackCommand command,
+        CancellationToken cancellationToken = default)
     {
         if (command.Method != PaymentMethod.VNPay)
         {
@@ -62,9 +70,7 @@ public sealed class PaymentService(
             return false;
         }
 
-        var isSignatureValid = vnPayService.VerifySignature(command.QueryData);
-
-        if (!isSignatureValid)
+        if (!vnPayService.VerifySignature(command.QueryData))
         {
             logger.LogWarning("Invalid payment signature for method {Method}", command.Method);
             return false;
@@ -73,11 +79,13 @@ public sealed class PaymentService(
         var reference = command.QueryData.TryGetValue("vnp_TxnRef", out var vnpRef)
             ? vnpRef
             : string.Empty;
-            
-        var gatewayTxnId = command.QueryData.TryGetValue("vnp_TransactionNo", out var vnpNo) && vnpNo != "0" && !string.IsNullOrWhiteSpace(vnpNo)
-            ? vnpNo
-            : null;
-            
+
+        var gatewayTxnId = command.QueryData.TryGetValue("vnp_TransactionNo", out var vnpNo)
+            && vnpNo != "0"
+            && !string.IsNullOrWhiteSpace(vnpNo)
+                ? vnpNo
+                : null;
+
         var responseCode = command.QueryData.TryGetValue("vnp_ResponseCode", out var vnpRc)
             ? vnpRc
             : string.Empty;
@@ -94,7 +102,6 @@ public sealed class PaymentService(
             return false;
         }
 
-        // Idempotency check
         if (payment.Status != PaymentStatus.Pending)
         {
             return true;
@@ -106,76 +113,41 @@ public sealed class PaymentService(
         payment.RawResponseJson = System.Text.Json.JsonSerializer.Serialize(command.QueryData);
 
         var isSuccess = responseCode == "00";
-
         if (isSuccess)
         {
             payment.Status = PaymentStatus.Succeeded;
-            
-            // Cancel existing active subscription if any and create new
-            var existingSubscription = await subscriptionRepository.GetActiveSubscriptionAsync(payment.UserId, cancellationToken);
-            if (existingSubscription != null)
-            {
-                existingSubscription.Status = SubscriptionStatus.Cancelled;
-                existingSubscription.CancelledAtUtc = DateTimeOffset.UtcNow;
-                subscriptionRepository.Update(existingSubscription);
-            }
-            
-            var package = payment.Package;
-            var subscription = new Subscription
-            {
-                UserId = payment.UserId,
-                PackageId = package.Id,
-                Status = SubscriptionStatus.Active,
-                StartsAtUtc = DateTimeOffset.UtcNow,
-                EndsAtUtc = DateTimeOffset.UtcNow.AddDays(package.DurationDays)
-            };
-            
-            await subscriptionRepository.AddAsync(subscription, cancellationToken);
-            
-            // Assign subscription to payment
-            payment.Subscription = subscription;
-
-            // Send confirmation email asynchronously (fire and forget or just await here depending on design)
-            // Assuming emailService throws on fail, we might want to catch it to not fail the transaction
-            try
-            {
-                var user = payment.User; // EF should load this or we query
-                if (user != null)
-                {
-                    await emailService.SendPaymentConfirmationAsync(
-                        user.Email,
-                        user.FullName,
-                        package.Name,
-                        package.Price,
-                        payment.InternalReference,
-                        cancellationToken);
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Failed to send payment confirmation email for payment {PaymentId}", payment.Id);
-            }
+            await ApplySubscriptionChangeAsync(payment, cancellationToken);
         }
         else
         {
             payment.Status = PaymentStatus.Failed;
         }
-        paymentRepository.Update(payment);
+
+        paymentRepository.Update(payment);
         await paymentRepository.SaveChangesAsync(cancellationToken);
+
+        if (isSuccess)
+        {
+            await SendConfirmationEmailAsync(payment, cancellationToken);
+        }
 
         return isSuccess;
     }
 
-    public async Task<List<PaymentSummaryDto>> GetUserPaymentsAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<List<PaymentSummaryDto>> GetUserPaymentsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
     {
         var payments = await paymentRepository.GetByUserIdAsync(userId, cancellationToken);
-        
-        return payments.Select(p => {
+
+        return payments.Select(p =>
+        {
             var status = p.Status;
             if (status == PaymentStatus.Pending && DateTimeOffset.UtcNow - p.CreatedAtUtc > TimeSpan.FromMinutes(15))
             {
                 status = PaymentStatus.Failed;
             }
+
             return new PaymentSummaryDto(
                 p.Id,
                 p.PackageId,
@@ -185,12 +157,14 @@ public sealed class PaymentService(
                 status,
                 p.InternalReference,
                 p.CreatedAtUtc,
-                p.ProcessedAtUtc
-            );
+                p.ProcessedAtUtc);
         }).ToList();
     }
 
-    public async Task<PaymentDetailDto?> GetPaymentDetailAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
+    public async Task<PaymentDetailDto?> GetPaymentDetailAsync(
+        Guid id,
+        Guid userId,
+        CancellationToken cancellationToken = default)
     {
         var payment = await paymentRepository.GetByIdAsync(id, cancellationToken);
         if (payment == null || payment.UserId != userId)
@@ -215,7 +189,101 @@ public sealed class PaymentService(
             payment.InternalReference,
             payment.GatewayTransactionId,
             payment.CreatedAtUtc,
-            payment.ProcessedAtUtc
-        );
+            payment.ProcessedAtUtc);
+    }
+
+    private async Task ApplySubscriptionChangeAsync(
+        Payment payment,
+        CancellationToken cancellationToken)
+    {
+        var package = payment.Package;
+        var now = DateTimeOffset.UtcNow;
+        var existingSubscription = await subscriptionRepository.GetActiveSubscriptionAsync(
+            payment.UserId,
+            cancellationToken);
+
+        Subscription subscription;
+        if (existingSubscription is null)
+        {
+            subscription = CreateSubscription(
+                payment.UserId,
+                package,
+                SubscriptionStatus.Active,
+                now,
+                now.AddDays(package.DurationDays));
+        }
+        else if (package.Price > GetSubscriptionPrice(existingSubscription))
+        {
+            existingSubscription.Status = SubscriptionStatus.Expired;
+            existingSubscription.EndsAtUtc = now;
+            subscriptionRepository.Update(existingSubscription);
+
+            subscription = CreateSubscription(
+                payment.UserId,
+                package,
+                SubscriptionStatus.Active,
+                now,
+                now.AddDays(package.DurationDays));
+        }
+        else
+        {
+            var startsAtUtc = existingSubscription.EndsAtUtc;
+            subscription = CreateSubscription(
+                payment.UserId,
+                package,
+                SubscriptionStatus.Active,
+                startsAtUtc,
+                startsAtUtc.AddDays(package.DurationDays));
+        }
+
+        await subscriptionRepository.AddAsync(subscription, cancellationToken);
+        payment.Subscription = subscription;
+    }
+
+    private async Task SendConfirmationEmailAsync(
+        Payment payment,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var user = payment.User;
+            if (user != null)
+            {
+                await emailService.SendPaymentConfirmationAsync(
+                    user.Email,
+                    user.FullName,
+                    payment.Package.Name,
+                    payment.Package.Price,
+                    payment.InternalReference,
+                    cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to send payment confirmation email for payment {PaymentId}", payment.Id);
+        }
+    }
+
+    private static Subscription CreateSubscription(
+        Guid userId,
+        Package package,
+        SubscriptionStatus status,
+        DateTimeOffset startsAtUtc,
+        DateTimeOffset endsAtUtc)
+    {
+        return new Subscription
+        {
+            UserId = userId,
+            PackageId = package.Id,
+            Package = package,
+            Status = status,
+            StartsAtUtc = startsAtUtc,
+            EndsAtUtc = endsAtUtc
+        };
+    }
+
+    private static decimal GetSubscriptionPrice(Subscription subscription)
+    {
+        return subscription.Package.Price;
     }
 }

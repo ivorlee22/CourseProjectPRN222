@@ -102,8 +102,6 @@ public sealed class CourseService(
         ValidateCourse(command.Title, command.Description, command.Type, command.EnrollmentPassword);
 
         var ownerId = command.OwnerId ?? actor.UserId;
-        var currentCourseCount = await courseRepository.CountByOwnerAsync(ownerId, cancellationToken);
-        await courseQuotaService.EnsureCanCreateCourseAsync(ownerId, currentCourseCount, cancellationToken);
 
         var course = new Course
         {
@@ -218,6 +216,7 @@ public sealed class CourseService(
         }
 
         VerifyEnrollmentPassword(course, enrollmentPassword);
+        await EnsureCanJoinAdditionalCourseAsync(actor.UserId, cancellationToken);
 
         if (existingEnrollment is null)
         {
@@ -316,6 +315,11 @@ public sealed class CourseService(
             throw new ResourceNotFoundException("Không tìm thấy lời mời đang chờ.");
         }
 
+        if (accept)
+        {
+            await EnsureCanJoinAdditionalCourseAsync(actor.UserId, cancellationToken);
+        }
+
         enrollment.Status = accept
             ? DalEnrollmentStatus.Active
             : DalEnrollmentStatus.Rejected;
@@ -368,6 +372,20 @@ public sealed class CourseService(
         CancellationToken cancellationToken)
     {
         return courseRepository.CountPendingInvitationsAsync(actor.UserId, cancellationToken);
+    }
+
+    private async Task EnsureCanJoinAdditionalCourseAsync(
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var currentActiveCourseCount = await courseRepository.CountActiveEnrollmentsByUserAsync(
+            userId,
+            cancellationToken);
+
+        await courseQuotaService.EnsureCanJoinCourseAsync(
+            userId,
+            currentActiveCourseCount,
+            cancellationToken);
     }
 
     public async Task<IReadOnlyList<CourseStudentDto>> GetStudentsAsync(

@@ -181,6 +181,11 @@ public sealed class DocumentAccessTests
             throw new NotImplementedException();
         }
 
+        public Task<int> CountActiveEnrollmentsByUserAsync(Guid userId, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<bool> UserExistsAsync(Guid userId, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();

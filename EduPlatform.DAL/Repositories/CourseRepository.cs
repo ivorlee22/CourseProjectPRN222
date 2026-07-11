@@ -71,6 +71,13 @@ public sealed class CourseRepository(AppDbContext dbContext) : ICourseRepository
         return dbContext.Courses.CountAsync(x => x.OwnerId == ownerId, cancellationToken);
     }
 
+    public Task<int> CountActiveEnrollmentsByUserAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        return dbContext.CourseEnrollments.CountAsync(
+            x => x.UserId == userId && x.Status == EnrollmentStatus.Active,
+            cancellationToken);
+    }
+
     public Task<bool> UserExistsAsync(Guid userId, CancellationToken cancellationToken)
     {
         return dbContext.Users.AnyAsync(x => x.Id == userId && x.IsActive, cancellationToken);

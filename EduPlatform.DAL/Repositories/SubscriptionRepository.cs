@@ -12,7 +12,7 @@ public sealed class SubscriptionRepository(AppDbContext dbContext) : ISubscripti
         return dbContext.Subscriptions
             .Include(x => x.Package)
             .Where(x => x.UserId == userId 
-                     && x.Status == SubscriptionStatus.Active 
+                     && x.Status == SubscriptionStatus.Active
                      && x.StartsAtUtc <= now 
                      && x.EndsAtUtc > now)
             .OrderByDescending(x => x.EndsAtUtc)

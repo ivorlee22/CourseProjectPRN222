@@ -9,7 +9,7 @@
         <p class="section-label">Bảng giá</p>
         <h1>Bảng giá đơn giản, dễ chọn</h1>
         <p class="pricing-lead">
-            Chọn gói học tập phù hợp để mở khóa quota khóa học và lượt chat theo ngày.
+            Chọn gói học tập phù hợp để mở quota khóa học được tham gia và lượt chat theo ngày.
         </p>
         @if (Model.CurrentSubscription is not null)
         {
@@ -124,7 +124,7 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <th scope="row">Số khóa học tối đa</th>
+                        <th scope="row">Số khóa học được tham gia</th>
                         @foreach (var item in Model.Packages)
                         {
                             <td class="text-center">@item.Package.MaxCourses</td>

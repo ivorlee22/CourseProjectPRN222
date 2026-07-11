@@ -33,23 +33,23 @@ public sealed class SubscriptionCourseQuotaServiceTests
     }
 
     [TestMethod]
-    public async Task EnsureCanCreateCourseAsync_ActiveSubscriptionUnderLimit_Allows()
+    public async Task EnsureCanJoinCourseAsync_ActiveSubscriptionUnderLimit_Allows()
     {
         AddActiveSubscription(maxCourses: 5);
 
-        await _service.EnsureCanCreateCourseAsync(UserId, 4, CancellationToken.None);
+        await _service.EnsureCanJoinCourseAsync(UserId, 4, CancellationToken.None);
 
         Assert.AreEqual(1, _subscriptionRepository.GetActiveSubscriptionCallCount);
         Assert.AreEqual(0, _packageRepository.GetFreePackageCallCount);
     }
 
     [TestMethod]
-    public async Task EnsureCanCreateCourseAsync_ActiveSubscriptionAtExactLimit_Throws()
+    public async Task EnsureCanJoinCourseAsync_ActiveSubscriptionAtExactLimit_Throws()
     {
         AddActiveSubscription(maxCourses: 5);
 
         await Assert.ThrowsExactlyAsync<CourseQuotaExceededException>(
-            async () => await _service.EnsureCanCreateCourseAsync(
+            async () => await _service.EnsureCanJoinCourseAsync(
                 UserId,
                 5,
                 CancellationToken.None));
@@ -58,25 +58,25 @@ public sealed class SubscriptionCourseQuotaServiceTests
     }
 
     [TestMethod]
-    public async Task EnsureCanCreateCourseAsync_ActiveSubscriptionOverLimit_Throws()
+    public async Task EnsureCanJoinCourseAsync_ActiveSubscriptionOverLimit_Throws()
     {
         AddActiveSubscription(maxCourses: 5);
 
         await Assert.ThrowsExactlyAsync<CourseQuotaExceededException>(
-            async () => await _service.EnsureCanCreateCourseAsync(
+            async () => await _service.EnsureCanJoinCourseAsync(
                 UserId,
                 6,
                 CancellationToken.None));
     }
 
     [TestMethod]
-    public async Task EnsureCanCreateCourseAsync_ExpiredSubscriptionFallsBackToFreeExactLimit_Throws()
+    public async Task EnsureCanJoinCourseAsync_ExpiredSubscriptionFallsBackToFreeExactLimit_Throws()
     {
         AddSubscription(maxCourses: 5, startsAtUtc: _now.AddDays(-10), endsAtUtc: _now.AddDays(-1));
         AddFreePackage(maxCourses: 1);
 
         await Assert.ThrowsExactlyAsync<CourseQuotaExceededException>(
-            async () => await _service.EnsureCanCreateCourseAsync(
+            async () => await _service.EnsureCanJoinCourseAsync(
                 UserId,
                 1,
                 CancellationToken.None));
@@ -85,46 +85,46 @@ public sealed class SubscriptionCourseQuotaServiceTests
     }
 
     [TestMethod]
-    public async Task EnsureCanCreateCourseAsync_ExpiredSubscriptionFallsBackToFreeUnderLimit_Allows()
+    public async Task EnsureCanJoinCourseAsync_ExpiredSubscriptionFallsBackToFreeUnderLimit_Allows()
     {
         AddSubscription(maxCourses: 5, startsAtUtc: _now.AddDays(-10), endsAtUtc: _now.AddDays(-1));
         AddFreePackage(maxCourses: 2);
 
-        await _service.EnsureCanCreateCourseAsync(UserId, 1, CancellationToken.None);
+        await _service.EnsureCanJoinCourseAsync(UserId, 1, CancellationToken.None);
     }
 
     [TestMethod]
-    public async Task EnsureCanCreateCourseAsync_MissingSubscriptionFallsBackToFreeUnderLimit_Allows()
+    public async Task EnsureCanJoinCourseAsync_MissingSubscriptionFallsBackToFreeUnderLimit_Allows()
     {
         AddFreePackage(maxCourses: 1);
 
-        await _service.EnsureCanCreateCourseAsync(UserId, 0, CancellationToken.None);
+        await _service.EnsureCanJoinCourseAsync(UserId, 0, CancellationToken.None);
 
         Assert.AreEqual(1, _subscriptionRepository.GetActiveSubscriptionCallCount);
         Assert.AreEqual(1, _packageRepository.GetFreePackageCallCount);
     }
 
     [TestMethod]
-    public async Task EnsureCanCreateCourseAsync_MissingSubscriptionFallsBackToFreeExactLimit_Throws()
+    public async Task EnsureCanJoinCourseAsync_MissingSubscriptionFallsBackToFreeExactLimit_Throws()
     {
         AddFreePackage(maxCourses: 1);
 
         await Assert.ThrowsExactlyAsync<CourseQuotaExceededException>(
-            async () => await _service.EnsureCanCreateCourseAsync(
+            async () => await _service.EnsureCanJoinCourseAsync(
                 UserId,
                 1,
                 CancellationToken.None));
     }
 
     [TestMethod]
-    public async Task EnsureCanCreateCourseAsync_ConcurrentExactLimitRequests_Throw()
+    public async Task EnsureCanJoinCourseAsync_ConcurrentExactLimitRequests_Throw()
     {
         AddActiveSubscription(maxCourses: 5);
 
         var tasks = Enumerable
             .Range(0, 2)
             .Select(_ => Assert.ThrowsExactlyAsync<CourseQuotaExceededException>(
-                async () => await _service.EnsureCanCreateCourseAsync(
+                async () => await _service.EnsureCanJoinCourseAsync(
                     UserId,
                     5,
                     CancellationToken.None)));
@@ -133,7 +133,7 @@ public sealed class SubscriptionCourseQuotaServiceTests
     }
 
     [TestMethod]
-    public async Task EnsureCanCreateCourseAsync_AdminUser_BypassesQuota()
+    public async Task EnsureCanJoinCourseAsync_AdminUser_BypassesQuota()
     {
         var adminId = Guid.NewGuid();
         _userRepository.Users.Add(new User
@@ -145,7 +145,7 @@ public sealed class SubscriptionCourseQuotaServiceTests
 
         AddActiveSubscription(maxCourses: 5);
 
-        await _service.EnsureCanCreateCourseAsync(adminId, 6, CancellationToken.None);
+        await _service.EnsureCanJoinCourseAsync(adminId, 6, CancellationToken.None);
         
         Assert.AreEqual(0, _subscriptionRepository.GetActiveSubscriptionCallCount);
     }
