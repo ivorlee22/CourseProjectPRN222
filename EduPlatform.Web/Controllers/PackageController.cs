@@ -117,11 +117,21 @@ public sealed class PackageController(
 
     private static IReadOnlyList<string> GetHighlights(PackageDto package)
     {
+        var usageText = IsFreePackage(package)
+            ? "Sử dụng không giới hạn thời gian"
+            : $"{package.DurationDays} ngày sử dụng";
+
         return
         [
-            $"{package.MaxCourses} khóa học",
+            $"{package.MaxCourses} khóa học được tham gia",
             $"{package.DailyChats} lượt chat mỗi ngày",
-            $"{package.DurationDays} ngày sử dụng"
+            usageText
         ];
+    }
+
+    private static bool IsFreePackage(PackageDto package)
+    {
+        return package.Price <= 0m
+            || string.Equals(package.Name, "Free", StringComparison.OrdinalIgnoreCase);
     }
 }

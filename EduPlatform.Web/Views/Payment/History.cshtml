@@ -5,30 +5,20 @@
     ViewData["Title"] = "Lịch sử thanh toán";
 }
 
-<section class="page-heading">
+<section class="page-heading payment-history-heading">
     <div>
         <p class="section-label">Thanh toán</p>
         <h1>Lịch sử thanh toán</h1>
         <p class="mb-0">@Model.Count giao dịch</p>
     </div>
-    <a asp-controller="Package" asp-action="Index" class="btn btn-outline-primary">Xem gói cước</a>
 </section>
 
-<section class="content-panel p-0 overflow-hidden">
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success m-3">@TempData["SuccessMessage"]</div>
-    }
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger m-3">@TempData["ErrorMessage"]</div>
-    }
-
+<section class="content-panel payment-history-panel p-0 overflow-hidden">
     @if (Model.Count == 0)
     {
         <div class="empty-state border-0 shadow-none">
             <h2>Chưa có giao dịch thanh toán</h2>
-            <p>Chọn một gói phù hợp để bắt đầu sử dụng quota học tập.</p>
+            <p>Chọn một gói phù hợp để bắt đầu sử dụng quyền lợi học tập.</p>
             <a asp-controller="Package" asp-action="Index" class="btn btn-primary">Xem các gói cước</a>
         </div>
     }
@@ -38,7 +28,7 @@
             <table class="table table-hover align-middle mb-0">
                 <thead>
                     <tr>
-                        <th>Mã GD</th>
+                        <th>Mã giao dịch</th>
                         <th>Gói cước</th>
                         <th>Số tiền</th>
                         <th>Phương thức</th>
@@ -61,7 +51,7 @@
                                 }
                                 else
                                 {
-                                    <span class="badge bg-danger">MoMo</span>
+                                    <span class="badge bg-secondary">Không còn hỗ trợ</span>
                                 }
                             </td>
                             <td>

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using EduPlatform.BLL.DTOs.Payments;
+using EduPlatform.BLL.DTOs.Subscriptions;
 using EduPlatform.BLL.Exceptions;
 using EduPlatform.BLL.Interfaces;
 using EduPlatform.DAL.Entities;
@@ -13,7 +14,8 @@ namespace EduPlatform.Web.Controllers;
 [Route("payment")]
 public class PaymentController(
     IPaymentService paymentService,
-    IPackageService packageService) : Controller
+    IPackageService packageService,
+    ISubscriptionService subscriptionService) : Controller
 {
     [HttpGet("checkout/{packageId:guid}")]
     [Authorize(Roles = "Student")]
@@ -28,7 +30,19 @@ public class PaymentController(
                 return RedirectToAction("Index", "Package");
             }
 
-            return View(new PaymentCheckoutViewModel(package, false));
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            SubscriptionSummaryDto? currentSubscription = null;
+            if (Guid.TryParse(userIdString, out var userId))
+            {
+                currentSubscription = await subscriptionService.GetActiveSubscriptionAsync(
+                    userId,
+                    cancellationToken);
+            }
+
+            return View(new PaymentCheckoutViewModel(
+                package,
+                currentSubscription?.PackageId == package.Id,
+                currentSubscription));
         }
         catch (ResourceNotFoundException exception)
         {
@@ -40,7 +54,7 @@ public class PaymentController(
     [HttpPost("create")]
     [Authorize(Roles = "Student")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CreatePayment(Guid packageId, PaymentMethod method, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreatePayment(Guid packageId, CancellationToken cancellationToken)
     {
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!Guid.TryParse(userIdString, out var userId))
@@ -59,7 +73,7 @@ public class PaymentController(
                 return RedirectToAction("Index", "Package");
             }
 
-            var command = new CreatePaymentCommand(userId, packageId, method, clientIp);
+            var command = new CreatePaymentCommand(userId, packageId, PaymentMethod.VNPay, clientIp);
             var response = await paymentService.CreatePaymentAsync(command, cancellationToken);
             return Redirect(response.Url);
         }
@@ -70,7 +84,7 @@ public class PaymentController(
         }
         catch (Exception ex)
         {
-            TempData["ErrorMessage"] = $"Không thể tạo thanh toán: {ex.Message}";
+            TempData["ErrorMessage"] = $"Không thể tạo thanh toán VNPay: {ex.Message}";
             return RedirectToAction(nameof(Checkout), new { packageId });
         }
     }
@@ -85,31 +99,11 @@ public class PaymentController(
 
         if (isSuccess)
         {
-            TempData["SuccessMessage"] = "Thanh toán VNPay thành công. Gói cước của bạn đã được kích hoạt.";
+            TempData["SuccessMessage"] = "Thanh toán thành công. Gói của bạn đã được kích hoạt.";
         }
         else
         {
-            TempData["ErrorMessage"] = "Thanh toán VNPay thất bại hoặc chữ ký không hợp lệ.";
-        }
-
-        return RedirectToAction(nameof(History));
-    }
-
-    [HttpGet("momo-return")]
-    public async Task<IActionResult> MoMoReturn(CancellationToken cancellationToken)
-    {
-        var queryData = Request.Query.ToDictionary(k => k.Key, v => v.Value.ToString());
-        var command = new PaymentCallbackCommand(PaymentMethod.MoMo, queryData);
-
-        var isSuccess = await paymentService.ProcessCallbackAsync(command, cancellationToken);
-
-        if (isSuccess)
-        {
-            TempData["SuccessMessage"] = "Thanh toán MoMo thành công. Gói cước của bạn đã được kích hoạt.";
-        }
-        else
-        {
-            TempData["ErrorMessage"] = "Thanh toán MoMo thất bại hoặc chữ ký không hợp lệ.";
+            TempData["ErrorMessage"] = "Thanh toán chưa thành công. Vui lòng thử lại hoặc chọn gói khác.";
         }
 
         return RedirectToAction(nameof(History));
@@ -124,24 +118,9 @@ public class PaymentController(
 
         var isSuccess = await paymentService.ProcessCallbackAsync(command, cancellationToken);
 
-        return Ok(new { RspCode = "00", Message = "Confirm Success" });
-    }
-
-    [AllowAnonymous]
-    [HttpPost("momo-ipn")]
-    public async Task<IActionResult> MoMoIpn(CancellationToken cancellationToken)
-    {
-        var queryData = Request.Query.ToDictionary(k => k.Key, v => v.Value.ToString());
-        var command = new PaymentCallbackCommand(PaymentMethod.MoMo, queryData);
-
-        var isSuccess = await paymentService.ProcessCallbackAsync(command, cancellationToken);
-
-        if (isSuccess)
-        {
-            return NoContent();
-        }
-
-        return BadRequest();
+        return Ok(isSuccess
+            ? new { RspCode = "00", Message = "Confirm Success" }
+            : new { RspCode = "97", Message = "Invalid signature or payment state" });
     }
 
     [HttpGet("history")]

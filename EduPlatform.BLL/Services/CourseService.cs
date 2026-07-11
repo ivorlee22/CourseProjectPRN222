@@ -47,7 +47,7 @@ public sealed class CourseService(
             }
         }
         
-        var visibleOnly = !query.IncludeHidden || actor is null || !actor.IsAdmin;
+        var visibleOnly = !query.IncludeHidden && (actor is null || !actor.IsAdmin);
 
         if (query.MineOnly)
         {
@@ -102,8 +102,6 @@ public sealed class CourseService(
         ValidateCourse(command.Title, command.Description, command.Type, command.EnrollmentPassword);
 
         var ownerId = command.OwnerId ?? actor.UserId;
-        var currentCourseCount = await courseRepository.CountByOwnerAsync(ownerId, cancellationToken);
-        await courseQuotaService.EnsureCanCreateCourseAsync(ownerId, currentCourseCount, cancellationToken);
 
         var course = new Course
         {
@@ -111,7 +109,7 @@ public sealed class CourseService(
             Title = command.Title.Trim(),
             Description = command.Description.Trim(),
             Type = ToDal(command.Type),
-            IsVisible = command.IsVisible,
+            IsVisible = command.Type == BllCourseType.Public,
             EnrollmentPasswordHash = HashPassword(command.Type, command.EnrollmentPassword)
         };
 
@@ -135,7 +133,7 @@ public sealed class CourseService(
         course.Title = command.Title.Trim();
         course.Description = command.Description.Trim();
         course.Type = ToDal(command.Type);
-        course.IsVisible = command.IsVisible;
+        course.IsVisible = command.Type == BllCourseType.Public;
 
         if (actor.IsAdmin && command.OwnerId.HasValue)
         {
@@ -218,6 +216,7 @@ public sealed class CourseService(
         }
 
         VerifyEnrollmentPassword(course, enrollmentPassword);
+        await EnsureCanJoinAdditionalCourseAsync(actor.UserId, cancellationToken);
 
         if (existingEnrollment is null)
         {
@@ -316,6 +315,11 @@ public sealed class CourseService(
             throw new ResourceNotFoundException("Không tìm thấy lời mời đang chờ.");
         }
 
+        if (accept)
+        {
+            await EnsureCanJoinAdditionalCourseAsync(actor.UserId, cancellationToken);
+        }
+
         enrollment.Status = accept
             ? DalEnrollmentStatus.Active
             : DalEnrollmentStatus.Rejected;
@@ -368,6 +372,20 @@ public sealed class CourseService(
         CancellationToken cancellationToken)
     {
         return courseRepository.CountPendingInvitationsAsync(actor.UserId, cancellationToken);
+    }
+
+    private async Task EnsureCanJoinAdditionalCourseAsync(
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var currentActiveCourseCount = await courseRepository.CountActiveEnrollmentsByUserAsync(
+            userId,
+            cancellationToken);
+
+        await courseQuotaService.EnsureCanJoinCourseAsync(
+            userId,
+            currentActiveCourseCount,
+            cancellationToken);
     }
 
     public async Task<IReadOnlyList<CourseStudentDto>> GetStudentsAsync(

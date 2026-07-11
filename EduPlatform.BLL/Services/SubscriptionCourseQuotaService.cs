@@ -10,15 +10,15 @@ public sealed class SubscriptionCourseQuotaService(
     IPackageRepository packageRepository,
     IUserRepository userRepository) : ICourseQuotaService
 {
-    public async Task EnsureCanCreateCourseAsync(
+    public async Task EnsureCanJoinCourseAsync(
         Guid userId,
-        int currentCourseCount,
+        int currentActiveCourseCount,
         CancellationToken cancellationToken)
     {
         var user = await userRepository.GetByIdAsync(userId, cancellationToken)
             ?? throw new ResourceNotFoundException("Không tìm thấy người dùng.");
 
-        if (user.Role == UserRole.Admin)
+        if (user.Role == UserRole.Admin || user.Role == UserRole.Teacher)
         {
             return;
         }
@@ -26,13 +26,15 @@ public sealed class SubscriptionCourseQuotaService(
         var subscription = await subscriptionRepository.GetActiveSubscriptionAsync(
             userId,
             cancellationToken);
-        var package = subscription?.Package
-            ?? await GetFreePackageAsync(cancellationToken);
 
-        if (currentCourseCount >= package.MaxCourses)
+        var maxCourses = subscription is null
+            ? (await GetFreePackageAsync(cancellationToken)).MaxCourses
+            : subscription.Package.MaxCourses;
+
+        if (currentActiveCourseCount >= maxCourses)
         {
             throw new CourseQuotaExceededException(
-                "Bạn đã hết quota tạo khóa học. Hãy nâng cấp gói để tạo thêm khóa học.");
+                "Bạn đã hết quota tham gia khóa học. Hãy nâng cấp gói để tham gia thêm khóa học.");
         }
     }
 
@@ -40,6 +42,6 @@ public sealed class SubscriptionCourseQuotaService(
     {
         return await packageRepository.GetFreePackageAsync(cancellationToken)
             ?? throw new BusinessValidationException(
-                "Khong tim thay goi Free de ap dung quota mac dinh.");
+                "Không tìm thấy gói Free để áp dụng quota mặc định.");
     }
 }

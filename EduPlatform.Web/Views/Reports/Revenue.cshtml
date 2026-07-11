@@ -10,6 +10,7 @@
     var maxMethodRevenue = Math.Max(report.RevenueByPaymentMethod.Select(point => point.Value).DefaultIfEmpty(0m).Max(), 1m);
     var totalByPackage = report.RevenueByPackage.Sum(p => p.Value);
     var totalByMethod = report.RevenueByPaymentMethod.Sum(p => p.Value);
+    var groupingLabel = GroupingLabel(Model.Grouping);
 }
 
 <div class="report-page">
@@ -27,7 +28,6 @@
                asp-route-grouping="@Model.Grouping">
                 Export Excel
             </a>
-            <a class="btn btn-primary" asp-controller="Admin" asp-action="Index">Về tổng quan</a>
         </div>
     </div>
 
@@ -62,7 +62,7 @@
         <article class="admin-metric-card">
             <span>Số kỳ có doanh thu</span>
             <strong>@(report.RevenueByPeriod.Count(point => point.Value > 0).ToString("N0", culture))</strong>
-            <small>Nhóm theo @Model.Grouping.ToString().ToLowerInvariant().</small>
+            <small>Nhóm theo @groupingLabel.ToLowerInvariant().</small>
         </article>
         <article class="admin-metric-card">
             <span>Gói phát sinh</span>
@@ -72,7 +72,7 @@
         <article class="admin-metric-card">
             <span>Phương thức</span>
             <strong>@report.RevenueByPaymentMethod.Count.ToString("N0", culture)</strong>
-            <small>VNPay, MoMo hoặc các phương thức khác.</small>
+            <small>Số phương thức thanh toán được ghi nhận.</small>
         </article>
     </section>
 
@@ -181,7 +181,7 @@
         <article class="content-panel admin-chart-card">
             <div class="admin-card-heading">
                 <div>
-                    <span>Theo payment</span>
+                    <span>Theo phương thức</span>
                     <h2>Doanh thu theo phương thức</h2>
                 </div>
             </div>
@@ -189,7 +189,7 @@
             {
                 <div class="admin-empty-mini">
                     <strong>Chưa có doanh thu theo phương thức.</strong>
-                    <span>Khi có thanh toán thành công, chart sẽ cập nhật.</span>
+                    <span>Biểu đồ sẽ cập nhật khi có thanh toán thành công.</span>
                 </div>
             }
             else
@@ -267,6 +267,17 @@
 </div>
 
 @functions {
+    private static string GroupingLabel(ReportPeriodGrouping grouping)
+    {
+        return grouping switch
+        {
+            ReportPeriodGrouping.Day => "Ngày",
+            ReportPeriodGrouping.Week => "Tuần",
+            ReportPeriodGrouping.Month => "Tháng",
+            _ => "Ngày"
+        };
+    }
+
     private static string Height(decimal value, decimal max)
     {
         if (max <= 0 || value <= 0)

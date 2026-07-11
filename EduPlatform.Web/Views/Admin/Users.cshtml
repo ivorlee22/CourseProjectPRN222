@@ -26,7 +26,7 @@
 
 </form>
 
-<div class="content-panel p-0 overflow-hidden">
+<div class="content-panel p-0 admin-users-panel">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead>
@@ -69,8 +69,8 @@
                         </td>
                         <td class="px-4 py-3 text-muted small">@user.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy")</td>
                         <td class="px-4 py-3 text-end">
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-light dropdown-toggle text-muted rounded-pill px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="dropdown admin-users-actions">
+                                <button class="btn btn-sm btn-light dropdown-toggle text-muted rounded-pill px-3" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
                                     Tùy chọn
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">

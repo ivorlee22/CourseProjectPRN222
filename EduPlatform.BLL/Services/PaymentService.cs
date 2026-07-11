@@ -12,12 +12,18 @@ public sealed class PaymentService(
     ISubscriptionRepository subscriptionRepository,
     IUserRepository userRepository,
     IVNPayService vnPayService,
-    IMoMoService moMoService,
     IEmailService emailService,
     ILogger<PaymentService> logger) : IPaymentService
 {
-    public async Task<PaymentUrlResponse> CreatePaymentAsync(CreatePaymentCommand command, CancellationToken cancellationToken = default)
+    public async Task<PaymentUrlResponse> CreatePaymentAsync(
+        CreatePaymentCommand command,
+        CancellationToken cancellationToken = default)
     {
+        if (command.Method != PaymentMethod.VNPay)
+        {
+            throw new NotSupportedException("EduPlatform currently supports VNPay payments only.");
+        }
+
         var package = await packageRepository.GetByIdAsync(command.PackageId, cancellationToken);
         if (package == null || !package.IsActive)
         {
@@ -28,6 +34,11 @@ public sealed class PaymentService(
         if (user == null)
         {
             throw new ArgumentException("User not found.");
+        }
+
+        if (user.Role != UserRole.Student)
+        {
+            throw new ArgumentException("Only students can buy packages.");
         }
 
         var internalReference = $"PAY-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString()[..6].ToUpperInvariant()}";
@@ -45,49 +56,39 @@ public sealed class PaymentService(
         paymentRepository.Add(payment);
         await paymentRepository.SaveChangesAsync(cancellationToken);
 
-        string paymentUrl;
-        if (command.Method == PaymentMethod.VNPay)
-        {
-            paymentUrl = vnPayService.CreatePaymentUrl(payment, command.ClientIpAddress);
-        }
-        else if (command.Method == PaymentMethod.MoMo)
-        {
-            paymentUrl = await moMoService.CreatePaymentUrlAsync(payment);
-        }
-        else
-        {
-            throw new NotSupportedException($"Payment method {command.Method} is not supported.");
-        }
-
+        var paymentUrl = vnPayService.CreatePaymentUrl(payment, command.ClientIpAddress);
         return new PaymentUrlResponse(paymentUrl);
     }
 
-    public async Task<bool> ProcessCallbackAsync(PaymentCallbackCommand command, CancellationToken cancellationToken = default)
+    public async Task<bool> ProcessCallbackAsync(
+        PaymentCallbackCommand command,
+        CancellationToken cancellationToken = default)
     {
-        var isSignatureValid = command.Method switch
+        if (command.Method != PaymentMethod.VNPay)
         {
-            PaymentMethod.VNPay => vnPayService.VerifySignature(command.QueryData),
-            PaymentMethod.MoMo => moMoService.VerifySignature(command.QueryData),
-            _ => false
-        };
+            logger.LogWarning("Unsupported payment callback method {Method}", command.Method);
+            return false;
+        }
 
-        if (!isSignatureValid)
+        if (!vnPayService.VerifySignature(command.QueryData))
         {
             logger.LogWarning("Invalid payment signature for method {Method}", command.Method);
             return false;
         }
 
-        var reference = command.Method == PaymentMethod.VNPay
-            ? (command.QueryData.TryGetValue("vnp_TxnRef", out var vnpRef) ? vnpRef : string.Empty)
-            : (command.QueryData.TryGetValue("orderId", out var orderId) ? orderId : string.Empty);
-            
-        var gatewayTxnId = command.Method == PaymentMethod.VNPay
-            ? (command.QueryData.TryGetValue("vnp_TransactionNo", out var vnpNo) ? vnpNo : string.Empty)
-            : (command.QueryData.TryGetValue("transId", out var transId) ? transId : string.Empty);
-            
-        var responseCode = command.Method == PaymentMethod.VNPay
-            ? (command.QueryData.TryGetValue("vnp_ResponseCode", out var vnpRc) ? vnpRc : string.Empty)
-            : (command.QueryData.TryGetValue("resultCode", out var momoRc) ? momoRc : string.Empty);
+        var reference = command.QueryData.TryGetValue("vnp_TxnRef", out var vnpRef)
+            ? vnpRef
+            : string.Empty;
+
+        var gatewayTxnId = command.QueryData.TryGetValue("vnp_TransactionNo", out var vnpNo)
+            && vnpNo != "0"
+            && !string.IsNullOrWhiteSpace(vnpNo)
+                ? vnpNo
+                : null;
+
+        var responseCode = command.QueryData.TryGetValue("vnp_ResponseCode", out var vnpRc)
+            ? vnpRc
+            : string.Empty;
 
         if (string.IsNullOrEmpty(reference))
         {
@@ -101,7 +102,6 @@ public sealed class PaymentService(
             return false;
         }
 
-        // Idempotency check
         if (payment.Status != PaymentStatus.Pending)
         {
             return true;
@@ -112,58 +112,11 @@ public sealed class PaymentService(
         payment.ProcessedAtUtc = DateTimeOffset.UtcNow;
         payment.RawResponseJson = System.Text.Json.JsonSerializer.Serialize(command.QueryData);
 
-        var isSuccess = command.Method == PaymentMethod.VNPay 
-            ? responseCode == "00" 
-            : responseCode == "0";
-
+        var isSuccess = responseCode == "00";
         if (isSuccess)
         {
             payment.Status = PaymentStatus.Succeeded;
-            
-            // Cancel existing active subscription if any and create new
-            var existingSubscription = await subscriptionRepository.GetActiveSubscriptionAsync(payment.UserId, cancellationToken);
-            if (existingSubscription != null)
-            {
-                existingSubscription.Status = SubscriptionStatus.Cancelled;
-                existingSubscription.CancelledAtUtc = DateTimeOffset.UtcNow;
-                subscriptionRepository.Update(existingSubscription);
-            }
-            
-            var package = payment.Package;
-            var subscription = new Subscription
-            {
-                UserId = payment.UserId,
-                PackageId = package.Id,
-                Status = SubscriptionStatus.Active,
-                StartsAtUtc = DateTimeOffset.UtcNow,
-                EndsAtUtc = DateTimeOffset.UtcNow.AddDays(package.DurationDays)
-            };
-            
-            await subscriptionRepository.AddAsync(subscription, cancellationToken);
-            
-            // Assign subscription to payment
-            payment.Subscription = subscription;
-
-            // Send confirmation email asynchronously (fire and forget or just await here depending on design)
-            // Assuming emailService throws on fail, we might want to catch it to not fail the transaction
-            try
-            {
-                var user = payment.User; // EF should load this or we query
-                if (user != null)
-                {
-                    await emailService.SendPaymentConfirmationAsync(
-                        user.Email,
-                        user.FullName,
-                        package.Name,
-                        package.Price,
-                        payment.InternalReference,
-                        cancellationToken);
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Failed to send payment confirmation email for payment {PaymentId}", payment.Id);
-            }
+            await ApplySubscriptionChangeAsync(payment, cancellationToken);
         }
         else
         {
@@ -173,32 +126,56 @@ public sealed class PaymentService(
         paymentRepository.Update(payment);
         await paymentRepository.SaveChangesAsync(cancellationToken);
 
+        if (isSuccess)
+        {
+            await SendConfirmationEmailAsync(payment, cancellationToken);
+        }
+
         return isSuccess;
     }
 
-    public async Task<List<PaymentSummaryDto>> GetUserPaymentsAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<List<PaymentSummaryDto>> GetUserPaymentsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
     {
         var payments = await paymentRepository.GetByUserIdAsync(userId, cancellationToken);
-        
-        return payments.Select(p => new PaymentSummaryDto(
-            p.Id,
-            p.PackageId,
-            p.Package.Name,
-            p.Amount,
-            p.Method,
-            p.Status,
-            p.InternalReference,
-            p.CreatedAtUtc,
-            p.ProcessedAtUtc
-        )).ToList();
+
+        return payments.Select(p =>
+        {
+            var status = p.Status;
+            if (status == PaymentStatus.Pending && DateTimeOffset.UtcNow - p.CreatedAtUtc > TimeSpan.FromMinutes(15))
+            {
+                status = PaymentStatus.Failed;
+            }
+
+            return new PaymentSummaryDto(
+                p.Id,
+                p.PackageId,
+                p.Package.Name,
+                p.Amount,
+                p.Method,
+                status,
+                p.InternalReference,
+                p.CreatedAtUtc,
+                p.ProcessedAtUtc);
+        }).ToList();
     }
 
-    public async Task<PaymentDetailDto?> GetPaymentDetailAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
+    public async Task<PaymentDetailDto?> GetPaymentDetailAsync(
+        Guid id,
+        Guid userId,
+        CancellationToken cancellationToken = default)
     {
         var payment = await paymentRepository.GetByIdAsync(id, cancellationToken);
         if (payment == null || payment.UserId != userId)
         {
             return null;
+        }
+
+        var status = payment.Status;
+        if (status == PaymentStatus.Pending && DateTimeOffset.UtcNow - payment.CreatedAtUtc > TimeSpan.FromMinutes(15))
+        {
+            status = PaymentStatus.Failed;
         }
 
         return new PaymentDetailDto(
@@ -208,11 +185,105 @@ public sealed class PaymentService(
             payment.Package.Name,
             payment.Amount,
             payment.Method,
-            payment.Status,
+            status,
             payment.InternalReference,
             payment.GatewayTransactionId,
             payment.CreatedAtUtc,
-            payment.ProcessedAtUtc
-        );
+            payment.ProcessedAtUtc);
+    }
+
+    private async Task ApplySubscriptionChangeAsync(
+        Payment payment,
+        CancellationToken cancellationToken)
+    {
+        var package = payment.Package;
+        var now = DateTimeOffset.UtcNow;
+        var existingSubscription = await subscriptionRepository.GetActiveSubscriptionAsync(
+            payment.UserId,
+            cancellationToken);
+
+        Subscription subscription;
+        if (existingSubscription is null)
+        {
+            subscription = CreateSubscription(
+                payment.UserId,
+                package,
+                SubscriptionStatus.Active,
+                now,
+                now.AddDays(package.DurationDays));
+        }
+        else if (package.Price > GetSubscriptionPrice(existingSubscription))
+        {
+            existingSubscription.Status = SubscriptionStatus.Expired;
+            existingSubscription.EndsAtUtc = now;
+            subscriptionRepository.Update(existingSubscription);
+
+            subscription = CreateSubscription(
+                payment.UserId,
+                package,
+                SubscriptionStatus.Active,
+                now,
+                now.AddDays(package.DurationDays));
+        }
+        else
+        {
+            var startsAtUtc = existingSubscription.EndsAtUtc;
+            subscription = CreateSubscription(
+                payment.UserId,
+                package,
+                SubscriptionStatus.Active,
+                startsAtUtc,
+                startsAtUtc.AddDays(package.DurationDays));
+        }
+
+        await subscriptionRepository.AddAsync(subscription, cancellationToken);
+        payment.Subscription = subscription;
+    }
+
+    private async Task SendConfirmationEmailAsync(
+        Payment payment,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var user = payment.User;
+            if (user != null)
+            {
+                await emailService.SendPaymentConfirmationAsync(
+                    user.Email,
+                    user.FullName,
+                    payment.Package.Name,
+                    payment.Package.Price,
+                    payment.InternalReference,
+                    cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to send payment confirmation email for payment {PaymentId}", payment.Id);
+        }
+    }
+
+    private static Subscription CreateSubscription(
+        Guid userId,
+        Package package,
+        SubscriptionStatus status,
+        DateTimeOffset startsAtUtc,
+        DateTimeOffset endsAtUtc)
+    {
+        return new Subscription
+        {
+            UserId = userId,
+            PackageId = package.Id,
+            Package = package,
+            Status = status,
+            StartsAtUtc = startsAtUtc,
+            EndsAtUtc = endsAtUtc
+        };
+    }
+
+    private static decimal GetSubscriptionPrice(Subscription subscription)
+    {
+        return subscription.Package.Price;
     }
 }
