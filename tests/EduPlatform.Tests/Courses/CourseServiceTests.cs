@@ -437,7 +437,37 @@ public sealed class CourseServiceTests
     }
 
     [TestMethod]
-    public async Task CreateAsync_CallsQuotaService_ToVerifyIntegration()
+    public async Task RespondToInvitationAsync_Accept_ChecksStudentCourseQuota()
+    {
+        var course = CreateCourse();
+        _repository.Courses.Add(course);
+        _repository.Enrollments.Add(new CourseEnrollment
+        {
+            CourseId = course.Id,
+            UserId = StudentId,
+            Status = DalEnrollmentStatus.Pending,
+            InvitedById = OwnerId
+        });
+        _repository.Enrollments.Add(new CourseEnrollment
+        {
+            CourseId = Guid.NewGuid(),
+            UserId = StudentId,
+            Status = DalEnrollmentStatus.Active
+        });
+
+        await _service.RespondToInvitationAsync(
+            course.Id,
+            accept: true,
+            new ActorContext(StudentId, BllUserRole.Student),
+            CancellationToken.None);
+
+        Assert.AreEqual(1, _quotaService.EnsureCanJoinCourseCallCount);
+        Assert.AreEqual(StudentId, _quotaService.LastUserId);
+        Assert.AreEqual(1, _quotaService.LastCurrentCourseCount);
+    }
+
+    [TestMethod]
+    public async Task CreateAsync_DoesNotUseStudentPackageQuota()
     {
         var adminActor = new ActorContext(Guid.NewGuid(), BllUserRole.Admin);
         var command = new CreateCourseCommand(
@@ -448,12 +478,31 @@ public sealed class CourseServiceTests
             EnrollmentPassword: null,
             OwnerId);
 
-        _repository.Courses.Add(new Course { OwnerId = OwnerId, Title = "C# 1", Description = "Desc", Type = CourseType.Public, IsVisible = true });
+        await _service.CreateAsync(command, adminActor, CancellationToken.None);
 
-        var id = await _service.CreateAsync(command, adminActor, CancellationToken.None);
+        Assert.AreEqual(0, _quotaService.EnsureCanJoinCourseCallCount);
+    }
 
-        Assert.AreEqual(1, _quotaService.EnsureCanCreateCourseCallCount);
-        Assert.AreEqual(OwnerId, _quotaService.LastUserId);
+    [TestMethod]
+    public async Task EnrollAsync_PublicCourse_ChecksStudentCourseQuota()
+    {
+        var course = CreateCourse();
+        _repository.Courses.Add(course);
+        _repository.Enrollments.Add(new CourseEnrollment
+        {
+            CourseId = Guid.NewGuid(),
+            UserId = StudentId,
+            Status = DalEnrollmentStatus.Active
+        });
+
+        await _service.EnrollAsync(
+            course.Id,
+            null,
+            new ActorContext(StudentId, BllUserRole.Student),
+            CancellationToken.None);
+
+        Assert.AreEqual(1, _quotaService.EnsureCanJoinCourseCallCount);
+        Assert.AreEqual(StudentId, _quotaService.LastUserId);
         Assert.AreEqual(1, _quotaService.LastCurrentCourseCount);
     }
 
@@ -534,6 +583,12 @@ public sealed class CourseServiceTests
         public Task<int> CountByOwnerAsync(Guid ownerId, CancellationToken cancellationToken)
         {
             return Task.FromResult(Courses.Count(x => x.OwnerId == ownerId));
+        }
+
+        public Task<int> CountActiveEnrollmentsByUserAsync(Guid userId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(Enrollments.Count(x =>
+                x.UserId == userId && x.Status == DalEnrollmentStatus.Active));
         }
 
         public Task<bool> UserExistsAsync(Guid userId, CancellationToken cancellationToken)
@@ -633,13 +688,13 @@ public sealed class CourseServiceTests
 
     private sealed class FakeCourseQuotaService : ICourseQuotaService
     {
-        public int EnsureCanCreateCourseCallCount { get; private set; }
+        public int EnsureCanJoinCourseCallCount { get; private set; }
         public Guid LastUserId { get; private set; }
         public int LastCurrentCourseCount { get; private set; }
 
-        public Task EnsureCanCreateCourseAsync(Guid userId, int currentCourseCount, CancellationToken cancellationToken)
+        public Task EnsureCanJoinCourseAsync(Guid userId, int currentCourseCount, CancellationToken cancellationToken)
         {
-            EnsureCanCreateCourseCallCount++;
+            EnsureCanJoinCourseCallCount++;
             LastUserId = userId;
             LastCurrentCourseCount = currentCourseCount;
             return Task.CompletedTask;

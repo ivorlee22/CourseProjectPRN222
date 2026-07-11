@@ -22,7 +22,6 @@
             <p>Theo dõi gói hiện tại, quota chat hôm nay, số khóa đang học và lịch sử hỏi tài liệu.</p>
         </div>
         <div class="admin-dashboard__actions">
-            <a class="btn btn-outline-primary" asp-controller="Course" asp-action="Mine">Khóa học của tôi</a>
             <a class="btn btn-primary" asp-controller="Subscription" asp-action="Index">Gói của tôi</a>
         </div>
     </div>
@@ -34,14 +33,14 @@
             <small>Số enrollment đang active.</small>
         </article>
         <article class="admin-metric-card">
-            <span>Chat sessions</span>
+            <span>Phiên chat</span>
             <strong>@report.ChatSessions.ToString("N0", culture)</strong>
             <small>Tổng cuộc trò chuyện đã tạo.</small>
         </article>
         <article class="admin-metric-card">
             <span>Lượt hỏi</span>
             <strong>@report.ChatMessages.ToString("N0", culture)</strong>
-            <small>Tổng user messages đã gửi.</small>
+            <small>Tổng tin nhắn người dùng đã gửi.</small>
         </article>
         <article class="admin-metric-card">
             <span>Còn hôm nay</span>
@@ -106,7 +105,7 @@
     <section class="content-panel student-subscription-panel">
         <div class="admin-card-heading">
             <div>
-                <span>Subscription</span>
+                <span>Gói học tập</span>
                 <h2>Gói hiện tại</h2>
             </div>
         </div>
@@ -114,7 +113,7 @@
         @if (subscription is null)
         {
             <div class="admin-empty-mini">
-                <strong>Không có subscription active.</strong>
+                <strong>Không có gói đang hiệu lực.</strong>
                 <span>Vào trang Gói cước để mua hoặc gia hạn gói học tập.</span>
             </div>
         }

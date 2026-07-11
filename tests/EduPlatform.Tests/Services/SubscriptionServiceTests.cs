@@ -61,6 +61,7 @@ public sealed class SubscriptionServiceTests
         Assert.AreEqual(id, sub.Id);
         Assert.AreEqual(UserId, sub.UserId);
         Assert.AreEqual(packageId, sub.PackageId);
+        Assert.AreEqual("Plus", sub.Package.Name);
         Assert.AreEqual(SubscriptionStatus.Pending, sub.Status);
         Assert.AreEqual(_fixedTime, sub.StartsAtUtc);
         Assert.AreEqual(_fixedTime.AddDays(30), sub.EndsAtUtc);
@@ -102,7 +103,7 @@ public sealed class SubscriptionServiceTests
     }
 
     [TestMethod]
-    public async Task CancelSubscriptionAsync_Valid_CancelsSubscription()
+    public async Task CancelSubscriptionAsync_ActiveSubscription_ThrowsValidation()
     {
         var subId = Guid.NewGuid();
         var sub = new Subscription 
@@ -110,6 +111,25 @@ public sealed class SubscriptionServiceTests
             Id = subId, 
             UserId = UserId, 
             Status = SubscriptionStatus.Active 
+        };
+        _subscriptionRepository.Subscriptions.Add(sub);
+
+        await Assert.ThrowsExactlyAsync<BusinessValidationException>(
+            async () => await _service.CancelSubscriptionAsync(subId, UserId, CancellationToken.None));
+
+        Assert.AreEqual(SubscriptionStatus.Active, sub.Status);
+        Assert.AreEqual(0, _subscriptionRepository.UpdateCallCount);
+    }
+
+    [TestMethod]
+    public async Task CancelSubscriptionAsync_PendingSubscription_CancelsSubscription()
+    {
+        var subId = Guid.NewGuid();
+        var sub = new Subscription
+        {
+            Id = subId,
+            UserId = UserId,
+            Status = SubscriptionStatus.Pending
         };
         _subscriptionRepository.Subscriptions.Add(sub);
 

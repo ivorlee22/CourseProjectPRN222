@@ -8,17 +8,16 @@
         <p class="section-label">Gói học tập</p>
         <h1>Gói của tôi</h1>
         <p>
-            Theo dõi gói đang dùng, lịch sử đăng ký và thao tác gia hạn hoặc hủy gói khi cần.
+            Theo dõi gói đang dùng, quyền lợi còn hiệu lực và lịch sử các lần đăng ký.
         </p>
     </div>
-    <a class="btn btn-outline-primary" asp-controller="Package" asp-action="Index">Xem bảng giá</a>
 </section>
 
 @if (Model.CurrentSubscription is null)
 {
     <section class="empty-state">
         <h2>Chưa có gói đang hiệu lực</h2>
-        <p>Chọn một gói phù hợp để mở quota khóa học và lượt chat theo ngày.</p>
+        <p>Chọn một gói phù hợp để mở quota khóa học được tham gia và lượt chat theo ngày.</p>
         <a class="btn btn-primary" asp-controller="Package" asp-action="Index">Chọn gói</a>
     </section>
 }
@@ -26,14 +25,25 @@ else
 {
     var current = Model.CurrentSubscription;
     <section class="subscription-current content-panel">
-        <div>
-            <span class="subscription-kicker">Gói hiện tại</span>
+        <div class="subscription-current__summary">
+            <div class="subscription-current__status">
+                <span class="subscription-kicker">Gói hiện tại</span>
+                <span class="badge text-bg-success">Đang hiệu lực</span>
+            </div>
             <h2>@current.PackageName</h2>
-            <p>Còn hiệu lực đến @current.EndsAtUtc.ToLocalTime().ToString("dd/MM/yyyy")</p>
+            <p>Quyền lợi của bạn còn hiệu lực đến @current.EndsAtUtc.ToLocalTime().ToString("dd/MM/yyyy").</p>
         </div>
-        <dl>
+
+        <div class="subscription-actions">
+            <form asp-action="Renew" method="post">
+                <input type="hidden" name="packageId" value="@current.PackageId" />
+                <button type="submit" class="btn btn-primary">Gia hạn</button>
+            </form>
+        </div>
+
+        <dl class="subscription-metrics">
             <div>
-                <dt>Khóa học tối đa</dt>
+                <dt>Khóa học được tham gia</dt>
                 <dd>@current.MaxCourses</dd>
             </div>
             <div>
@@ -44,17 +54,11 @@ else
                 <dt>Bắt đầu</dt>
                 <dd>@current.StartsAtUtc.ToLocalTime().ToString("dd/MM/yyyy")</dd>
             </div>
+            <div>
+                <dt>Kết thúc</dt>
+                <dd>@current.EndsAtUtc.ToLocalTime().ToString("dd/MM/yyyy")</dd>
+            </div>
         </dl>
-        <div class="subscription-actions">
-            <form asp-action="Renew" method="post">
-                <input type="hidden" name="packageId" value="@current.PackageId" />
-                <button type="submit" class="btn btn-primary">Gia hạn</button>
-            </form>
-            <form asp-action="Cancel" method="post">
-                <input type="hidden" name="subscriptionId" value="@current.Id" />
-                <button type="submit" class="btn btn-outline-danger">Hủy gói</button>
-            </form>
-        </div>
     </section>
 }
 
@@ -83,7 +87,6 @@ else
                         <th scope="col">Trạng thái</th>
                         <th scope="col">Bắt đầu</th>
                         <th scope="col">Kết thúc</th>
-                        <th scope="col" class="text-end">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -93,7 +96,7 @@ else
                             <td>
                                 <strong>@item.Subscription.PackageName</strong>
                                 <div class="text-secondary small">
-                                    @item.Subscription.MaxCourses khóa học, @item.Subscription.DailyChats lượt chat mỗi ngày
+                                    @item.Subscription.MaxCourses khóa học được tham gia, @item.Subscription.DailyChats lượt chat mỗi ngày
                                 </div>
                             </td>
                             <td>
@@ -101,24 +104,6 @@ else
                             </td>
                             <td>@item.Subscription.StartsAtUtc.ToLocalTime().ToString("dd/MM/yyyy")</td>
                             <td>@item.Subscription.EndsAtUtc.ToLocalTime().ToString("dd/MM/yyyy")</td>
-                            <td>
-                                <div class="subscription-row-actions">
-                                    @if (item.CanRenew)
-                                    {
-                                        <form asp-action="Renew" method="post">
-                                            <input type="hidden" name="packageId" value="@item.Subscription.PackageId" />
-                                            <button type="submit" class="btn btn-sm btn-outline-primary">Gia hạn</button>
-                                        </form>
-                                    }
-                                    @if (item.CanCancel)
-                                    {
-                                        <form asp-action="Cancel" method="post">
-                                            <input type="hidden" name="subscriptionId" value="@item.Subscription.Id" />
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">Hủy</button>
-                                        </form>
-                                    }
-                                </div>
-                            </td>
                         </tr>
                     }
                 </tbody>

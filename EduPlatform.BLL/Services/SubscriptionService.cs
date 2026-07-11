@@ -12,31 +12,35 @@ public sealed class SubscriptionService(
     IPackageRepository packageRepository,
     TimeProvider timeProvider) : ISubscriptionService
 {
-    public async Task<SubscriptionSummaryDto?> GetActiveSubscriptionAsync(Guid userId, CancellationToken cancellationToken)
+    public async Task<SubscriptionSummaryDto?> GetActiveSubscriptionAsync(
+        Guid userId,
+        CancellationToken cancellationToken)
     {
         var subscription = await subscriptionRepository.GetActiveSubscriptionAsync(userId, cancellationToken);
-        if (subscription is null)
-        {
-            return null;
-        }
-
-        return Map(subscription);
+        return subscription is null ? null : Map(subscription);
     }
 
-    public async Task<IReadOnlyList<SubscriptionSummaryDto>> GetUserSubscriptionsAsync(Guid userId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<SubscriptionSummaryDto>> GetUserSubscriptionsAsync(
+        Guid userId,
+        CancellationToken cancellationToken)
     {
         var subscriptions = await subscriptionRepository.GetByUserIdAsync(userId, cancellationToken);
         return subscriptions.Select(Map).ToArray();
     }
 
-    public async Task<PagedResult<SubscriptionAdminDto>> GetAllSubscriptionsPagedAsync(int page, int pageSize, CancellationToken cancellationToken)
+    public async Task<PagedResult<SubscriptionAdminDto>> GetAllSubscriptionsPagedAsync(
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken)
     {
         var (items, totalCount) = await subscriptionRepository.GetAllPagedAsync(page, pageSize, cancellationToken);
         var dtos = items.Select(MapAdmin).ToArray();
         return new PagedResult<SubscriptionAdminDto>(dtos, page, pageSize, totalCount);
     }
 
-    public async Task<Guid> CreateSubscriptionAsync(CreateSubscriptionCommand command, CancellationToken cancellationToken)
+    public async Task<Guid> CreateSubscriptionAsync(
+        CreateSubscriptionCommand command,
+        CancellationToken cancellationToken)
     {
         var package = await packageRepository.GetByIdAsync(command.PackageId, cancellationToken)
             ?? throw new ResourceNotFoundException("Không tìm thấy gói cước.");
@@ -47,15 +51,12 @@ public sealed class SubscriptionService(
         }
 
         var now = timeProvider.GetUtcNow();
-        
-        var subscription = new Subscription
-        {
-            UserId = command.UserId,
-            PackageId = package.Id,
-            Status = SubscriptionStatus.Pending,
-            StartsAtUtc = now,
-            EndsAtUtc = now.AddDays(package.DurationDays) // Tentative, usually confirmed upon payment
-        };
+        var subscription = CreateSubscription(
+            command.UserId,
+            package,
+            SubscriptionStatus.Pending,
+            now,
+            now.AddDays(package.DurationDays));
 
         await subscriptionRepository.AddAsync(subscription, cancellationToken);
         await subscriptionRepository.SaveChangesAsync(cancellationToken);
@@ -63,7 +64,10 @@ public sealed class SubscriptionService(
         return subscription.Id;
     }
 
-    public async Task CancelSubscriptionAsync(Guid subscriptionId, Guid userId, CancellationToken cancellationToken)
+    public async Task CancelSubscriptionAsync(
+        Guid subscriptionId,
+        Guid userId,
+        CancellationToken cancellationToken)
     {
         var subscription = await subscriptionRepository.GetByIdAsync(subscriptionId, cancellationToken)
             ?? throw new ResourceNotFoundException("Không tìm thấy thông tin đăng ký.");
@@ -71,6 +75,11 @@ public sealed class SubscriptionService(
         if (subscription.UserId != userId)
         {
             throw new ForbiddenOperationException("Bạn không có quyền quản lý gói đăng ký này.");
+        }
+
+        if (subscription.Status == SubscriptionStatus.Active)
+        {
+            throw new BusinessValidationException("Gói đã thanh toán sẽ tự hết hạn, không cần hủy sớm.");
         }
 
         if (subscription.Status == SubscriptionStatus.Cancelled)
@@ -85,12 +94,36 @@ public sealed class SubscriptionService(
         await subscriptionRepository.SaveChangesAsync(cancellationToken);
     }
 
+    private static Subscription CreateSubscription(
+        Guid userId,
+        Package package,
+        SubscriptionStatus status,
+        DateTimeOffset startsAtUtc,
+        DateTimeOffset endsAtUtc)
+    {
+        return new Subscription
+        {
+            UserId = userId,
+            PackageId = package.Id,
+            Package = package,
+            Status = status,
+            StartsAtUtc = startsAtUtc,
+            EndsAtUtc = endsAtUtc
+        };
+    }
+
     private static SubscriptionSummaryDto Map(Subscription subscription)
     {
         var status = subscription.Status;
-        if (status == SubscriptionStatus.Pending && DateTimeOffset.UtcNow - subscription.CreatedAtUtc > TimeSpan.FromMinutes(15))
+        var statusText = status == SubscriptionStatus.Active
+            && subscription.StartsAtUtc > DateTimeOffset.UtcNow
+                ? "Scheduled"
+                : status.ToString();
+
+        if (status == SubscriptionStatus.Pending
+            && DateTimeOffset.UtcNow - subscription.CreatedAtUtc > TimeSpan.FromMinutes(15))
         {
-            status = SubscriptionStatus.Expired;
+            statusText = SubscriptionStatus.Expired.ToString();
         }
 
         return new SubscriptionSummaryDto(
@@ -99,7 +132,7 @@ public sealed class SubscriptionService(
             subscription.Package.Name,
             subscription.Package.MaxCourses,
             subscription.Package.DailyChats,
-            status.ToString(),
+            statusText,
             subscription.StartsAtUtc,
             subscription.EndsAtUtc);
     }
@@ -107,9 +140,15 @@ public sealed class SubscriptionService(
     private static SubscriptionAdminDto MapAdmin(Subscription subscription)
     {
         var status = subscription.Status;
-        if (status == SubscriptionStatus.Pending && DateTimeOffset.UtcNow - subscription.CreatedAtUtc > TimeSpan.FromMinutes(15))
+        var statusText = status == SubscriptionStatus.Active
+            && subscription.StartsAtUtc > DateTimeOffset.UtcNow
+                ? "Scheduled"
+                : status.ToString();
+
+        if (status == SubscriptionStatus.Pending
+            && DateTimeOffset.UtcNow - subscription.CreatedAtUtc > TimeSpan.FromMinutes(15))
         {
-            status = SubscriptionStatus.Expired;
+            statusText = SubscriptionStatus.Expired.ToString();
         }
 
         return new SubscriptionAdminDto(
@@ -117,7 +156,7 @@ public sealed class SubscriptionService(
             subscription.User.Email ?? string.Empty,
             subscription.User.FullName,
             subscription.Package.Name,
-            status.ToString(),
+            statusText,
             subscription.StartsAtUtc,
             subscription.EndsAtUtc,
             subscription.CreatedAtUtc);

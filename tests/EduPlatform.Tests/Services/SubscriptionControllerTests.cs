@@ -31,6 +31,8 @@ public sealed class SubscriptionControllerTests
         var model = Assert.IsInstanceOfType<SubscriptionManagementViewModel>(view.Model);
         Assert.AreEqual(currentSubscription.Id, model.CurrentSubscription?.Id);
         Assert.HasCount(2, model.History);
+        Assert.IsTrue(model.History[0].CanRenew);
+        Assert.IsFalse(model.History[0].CanCancel);
         Assert.AreEqual(1, _subscriptionService.GetActiveSubscriptionCallCount);
         Assert.AreEqual(1, _subscriptionService.GetUserSubscriptionsCallCount);
         Assert.AreEqual(UserId, _subscriptionService.LastUserId);
@@ -49,21 +51,22 @@ public sealed class SubscriptionControllerTests
         Assert.IsNull(model.CurrentSubscription);
         Assert.HasCount(1, model.History);
         Assert.AreEqual("Hết hạn", model.History[0].StatusLabel);
+        Assert.IsTrue(model.History[0].CanRenew);
+        Assert.IsFalse(model.History[0].CanCancel);
     }
 
     [TestMethod]
-    public async Task Renew_CreatesPendingSubscriptionForStudentPackage()
+    public void Renew_RedirectsToPaymentCheckout()
     {
         using var controller = CreateController();
 
-        var result = await controller.Renew(PackageId, CancellationToken.None);
+        var result = controller.Renew(PackageId);
 
         var redirect = Assert.IsInstanceOfType<RedirectToActionResult>(result);
-        Assert.AreEqual(nameof(SubscriptionController.Index), redirect.ActionName);
-        Assert.AreEqual(1, _subscriptionService.CreateSubscriptionCallCount);
-        Assert.AreEqual(UserId, _subscriptionService.LastCreateCommand?.UserId);
-        Assert.AreEqual(PackageId, _subscriptionService.LastCreateCommand?.PackageId);
-        Assert.IsTrue(controller.TempData.ContainsKey("SuccessMessage"));
+        Assert.AreEqual("Checkout", redirect.ActionName);
+        Assert.AreEqual("Payment", redirect.ControllerName);
+        Assert.AreEqual(PackageId, redirect.RouteValues?["packageId"]);
+        Assert.AreEqual(0, _subscriptionService.CreateSubscriptionCallCount);
     }
 
     [TestMethod]

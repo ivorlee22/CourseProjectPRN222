@@ -2,6 +2,15 @@
 
 @{
     ViewData["Title"] = "Thanh toán gói " + Model.Package.Name;
+    var current = Model.CurrentSubscription;
+    var hasCurrent = current is not null;
+    var isUpgrade = hasCurrent
+        && (Model.Package.MaxCourses > current!.MaxCourses || Model.Package.DailyChats > current.DailyChats);
+    var effectText = !hasCurrent
+        ? "Gói sẽ hiệu lực ngay sau khi VNPay xác nhận thanh toán."
+        : isUpgrade
+            ? "Đây là nâng cấp. Gói mới sẽ thay thế gói hiện tại ngay sau khi thanh toán thành công."
+            : "Gói này sẽ được lên lịch bắt đầu sau khi gói hiện tại hết hạn.";
 }
 
 <nav aria-label="Đường dẫn" class="mb-4">
@@ -20,6 +29,21 @@
                 <p class="mb-0">Xác nhận gói học tập và tiếp tục qua cổng thanh toán VNPay.</p>
             </div>
         </section>
+
+        @if (hasCurrent)
+        {
+            <section class="alert alert-info" role="status">
+                Bạn đang dùng gói <strong>@current!.PackageName</strong> đến
+                <strong>@current.EndsAtUtc.ToLocalTime().ToString("dd/MM/yyyy")</strong>.
+                @effectText
+            </section>
+        }
+        else
+        {
+            <section class="alert alert-info" role="status">
+                @effectText
+            </section>
+        }
 
         <section class="checkout-methods" aria-label="Phương thức thanh toán">
             <form asp-action="CreatePayment" method="post" class="payment-method-card payment-method-card--vnpay">
@@ -47,10 +71,10 @@
             <span>/ @Model.Package.DurationDays ngày</span>
         </div>
         <ul class="pricing-feature-list">
-            <li>@Model.Package.MaxCourses khóa học</li>
+            <li>@Model.Package.MaxCourses khóa học được tham gia</li>
             <li>@Model.Package.DailyChats lượt chat mỗi ngày</li>
             <li>@Model.Package.DurationDays ngày sử dụng</li>
         </ul>
-        <a class="btn btn-outline-secondary w-100" asp-controller="Package" asp-action="Index">Đổi gói khác</a>
+        <a class="btn btn-outline-secondary w-100" asp-controller="Package" asp-action="Index">Chọn gói khác</a>
     </aside>
 </section>
