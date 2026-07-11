@@ -1,4 +1,3 @@
-@using EduPlatform.DAL.Entities
 @model PaymentCheckoutViewModel
 
 @{
@@ -17,15 +16,15 @@
         <section class="page-heading checkout-heading">
             <div>
                 <p class="section-label">Thanh toán</p>
-                <h1>Chọn phương thức thanh toán</h1>
-                <p class="mb-0">Xác nhận gói học tập và chọn cổng thanh toán phù hợp.</p>
+                <h1>Thanh toán bằng VNPay</h1>
+                <p class="mb-0">Xác nhận gói học tập và tiếp tục qua cổng thanh toán VNPay.</p>
             </div>
         </section>
 
         <section class="checkout-methods" aria-label="Phương thức thanh toán">
             <form asp-action="CreatePayment" method="post" class="payment-method-card payment-method-card--vnpay">
                 <input type="hidden" name="packageId" value="@Model.Package.Id" />
-                <input type="hidden" name="method" value="@PaymentMethod.VNPay" />
+                <input type="hidden" name="method" value="VNPay" />
                 <div class="payment-method-card__body">
                     <div class="payment-logo-shell">
                         <img src="~/img/payments/vnpay.png" alt="VNPay" asp-append-version="true" />
@@ -35,22 +34,7 @@
                         <p>Thanh toán qua thẻ ATM, Internet Banking hoặc ví liên kết VNPay.</p>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary">Thanh toán bằng VNPay</button>
-            </form>
-
-            <form asp-action="CreatePayment" method="post" class="payment-method-card payment-method-card--momo">
-                <input type="hidden" name="packageId" value="@Model.Package.Id" />
-                <input type="hidden" name="method" value="@PaymentMethod.MoMo" />
-                <div class="payment-method-card__body">
-                    <div class="payment-logo-shell">
-                        <img src="~/img/payments/momo.png" alt="MoMo" asp-append-version="true" />
-                    </div>
-                    <div>
-                        <h2>MoMo</h2>
-                        <p>Thanh toán nhanh bằng ví MoMo sandbox khi cổng thanh toán đã được cấu hình.</p>
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-outline-danger">Thanh toán bằng MoMo</button>
+                <button type="submit" class="btn btn-primary">Tiếp tục với VNPay</button>
             </form>
         </section>
     </div>

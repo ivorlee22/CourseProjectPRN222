@@ -72,6 +72,11 @@ dotnet user-secrets --project EduPlatform.Web set "ConnectionStrings:MigrationCo
 dotnet user-secrets --project EduPlatform.Web set "Email:FromAddress" "<GMAIL_ADDRESS>"
 dotnet user-secrets --project EduPlatform.Web set "Email:Username" "<GMAIL_ADDRESS>"
 dotnet user-secrets --project EduPlatform.Web set "Email:AppPassword" "<GOOGLE_APP_PASSWORD>"
+dotnet user-secrets --project EduPlatform.Web set "VNPay:TmnCode" "<VNPAY_TMN_CODE>"
+dotnet user-secrets --project EduPlatform.Web set "VNPay:HashSecret" "<VNPAY_HASH_SECRET>"
+dotnet user-secrets --project EduPlatform.Web set "VNPay:PaymentUrl" "<VNPAY_PAYMENT_URL>"
+dotnet user-secrets --project EduPlatform.Web set "VNPay:ReturnUrl" "<VNPAY_RETURN_URL>"
+dotnet user-secrets --project EduPlatform.Web set "VNPay:IpnUrl" "<VNPAY_IPN_URL>"
 ```
 
 Environment-variable equivalents:
@@ -82,7 +87,14 @@ ConnectionStrings__MigrationConnection=
 Email__FromAddress=
 Email__Username=
 Email__AppPassword=
+VNPay__TmnCode=
+VNPay__HashSecret=
+VNPay__PaymentUrl=
+VNPay__ReturnUrl=
+VNPay__IpnUrl=
 ```
+
+Payments use VNPay only. The legacy `PaymentMethod.MoMo` enum value is kept for database compatibility, but MoMo is not exposed or processed by the application.
 
 Npgsql connection format:
 

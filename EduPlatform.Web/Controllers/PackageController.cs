@@ -49,9 +49,9 @@ public sealed class PackageController(
         }
 
         return RedirectToAction(
-            "CreatePayment",
+            "Checkout",
             "Payment",
-            new { packageId, method = PaymentMethod.VNPay });
+            new { packageId });
     }
 
     private async Task<SubscriptionSummaryDto?> GetCurrentSubscriptionAsync(
@@ -108,13 +108,22 @@ public sealed class PackageController(
         };
     }
 
+    private static bool IsFreePackage(PackageDto package)
+    {
+        return package.Price <= 0;
+    }
+
     private static IReadOnlyList<string> GetHighlights(PackageDto package)
     {
+        var usageText = IsFreePackage(package)
+            ? "Sử dụng không giới hạn thời gian"
+            : $"{package.DurationDays} ngày sử dụng";
+
         return
         [
             $"{package.MaxCourses} khóa học",
             $"{package.DailyChats} lượt chat mỗi ngày",
-            $"{package.DurationDays} ngày sử dụng"
+            usageText
         ];
     }
 }

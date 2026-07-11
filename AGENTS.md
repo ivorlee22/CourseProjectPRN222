@@ -63,7 +63,7 @@ Use `AppDbContext` transactions directly. Do not introduce Unit of Work or a gen
 - Use the Neon pooled endpoint for runtime and direct endpoint for migrations.
 - Do not run migrations automatically during production startup.
 - Validate anti-forgery tokens on state-changing browser actions.
-- Verify VNPay and MoMo signatures and process callbacks idempotently.
+- Verify VNPay signatures and process callbacks idempotently.
 - Never activate a subscription twice for the same payment.
 - Email failure must not invalidate an already confirmed payment; record and retry it separately.
 
@@ -102,37 +102,28 @@ Before handoff:
 - Record unfinished work, missing credentials, migration needs, and technical debt.
 - Never remove previous log entries; add a new dated entry at the top of the activity log.
 
-## Nguyên Handoff: Course Quota Integration
+## Nguyên Scope: Course Quota Integration
 
-`DeferredCourseQuotaService` is a temporary no-op placeholder. It allows every course creation request and must not remain as the production quota implementation.
+`SubscriptionCourseQuotaService` is the production course quota implementation behind `EduPlatform.BLL.Interfaces.ICourseQuotaService`.
 
-When implementing Package and Subscription tasks, Nguyên or the assigned agent must:
+When maintaining Package and Subscription tasks, Nguyên or the assigned agent must:
 
-1. Create `SubscriptionCourseQuotaService` under `EduPlatform.BLL/Services/`.
-2. Implement the existing `EduPlatform.BLL.Interfaces.ICourseQuotaService` contract.
-3. Resolve the user's active subscription and associated package.
+1. Keep quota enforcement behind `ICourseQuotaService`.
+2. Resolve the user's active subscription and associated package.
+3. Fall back to the Free package limit when no active subscription exists.
 4. Read `Package.MaxCourses`.
 5. Compare that limit with `currentCourseCount` supplied by `CourseService`.
 6. Throw `CourseQuotaExceededException` when the limit is reached.
-7. Decide and document the fallback when no active subscription exists. The expected default is the Free package limit.
-8. Replace this DI registration:
-
-```csharp
-services.AddScoped<ICourseQuotaService, DeferredCourseQuotaService>();
-```
-
-with:
+7. Preserve Admin bypass behavior.
+8. Keep production DI registered as:
 
 ```csharp
 services.AddScoped<ICourseQuotaService, SubscriptionCourseQuotaService>();
 ```
 
-9. Delete `DeferredCourseQuotaService.cs` after the real implementation is registered.
-10. Add tests for active subscription, expired subscription, missing subscription, under-limit, exact-limit, Admin bypass, and concurrent course creation.
+9. Keep tests for active subscription, expired subscription, missing subscription, under-limit, exact-limit, Admin bypass, and concurrent course creation.
 
 Do not modify `CourseService` to query subscription tables directly. The quota integration must remain behind `ICourseQuotaService`.
-
-The quota handoff is complete only when no production registration references `DeferredCourseQuotaService` and Course creation rejects over-limit requests.
 
 ## Definition of Done
 

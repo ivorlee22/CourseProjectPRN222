@@ -47,7 +47,7 @@ public sealed class CourseService(
             }
         }
         
-        var visibleOnly = !query.IncludeHidden || actor is null || !actor.IsAdmin;
+        var visibleOnly = !query.IncludeHidden && (actor is null || !actor.IsAdmin);
 
         if (query.MineOnly)
         {
@@ -111,7 +111,7 @@ public sealed class CourseService(
             Title = command.Title.Trim(),
             Description = command.Description.Trim(),
             Type = ToDal(command.Type),
-            IsVisible = command.IsVisible,
+            IsVisible = command.Type == BllCourseType.Public,
             EnrollmentPasswordHash = HashPassword(command.Type, command.EnrollmentPassword)
         };
 
@@ -135,7 +135,7 @@ public sealed class CourseService(
         course.Title = command.Title.Trim();
         course.Description = command.Description.Trim();
         course.Type = ToDal(command.Type);
-        course.IsVisible = command.IsVisible;
+        course.IsVisible = command.Type == BllCourseType.Public;
 
         if (actor.IsAdmin && command.OwnerId.HasValue)
         {

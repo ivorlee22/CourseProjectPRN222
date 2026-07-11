@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using EduPlatform.BLL.DTOs.Payments;
+using EduPlatform.BLL.Enums;
 using EduPlatform.BLL.Exceptions;
 using EduPlatform.BLL.Interfaces;
 using EduPlatform.DAL.Entities;
@@ -66,7 +67,7 @@ public class PaymentController(
                 return RedirectToAction("Index", "Package");
             }
 
-            var command = new CreatePaymentCommand(userId, packageId, method, clientIp);
+            var command = new CreatePaymentCommand(userId, packageId, PaymentMethod.VNPay, clientIp);
             var response = await paymentService.CreatePaymentAsync(command, cancellationToken);
             return Redirect(response.Url);
         }
@@ -110,7 +111,7 @@ public class PaymentController(
         var queryData = Request.Query.ToDictionary(k => k.Key, v => v.Value.ToString());
         var command = new PaymentCallbackCommand(PaymentMethod.VNPay, queryData);
 
-        var isSuccess = await paymentService.ProcessCallbackAsync(command, cancellationToken);
+        await paymentService.ProcessCallbackAsync(command, cancellationToken);
 
         return Ok(new { RspCode = "00", Message = "Confirm Success" });
     }

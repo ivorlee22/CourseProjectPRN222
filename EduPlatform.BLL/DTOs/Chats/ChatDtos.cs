@@ -36,4 +36,6 @@ public sealed record ChatResponseDto(
 
 public sealed record ChatStreamEventDto(
     string Type,
-    string? Content = null);
+    string? Content = null,
+    Guid? MessageId = null,
+    IReadOnlyList<ChatCitationDto>? Citations = null);

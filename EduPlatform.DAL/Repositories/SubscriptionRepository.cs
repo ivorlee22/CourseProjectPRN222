@@ -34,7 +34,8 @@ public sealed class SubscriptionRepository(AppDbContext dbContext) : ISubscripti
         var query = dbContext.Subscriptions
             .AsNoTracking()
             .Include(x => x.Package)
-            .Include(x => x.User);
+            .Include(x => x.User)
+            .Where(x => x.User.Role == UserRole.Student);
             
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query

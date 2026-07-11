@@ -20,16 +20,8 @@
 
 <div class="content-panel profile-card narrow-content ms-0">
     <dl class="row mb-0">
-        <dt class="col-sm-4 py-2">Mã người dùng (ID)</dt>
-        <dd class="col-sm-8 py-2">
-            <code id="userIdText" class="text-dark bg-light px-2 py-1 rounded border">@Model.UserId</code>
-            <button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="navigator.clipboard.writeText('@Model.UserId'); alert('Đã copy mã!');">
-                Copy
-            </button>
-        </dd>
-
-        <dt class="col-sm-4 py-2 border-top">Họ và tên</dt>
-        <dd class="col-sm-8 py-2 border-top">@Model.FullName</dd>
+        <dt class="col-sm-4 py-2">Họ và tên</dt>
+        <dd class="col-sm-8 py-2">@Model.FullName</dd>
 
         <dt class="col-sm-4 py-2 border-top">Email</dt>
         <dd class="col-sm-8 py-2 border-top">@Model.Email</dd>

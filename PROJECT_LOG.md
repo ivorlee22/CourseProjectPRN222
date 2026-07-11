@@ -10,7 +10,7 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 - Architecture: Strict `Web → BLL → DAL`.
 - Test baseline: 71 tests passing, 1 opt-in live Gemini test skipped without credentials.
 - Database: Initial migration applied to Neon; pgvector 0.8.1 verified.
-- Next milestone: Nguyên implements User/Account authentication flow, then replaces deferred quota integration.
+- Next milestone: Nguyên continues Package/Subscription polish and quota verification after the payment scope was reduced to VNPay only.
 
 ## Completed
 
@@ -18,7 +18,7 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 - [x] Finalized three-layer MVC architecture and dependency rules.
 - [x] Finalized .NET 10, EF Core 10, Neon PostgreSQL, and pgvector.
 - [x] Finalized Cookie Authentication and prohibition of Razor Pages.
-- [x] Finalized Bootstrap 5, Gmail SMTP, VNPay, and MoMo.
+- [x] Finalized Bootstrap 5, Gmail SMTP, and VNPay-only payments.
 - [x] Added project-specific Codex skill and team agent guidance.
 - [x] Integrated the optional personal local taste-skill into the frontend UI/UX workflow.
 - [x] Huy tasks 1–8: solution, entities, contracts, EF Core, repositories, DI, layout, Cookie Auth policies.
@@ -34,7 +34,7 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 - [ ] Nguyên task 9: implement `IUserService` and authentication logic.
 - [ ] Nguyên task 10: implement AccountController, login/logout/register, and issue Cookie claims.
-- [ ] Replace `DeferredCourseQuotaService` with Nguyên's subscription-backed implementation.
+- [x] Replace `DeferredCourseQuotaService` with Nguyên's subscription-backed implementation.
 - [x] Apply the initial migration to Neon and verify pgvector.
 
 ### Implementation
@@ -51,12 +51,11 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 - [ ] Gemini API key.
 - [x] Gmail address and Google App Password.
 - [ ] VNPay sandbox credentials and callback URLs.
-- [x] MoMo integration removed from the checkout flow (decision recorded on 2026-07-08).
 
 ## Known Debt and Risks
 
 - Full Register → Login → Payment → Course → Document → Chat → Report E2E remains blocked by unimplemented team modules.
-- `DeferredCourseQuotaService` intentionally allows creation until Nguyên provides subscription limits.
+- Course quota now uses `SubscriptionCourseQuotaService`; verify edge cases during the next Package/Subscription pass.
 - Seed accounts are development-only and must be replaced or disabled before production.
 - Payment callbacks must be designed for retries and duplicate delivery.
 - Quota checks and usage updates must be transactional.
@@ -65,6 +64,321 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 - The populated Neon and Gmail secrets are currently in `appsettings.json`; move them to User Secrets or environment variables and leave only placeholders in tracked configuration.
 
 ## Activity Log
+
+### 2026-07-11 - Preserve chat state after streaming completes
+
+**Owner**
+
+- Bảo / Codex (Chat streaming UX fix, Tasks 19-21 and 44).
+
+**Completed**
+
+- Removed the full-page reload after a SignalR chat stream completes.
+- Extended the completed stream event with the persisted assistant message ID and citations.
+- Rendered citation chips and the matching source-panel group in place after the streamed answer finishes.
+- Kept the composer, conversation scroll position, and current chat session in place while restoring the composer for the next question.
+- Added a ChatService test that verifies completed stream events expose the persisted message and citation data.
+
+**UI/UX**
+
+- Design Read: realtime chat should preserve the user's place in the conversation and show citations as soon as the answer is complete, without a disruptive page transition.
+- Dials: `DESIGN_VARIANCE 2`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 5`.
+- Product-screen pre-flight: preserved Bootstrap MVC and SignalR, existing citation interactions, keyboard focus behavior, responsive source panel, and reduced-motion-safe scrolling behavior.
+
+**Verification**
+
+- `node --check .\\EduPlatform.Web\\wwwroot\\js\\chat.js`: passed.
+- `dotnet build .\\EduPlatform.sln -c Release --no-restore`: passed with 0 warnings and 0 errors.
+- `dotnet test .\\tests\\EduPlatform.Tests\\EduPlatform.Tests.csproj -c Release --no-build --no-restore`: passed: 94 succeeded, 1 skipped live Gemini credential test.
+- Static stream check confirmed the client no longer calls `window.location.reload()` and renders completed citations in place.
+
+**Remaining**
+
+- Manual browser check: after a streamed answer finishes, verify no page reload occurs, the composer is enabled, citation chips appear, and `Chi tiết` opens the citation modal.
+
+**Blocked**
+
+- None.
+
+### 2026-07-11 - Fix citation detail modal stacking
+
+**Owner**
+
+- Bảo / Codex (Chat UI bug fix, Tasks 20 and 44).
+
+**Completed**
+
+- Moved the citation detail modal outside the transformed chat workspace so Bootstrap's modal sits above its backdrop.
+- Updated the chat script to locate the modal from the document while preserving the existing citation data binding and Bootstrap modal behavior.
+- Preserved the existing close button, backdrop click, Escape behavior, and mobile source-panel behavior.
+
+**UI/UX**
+
+- Design Read: citation detail is a focused product workflow, so the modal must remain visually above the backdrop and reliably return control to the chat.
+- Dials: `DESIGN_VARIANCE 2`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 5`.
+- Product-screen pre-flight: retained Bootstrap modal semantics, keyboard dismissal, focus restoration, responsive dialog sizing, and existing visual tokens. No new animation or design system was added.
+
+**Verification**
+
+- `node --check .\\EduPlatform.Web\\wwwroot\\js\\chat.js`: passed.
+- `dotnet build .\\EduPlatform.sln -c Release --no-restore`: passed with 0 warnings and 0 errors.
+- `dotnet test .\\tests\\EduPlatform.Tests\\EduPlatform.Tests.csproj -c Release --no-build --no-restore`: passed: 94 succeeded, 1 skipped live Gemini credential test.
+- Static view check confirmed `citationDetailModal` starts after the transformed `data-chat-workspace` container closes.
+- Browser verification could not run because `http://localhost:7209` refused the connection while the local app was stopped.
+
+**Remaining**
+
+- Manual browser check recommended with a citation: open `Chi tiết`, close with the X button, click outside the dialog, and press Escape.
+
+**Blocked**
+
+- None.
+
+### 2026-07-11 - Correct Report and Statistics dashboard copy
+
+**Owner**
+
+- Bảo / Codex (Tasks 36-41 copy correction).
+
+**Completed**
+
+- Corrected unclear or grammatically mixed labels across the Admin dashboard, Revenue report, and Teacher Statistics page without replacing established technical terms.
+- Corrected the revenue grouping caption so the selected period renders as `Ngày`, `Tuần`, or `Tháng` rather than the English enum value.
+- Replaced the unclear `Sức khỏe nội dung` heading with `Tình trạng nội dung`.
+- Corrected the Teacher empty state to reflect Admin-assigned courses.
+
+**UI/UX**
+
+- Design Read: operational dashboards need concise copy that is clear in Vietnamese while keeping familiar domain terms such as payment, quota, and session where they aid scanning.
+- Dials: `DESIGN_VARIANCE 2`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 5`.
+- Product-screen pre-flight: retained Bootstrap MVC components, responsive layouts, focus behavior, empty states, and existing semantic chart labels. No animation or layout change was needed.
+
+**Verification**
+
+- `dotnet build .\\EduPlatform.sln -c Release --no-restore`: passed with 0 warnings and 0 errors.
+- `dotnet test .\\tests\\EduPlatform.Tests\\EduPlatform.Tests.csproj -c Release --no-build --no-restore`: passed: 94 succeeded, 1 skipped live Gemini credential test.
+- `git diff --check`: passed.
+- Targeted copy scan found no remaining `Sức khỏe nội dung`, English period enum captions, `Theo payment`, `chart sẽ`, or Teacher course-creation empty-state copy.
+
+**Remaining**
+
+- Manual browser check recommended on Admin, Revenue, and Teacher Statistics pages.
+
+**Blocked**
+
+- None.
+
+### 2026-07-11 - Remove Redundant Navigation Buttons from Admin Reports
+
+**Owner**
+
+- Antigravity (Agent) / user request.
+
+**Completed**
+
+- Removed the "Về tổng quan" button from the Revenue report page (`Revenue.cshtml`).
+- Removed both "Quản lý người dùng" and "Về tổng quan" buttons from the User Analytics report page (`UserAnalytics.cshtml`).
+- Removed both "Quản lý người dùng" and "Quản lý gói cước" buttons from the System Overview dashboard (`Admin/Index.cshtml`).
+
+**Verification**
+
+- Rebuilt the project successfully.
+- Ran all 94 unit tests successfully.
+
+### 2026-07-11 - Remove Redundant Actions from Teacher Statistics Dashboard
+
+**Owner**
+
+- Antigravity (Agent) / user request.
+
+**Completed**
+
+- Removed the redundant actions block from `TeacherStatistics.cshtml` that displayed the "Khóa học của tôi" (duplicated from the main header) and "Tạo khóa học" (teachers are not authorized to create courses) buttons.
+
+**Verification**
+
+- Rebuilt the project successfully.
+
+### 2026-07-11 - Remove User ID Display from Profile Page
+
+**Owner**
+
+- Antigravity (Agent) / user request.
+
+**Completed**
+
+- Removed the User ID (Mã người dùng) row and its copy button from the personal profile view `Profile.cshtml` since displaying database GUID identifiers to users is unnecessary and cluttered. Adjusted layout borders accordingly.
+
+**Verification**
+
+- Rebuilt the project successfully.
+- Ran all 94 unit tests successfully.
+
+### 2026-07-11 - Restrict Admin Subscription View to Student Users
+
+**Owner**
+
+- Antigravity (Agent) / user request.
+
+**Completed**
+
+- Filtered `SubscriptionRepository.GetAllPagedAsync` query to only return subscriptions belonging to users with the role of `Student` (since only students are allowed to buy packages, and Admins/Teachers should not appear in the subscription dashboard list).
+- Ran a database cleanup script to delete existing invalid test subscriptions and payments associated with non-Student users (Admin and Teacher accounts).
+
+**Verification**
+
+- Rebuilt the project successfully.
+- Ran all 94 unit tests successfully.
+
+### 2026-07-11 - Remove Redundant Hidden Badge Completely
+
+**Owner**
+
+- Antigravity (Agent) / user request.
+
+**Completed**
+
+- Completely removed the redundant and obsolete "Đang ẩn" (Currently hidden) badge from `_CourseList.cshtml` and `Details.cshtml` views since course visibility is now tied directly to the course type (Public = always visible, Private = always hidden from students/public listings).
+
+**Verification**
+
+- Rebuilt the project successfully.
+
+### 2026-07-11 - Hide Redundant Hidden Badge on Private Courses
+
+**Owner**
+
+- Antigravity (Agent) / user request.
+
+**Completed**
+
+- Updated `_CourseList.cshtml` and `Details.cshtml` to hide the redundant "Đang ẩn" (Currently hidden) badge on courses that are already marked as "Riêng tư" (Private). The "Đang ẩn" badge is now only displayed for Public courses that are set to invisible.
+
+**Verification**
+
+- Rebuilt the project successfully.
+
+### 2026-07-11 - Correct Admin Course Visibility and Private Course Count
+
+**Owner**
+
+- Antigravity (Agent) / user-reported course list visibility bug.
+
+**Completed**
+
+- Fixed `CourseService.SearchAsync` where `visibleOnly` was computed with the incorrect OR (`||`) operator instead of AND (`&&`) operator. This fixes the issue where Admins could not see Private and Hidden courses on the `/Course/Index` search listing page.
+- Explained to the user that the private course count of 1 in the dashboard is correct because only `prn` is marked as `Private` in the database, while `swd` is database-flagged as `Public` despite being previously hidden (`IsVisible = false`).
+
+**Verification**
+
+- Cleaned and rebuilt the solution.
+- Ran all 94 unit tests successfully.
+- Verified query results via DB diagnostics.
+
+### 2026-07-11 - Simplify course visibility and fix pending subscription status
+
+**Owner**
+
+- Antigravity (Agent) / user-reported dashboard and course visibility issues.
+
+**Completed**
+
+- Tied `IsVisible` directly to the course type: `Public` courses are always visible (`IsVisible = true`), and `Private` courses are hidden from public listings (`IsVisible = false`).
+- Removed the redundant and conflicting "Hiển thị khóa học" (IsVisible) checkbox from `_CourseForm.cshtml`.
+- Removed the "Ẩn khóa học" / "Hiển thị khóa học" toggle form from `Details.cshtml`.
+- Updated the BLL `SubscriptionService` (`Map` and `MapAdmin`) to dynamically map any `Pending` subscription older than 15 minutes to `Expired` status. They now show up as "Hết hạn" in the Admin subscription list rather than staying "Chờ thanh toán" indefinitely.
+
+**Verification**
+
+- Ran `dotnet build` and `dotnet test`. All 94 unit tests passed.
+
+### 2026-07-11 - Fix VNPay cancel payment unique constraint violation
+
+**Owner**
+
+- Antigravity (Agent) / user-reported payment cancellation bug.
+
+**Completed**
+
+- Fixed the unique constraint violation when cancelling a payment by mapping `vnp_TransactionNo = "0"` (or empty values) to `null` instead of `"0"` or empty string. Since the `IX_Payments_Method_GatewayTransactionId` index has a filter `GatewayTransactionId IS NOT NULL`, null values do not trigger duplicate key violations.
+- Created `PaymentServiceTests.cs` covering both cancelled payment (gateway transaction ID mapped to null, status set to Failed) and successful payment (gateway transaction ID populated correctly, status set to Succeeded).
+
+**Verification**
+
+- Added and ran unit tests in `PaymentServiceTests.cs` using `dotnet test`.
+- All 94 unit tests successfully passed.
+
+### 2026-07-11 - Switch payment scope to VNPay only
+
+**Owner**
+
+- Codex (Agent) / user-confirmed VNPay-only payment scope for Nguyên continuation.
+
+**Completed**
+
+- Removed MoMo from production payment flow while keeping the legacy `PaymentMethod.MoMo` enum value for database compatibility.
+- Removed MoMo service, interface, options, dependency injection registration, checkout UI, return/IPN routes, CSP form target, config example section, report copy, and unused MoMo payment asset.
+- Updated payment creation so Student checkout always creates VNPay payments and rejects non-VNPay methods in BLL before persisting payment rows.
+- Updated payment history/detail to show VNPay for supported records and a generic unsupported badge for legacy non-VNPay records.
+- Updated the legacy payment package view to route paid packages into the VNPay checkout flow.
+- Updated report tests to reflect VNPay-only revenue methods.
+- Updated `AGENTS.md`, `implementation_plan.md`, `README.md`, `docs/SECURITY_REVIEW.md`, and current project log status to document VNPay-only payments and the completed course quota integration.
+
+**UI/UX**
+
+- Design Read: Checkout is now a single-method product payment flow, so the UI should remove choice friction and guide students directly into VNPay.
+- Dials: `DESIGN_VARIANCE 3`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 5`.
+- `$fk plan` was used. `$fk` reported `NO_PRODUCT_MD`, but the referenced `reference/init.md` file was unavailable in the installed skill bundle; existing project docs and source were used as the authoritative context.
+
+**Verification**
+
+- `rg "MoMo|momo|MOMO"` across Web/BLL/tests found no remaining matches.
+- `rg "MoMo|momo|MOMO"` across DAL found only the intentionally retained legacy enum value.
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+- `dotnet test .\tests\EduPlatform.Tests\EduPlatform.Tests.csproj -c Release --no-build --no-restore` passed: 92 succeeded, 1 skipped live Gemini credential test.
+
+**Remaining**
+
+- Manual browser check recommended on `/Package`, `/payment/checkout/{packageId}`, `/payment/history`, and revenue report pages.
+- VNPay sandbox credentials and callback URLs are still needed for full end-to-end payment verification.
+
+**Blocked**
+
+- None for code changes. Full VNPay E2E remains blocked on valid VNPay sandbox configuration.
+
+### 2026-07-11 - Pricing free-plan and admin dropdown polish
+
+**Owner**
+
+- Codex (Agent) / user visual QA feedback on Admin Users and Package Pricing.
+
+**Completed**
+
+- Fixed the Admin Users row action dropdown so it is no longer clipped by the user table panel on desktop.
+- Removed the `Free forever` subline from the Free pricing card.
+- Rebalanced the Free card price block so `Miễn phí` is vertically aligned with paid package prices.
+- Changed the Free package duration display from `36500 ngày` to unlimited-time wording in pricing highlights and the comparison table.
+- Renamed the comparison heading from quota-focused wording to `So sánh quyền lợi` while keeping the useful package comparison table.
+
+**UI/UX**
+
+- Design Read: Package pricing and Admin Users are product UI surfaces, so this polish reduces confusing copy and keeps task controls predictable.
+- Dials: `DESIGN_VARIANCE 3`, `MOTION_INTENSITY 1`, `VISUAL_DENSITY 5`.
+- The optional local `taste-skill` path was unavailable in the repository; `$fk` product guidance and EduPlatform Bootstrap MVC rules were applied. `$fk` reported `NO_PRODUCT_MD`, but `reference/init.md` was unavailable in the installed skill bundle, so the existing project guide, plan, and log were used as context.
+
+**Verification**
+
+- `rg "Free forever|36500 ngày|Quota theo từng gói"` across Web/BLL/DAL found no remaining pricing UI matches.
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors after escalation for local NuGet config access.
+- `dotnet test .\tests\EduPlatform.Tests\EduPlatform.Tests.csproj -c Release --no-build --no-restore` passed: 92 succeeded, 1 skipped live Gemini credential test.
+
+**Remaining**
+
+- Manual browser check recommended on `/Admin/Users` and `/Package` to confirm the dropdown and optical card alignment against the live viewport.
+
+**Blocked**
+
+- None.
 
 ### 2026-07-10 - Fix Admin course delete redirect
 

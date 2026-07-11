@@ -664,6 +664,18 @@ h1 {
   box-shadow: var(--edu-shadow-lift);
 }
 
+.admin-users-panel {
+  overflow: visible;
+}
+
+.admin-users-panel .table-responsive {
+  overflow: visible;
+}
+
+.admin-users-actions .dropdown-menu {
+  min-width: 12rem;
+}
+
 .modal-content {
   border: 1px solid var(--edu-line);
   border-radius: var(--edu-radius-panel);
@@ -721,6 +733,14 @@ h1 {
 @media (max-width: 767.98px) {
   .site-main {
     padding-block: 1.5rem 3rem;
+  }
+
+  .admin-users-panel {
+    overflow: hidden;
+  }
+
+  .admin-users-panel .table-responsive {
+    overflow-x: auto;
   }
 
   .page-heading,
@@ -3291,6 +3311,10 @@ h1 {
   gap: 0.2rem;
 }
 
+.pricing-price--free {
+  align-content: center;
+}
+
 .pricing-price strong {
   color: var(--edu-ink);
   font-size: clamp(2.05rem, 2.7vw, 2.45rem);
@@ -3523,26 +3547,19 @@ h1 {
   object-fit: contain;
 }
 
-.payment-method-card--vnpay .payment-logo-shell,
-.payment-method-card--momo .payment-logo-shell {
+.payment-method-card--vnpay .payment-logo-shell {
   width: 5.2rem;
   height: 5.2rem;
   padding: 0.35rem;
 }
 
-.payment-method-card--vnpay .payment-logo-shell img,
-.payment-method-card--momo .payment-logo-shell img {
+.payment-method-card--vnpay .payment-logo-shell img {
   border-radius: 0.85rem;
 }
 
 .payment-method-card--vnpay:hover,
 .payment-method-card--vnpay:focus-within {
   border-color: rgb(0 91 170 / 30%);
-}
-
-.payment-method-card--momo:hover,
-.payment-method-card--momo:focus-within {
-  border-color: rgb(165 0 100 / 28%);
 }
 
 .payment-method-card h2 {

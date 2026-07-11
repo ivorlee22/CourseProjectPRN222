@@ -18,10 +18,6 @@
     <section class="content-panel course-detail-card">
         <div class="d-flex flex-wrap gap-2 mb-3">
             <span class="course-type">@(Model.Course.Type == CourseType.Private ? "Riêng tư" : "Công khai")</span>
-            @if (!Model.Course.IsVisible)
-            {
-                <span class="badge text-bg-secondary">Đang ẩn</span>
-            }
         </div>
 
         <h1>@Model.Course.Title</h1>
@@ -78,13 +74,6 @@
 
                 @if (Model.CanAdminister)
                 {
-                    <form asp-action="SetVisibility" asp-route-id="@Model.Course.Id" method="post" class="m-0">
-                        <input type="hidden" name="isVisible" value="@(!Model.Course.IsVisible).ToString().ToLowerInvariant()" />
-                        <button class="btn btn-outline-secondary w-100" type="submit">
-                            @(Model.Course.IsVisible ? "Ẩn khóa học" : "Hiển thị khóa học")
-                        </button>
-                    </form>
-
                     <form asp-action="Delete" asp-route-id="@Model.Course.Id" method="post" class="m-0"
                           data-confirm="Bạn có chắc muốn xóa khóa học này?">
                         <button class="btn btn-outline-danger w-100" type="submit">Xóa khóa học</button>

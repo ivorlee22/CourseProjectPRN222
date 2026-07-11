@@ -17,6 +17,11 @@ public sealed class PaymentService(
 {
     public async Task<PaymentUrlResponse> CreatePaymentAsync(CreatePaymentCommand command, CancellationToken cancellationToken = default)
     {
+        if (command.Method != PaymentMethod.VNPay)
+        {
+            throw new NotSupportedException("EduPlatform currently supports VNPay payments only.");
+        }
+
         var package = await packageRepository.GetByIdAsync(command.PackageId, cancellationToken);
         if (package == null || !package.IsActive)
         {
@@ -184,6 +189,12 @@ public sealed class PaymentService(
             return null;
         }
 
+        var status = payment.Status;
+        if (status == PaymentStatus.Pending && DateTimeOffset.UtcNow - payment.CreatedAtUtc > TimeSpan.FromMinutes(15))
+        {
+            status = PaymentStatus.Failed;
+        }
+
         return new PaymentDetailDto(
             payment.Id,
             payment.UserId,
@@ -191,7 +202,7 @@ public sealed class PaymentService(
             payment.Package.Name,
             payment.Amount,
             payment.Method,
-            payment.Status,
+            status,
             payment.InternalReference,
             payment.GatewayTransactionId,
             payment.CreatedAtUtc,
