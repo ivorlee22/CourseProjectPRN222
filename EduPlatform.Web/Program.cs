@@ -77,7 +77,8 @@ app.Use(async (context, next) =>
     context.Response.Headers["X-Frame-Options"] = "DENY";
     context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
     context.Response.Headers["Content-Security-Policy"] =
-        "default-src 'self'; script-src 'self'; style-src 'self'; "
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+        + "connect-src 'self' ws: wss: http://localhost:* https://localhost:*; "
         + "img-src 'self' data:; font-src 'self'; form-action 'self' https://sandbox.vnpayment.vn https://test-payment.momo.vn; "
         + "frame-ancestors 'none'; base-uri 'self'";
 

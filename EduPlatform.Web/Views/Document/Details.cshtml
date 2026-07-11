@@ -49,7 +49,7 @@
     @if (Model.CanManage)
     {
         <form asp-action="Delete" asp-route-id="@Model.Document.Id" method="post"
-              data-confirm="Bạn có chắc muốn xóa tài liệu này? Tất cả đoạn đã tạo sẽ bị xóa.">
+            data-confirm="Bạn có chắc muốn xóa tài liệu này? Tất cả đoạn đã tạo sẽ bị xóa.">
             <button class="btn btn-outline-danger" type="submit">Xóa tài liệu</button>
         </form>
     }
@@ -84,7 +84,15 @@
                             }
                             @if (chunk.HasEmbedding)
                             {
-                                <span class="badge text-bg-success">Đã nhúng vector</span>
+                                <a href="#" data-bs-toggle="modal" data-bs-target="#vectorModal" data-sequence="@chunk.Sequence"
+                                    data-length="@chunk.EmbeddingData?.Length" data-min="@(chunk.EmbeddingData?.Min().ToString("F4"))"
+                                    data-max="@(chunk.EmbeddingData?.Max().ToString("F4"))"
+                                    data-norm="@(Math.Sqrt(chunk.EmbeddingData?.Sum(x => x * x) ?? 0).ToString("F4"))"
+                                    data-embedding="@System.Text.Json.JsonSerializer.Serialize(chunk.EmbeddingData?.Take(200).ToArray())"
+                                    data-raw="@System.Text.Json.JsonSerializer.Serialize(chunk.EmbeddingData?.Take(50).ToArray())"
+                                    class="badge text-bg-success text-decoration-none btn-show-vector">
+                                    Đã nhúng vector (Xem chi tiết)
+                                </a>
                             }
                             else
                             {
@@ -95,8 +103,45 @@
                     </article>
                 }
             </div>
+
+            <div class="modal fade" id="vectorModal" tabindex="-1" aria-labelledby="vectorModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="vectorModalLabel">Chi tiết Vector (Đoạn <span
+                                    id="modalChunkSeq"></span>)</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="d-flex flex-column gap-3">
+                                <div class="d-flex flex-wrap gap-4 small text-secondary bg-light p-2 rounded">
+                                    <span><strong>Chiều:</strong> <span id="modalVecLen"></span></span>
+                                    <span><strong>Min:</strong> <span id="modalVecMin"></span></span>
+                                    <span><strong>Max:</strong> <span id="modalVecMax"></span></span>
+                                    <span><strong>Norm:</strong> <span id="modalVecNorm"></span></span>
+                                </div>
+
+                                <div>
+                                    <h6 class="mb-2 text-secondary">Heatmap (200 chiều đầu tiên)</h6>
+                                    <canvas id="modalHeatmap"
+                                        class="border rounded w-100 d-block modal-heatmap-canvas"></canvas>
+                                </div>
+
+                                <div>
+                                    <h6 class="mb-2 text-secondary">Raw values (50 chiều đầu tiên)</h6>
+                                    <div class="card card-body text-break bg-light font-monospace modal-raw-values">
+                                        [<span id="modalRawVals"></span>]...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         }
     </section>
+
+
 }
 else
 {
@@ -116,6 +161,7 @@ else
         {
             DocumentFileType.Pdf => "PDF",
             DocumentFileType.Docx => "DOCX",
+            DocumentFileType.Pptx => "PPTX",
             DocumentFileType.Txt => "TXT",
             DocumentFileType.Md => "Markdown",
             _ => "Tệp"
@@ -150,4 +196,8 @@ else
 
         return new HtmlString($"<span class=\"{cssClass}\">{label}</span>");
     }
+}
+
+@section Scripts {
+    <script src="~/js/document-details.js" asp-append-version="true"></script>
 }

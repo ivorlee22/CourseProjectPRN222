@@ -10,6 +10,11 @@ public interface IDocumentRepository
         Guid courseId,
         CancellationToken cancellationToken);
 
+    Task<bool> ExistsByCourseAndFileNameAsync(
+        Guid courseId,
+        string originalFileName,
+        CancellationToken cancellationToken);
+
     Task<IReadOnlyList<DocumentChunk>> ListChunksAsync(
         Guid documentId,
         CancellationToken cancellationToken);

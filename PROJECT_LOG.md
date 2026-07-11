@@ -8,7 +8,7 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 - Application code: Builds successfully on .NET 10.
 - Canonical plan: `implementation_plan.md`.
 - Architecture: Strict `Web → BLL → DAL`.
-- Test baseline: 50 tests passing, 1 opt-in live Gemini test skipped without credentials.
+- Test baseline: 71 tests passing, 1 opt-in live Gemini test skipped without credentials.
 - Database: Initial migration applied to Neon; pgvector 0.8.1 verified.
 - Next milestone: Nguyên implements User/Account authentication flow, then replaces deferred quota integration.
 
@@ -41,7 +41,7 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 - [ ] Finish Phase 1 User/Account/Admin tasks owned by Nguyên.
 - [ ] Phase 2: Documents, RAG chatbot, packages, and subscriptions.
-- [ ] Phase 3: VNPay, MoMo, payment processing, and quota enforcement.
+- [ ] Phase 3: VNPay-only payment processing, and quota enforcement.
 - [ ] Phase 4: Reports and full cross-module integration/security testing.
 
 ### Credentials Needed Before Integration Testing
@@ -51,7 +51,7 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 - [ ] Gemini API key.
 - [x] Gmail address and Google App Password.
 - [ ] VNPay sandbox credentials and callback URLs.
-- [ ] MoMo sandbox credentials and callback URLs.
+- [x] MoMo integration removed from the checkout flow (decision recorded on 2026-07-08).
 
 ## Known Debt and Risks
 
@@ -934,6 +934,44 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 **Blocked**
 
 - None.
+### 2026-07-08 - Document chunking, duplicate guard, chat role lock, PPTX, and MoMo removal
+
+**Owner**
+
+- Nhân document scope and Nguyên package scope (implemented by Codex).
+
+**Completed**
+
+- **Chunking**: Rewrote `FixedSizeTextChunker` so it splits by paragraph/newline/sentence/word before falling back to a hard window. Existing tests still pass and new `FixedSizeTextChunkerTests` cover paragraph merging, sentence boundaries, overlap, single-paragraph input, and page boundaries.
+- **Duplicate documents**: Added `IDocumentRepository.ExistsByCourseAndFileNameAsync` and called it from `DocumentService.UploadAsync`. `DocumentController` now surfaces a friendly TempData warning instead of an exception. Added `DocumentServiceTests` covering duplicate rejection, fresh upload success, unsupported MIME rejection, and PPTX support through the `PptxTextExtractor`.
+- **PPTX support**: Added `PptxTextExtractor` using `DocumentFormat.OpenXml`, registered it in DI, extended `DocumentFileType.Pptx`, removed `application/octet-stream` from `AllowedContentTypes`, refreshed upload tips, accept attribute, and file-type rendering across views.
+- **AI chat Student-only**: Added `[Authorize(Roles = "Student")]` to `ChatController` plus a defensive `RejectNonStudent` check on every action. `ChatHub.SendMessage` rejects non-Student actors with a localized hub exception. `Course/Details.cshtml` only shows the AI assistant link to Students.
+- **Payment UI and MoMo removal**: Deleted `MoMoService`, `IMoMoService`, `MoMoOptions`, and `Views/Payment/Packages.cshtml`. `PaymentService`, `PaymentController`, and the payment views now treat `PaymentMethod.VNPay` as the sole supported gateway. `PaymentMethod` enum stays for legacy data only. `PackageController.Buy` redirects to `PaymentController.CreatePayment` with `PaymentMethod.VNPay`. Redesigned `Views/Package/Index.cshtml` so the package cards share the same `pricing-grid` styles as the rest of the marketing UI. Stripped the MoMo section from `appsettings.json` and `appsettings.example.json`. `AGENTS.md` documents VNPay-only policy.
+- **Tests**: Updated `PackageControllerTests` for the new `Buy` signature and VNPay redirect; added `DocumentServiceTests` and `FixedSizeTextChunkerTests`.
+
+**UI/UX**
+
+- Design Read: marketing-oriented pricing grid that must read as one consistent surface with VNPay payment info baked into the same card.
+- Dials: `DESIGN_VARIANCE 6`, `MOTION_INTENSITY 2`, `VISUAL_DENSITY 6`.
+- Reused the existing `pricing-grid`, `pricing-card`, and `pricing-highlights` styles; only added small payment-note blocks and updated nav links.
+- Taste-skill local copy was not available, so shared EduPlatform MVC/Bootstrap frontend rules were applied as fallback.
+- Covered Student, Teacher, Admin, anonymous states, success/error TempData on duplicate uploads, mobile single-column pricing grid, focus/hover inherited from Bootstrap, and no en/em dash in any added copy.
+
+**Verification**
+
+- `dotnet build d:\SEM_7\PRN_222\CourseProjectPRN222\EduPlatform.Web\EduPlatform.Web.csproj --nologo -v minimal`: passed with 0 warnings and 0 errors.
+- `dotnet build d:\SEM_7\PRN_222\CourseProjectPRN222\tests\EduPlatform.Tests\EduPlatform.Tests.csproj --nologo -v minimal`: passed with 0 warnings and 0 errors.
+- `tests\EduPlatform.Tests\bin\Debug\net10.0\EduPlatform.Tests.exe`: 71 succeeded, 0 failed, 1 live Gemini smoke test skipped because `GEMINI_API_KEY` was not set.
+- `rg "DeferredCourseQuotaService|MoMoService|IMoMoService" EduPlatform.BLL EduPlatform.DAL EduPlatform.Web tests`: no production references to MoMo or the deferred quota service remain.
+
+**Remaining**
+
+- Manual browser verification of the redesigned `Package/Index` page and the Document upload duplicate warning is recommended when the app is reachable.
+- Real sandbox end-to-end for VNPay still waits for credentials.
+
+**Blocked**
+
+- VNPay sandbox credentials and callback URLs.
 
 ### 2026-07-08 - Chat markdown rendering
 

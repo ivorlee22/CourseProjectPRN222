@@ -10,5 +10,6 @@ public enum DocumentFileType
     Pdf = 1,
     Docx = 2,
     Txt = 3,
-    Md = 4
+    Md = 4,
+    Pptx = 5
 }

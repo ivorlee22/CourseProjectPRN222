@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using EduPlatform.BLL.DTOs.Chats;
+using EduPlatform.BLL.Enums;
 using EduPlatform.BLL.Exceptions;
 using EduPlatform.BLL.Interfaces;
 using EduPlatform.Web.Security;
@@ -9,7 +10,7 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace EduPlatform.Web.Hubs;
 
-[Authorize]
+[Authorize(Roles = "Student")]
 public sealed class ChatHub(
     IChatService chatService,
     IAntiforgery antiforgery) : Hub

@@ -3599,6 +3599,66 @@ h1 {
   }
 }
 
+/* Pricing payment info */
+
+.pricing-payment-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid rgb(15 118 110 / 22%);
+  border-radius: 999px;
+  color: var(--edu-accent-dark);
+  background: var(--edu-accent-soft);
+  font-size: 0.82rem;
+  font-weight: 680;
+}
+
+.pricing-payment-pill__dot {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--edu-accent);
+}
+
+.pricing-payment-note {
+  color: var(--edu-muted);
+  font-size: 0.88rem;
+}
+
+.pricing-payment-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--edu-line);
+  border-radius: var(--edu-radius-control);
+  background: var(--edu-surface);
+  font-size: 0.85rem;
+}
+
+.pricing-payment-info__label {
+  color: var(--edu-muted);
+  font-weight: 650;
+}
+
+.pricing-payment-info__value {
+  color: var(--edu-accent-dark);
+  font-weight: 720;
+}
+
+.pricing-table-payment {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  color: var(--edu-accent-dark);
+  background: var(--edu-accent-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
 /* Subscription management */
 
 .subscription-header {
@@ -3707,4 +3767,11 @@ h1 {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Document Details View */
+.modal-heatmap-canvas { height: 40px; }
+.modal-raw-values { font-size: 0.75rem; max-height: 200px; overflow-y: auto; }
+.semantic-map-canvas { width: 100%; height: 400px; }
+.cursor-pointer { cursor: pointer; }
 

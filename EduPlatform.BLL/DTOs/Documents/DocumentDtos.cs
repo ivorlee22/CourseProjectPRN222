@@ -33,7 +33,8 @@ public sealed record DocumentChunkDto(
     string Content,
     int? PageNumber,
     string? Section,
-    bool HasEmbedding);
+    bool HasEmbedding,
+    float[]? EmbeddingData);
 
 public sealed record UploadDocumentCommand(
     Guid CourseId,

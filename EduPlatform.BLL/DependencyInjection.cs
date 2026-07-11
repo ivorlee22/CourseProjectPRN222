@@ -27,10 +27,8 @@ public static class DependencyInjection
         services.AddScoped<ICourseQuotaService, SubscriptionCourseQuotaService>();
 
         services.Configure<EduPlatform.BLL.Options.VNPayOptions>(configuration.GetSection(EduPlatform.BLL.Options.VNPayOptions.SectionName));
-        services.Configure<EduPlatform.BLL.Options.MoMoOptions>(configuration.GetSection(EduPlatform.BLL.Options.MoMoOptions.SectionName));
 
         services.AddScoped<IVNPayService, VNPayService>();
-        services.AddScoped<IMoMoService, MoMoService>();
         services.AddScoped<IPaymentService, PaymentService>();
 
         services.AddScoped<IChatQuotaService, SubscriptionChatQuotaService>();
@@ -47,6 +45,7 @@ public static class DependencyInjection
         services.AddSingleton<ITextChunker, FixedSizeTextChunker>();
         services.AddSingleton<ITextExtractor, PdfTextExtractor>();
         services.AddSingleton<ITextExtractor, DocxTextExtractor>();
+        services.AddSingleton<ITextExtractor, PptxTextExtractor>();
         services.AddSingleton<ITextExtractor>(_ =>
             new PlainTextExtractor(DocumentFileType.Txt));
         services.AddSingleton<ITextExtractor>(_ =>

@@ -37,16 +37,16 @@
 {
     <section class="empty-state">
         <h2>Chưa có tài liệu nào</h2>
-        <p>
-            @if (Model.CanManage)
-            {
-                <span>Tải lên PDF, DOCX, TXT hoặc Markdown để bắt đầu xây dựng kho học liệu cho khóa học.</span>
-            }
-            else
-            {
-                <span>Giảng viên của khóa học chưa đăng tải tài liệu.</span>
-            }
-        </p>
+            <p>
+                @if (Model.CanManage)
+                {
+                    <span>Tải lên PDF, DOCX, PPTX, TXT hoặc Markdown để bắt đầu xây dựng kho học liệu cho khóa học.</span>
+                }
+                else
+                {
+                    <span>Giảng viên của khóa học chưa đăng tải tài liệu.</span>
+                }
+            </p>
         @if (Model.CanManage)
         {
             <a class="btn btn-primary" asp-action="Upload" asp-route-courseId="@Model.CourseId">
@@ -91,6 +91,7 @@ else
         {
             DocumentFileType.Pdf => "PDF",
             DocumentFileType.Docx => "DOCX",
+            DocumentFileType.Pptx => "PPTX",
             DocumentFileType.Txt => "TXT",
             DocumentFileType.Md => "Markdown",
             _ => "Tệp"

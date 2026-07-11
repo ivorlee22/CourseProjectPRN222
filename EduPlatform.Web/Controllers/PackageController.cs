@@ -1,12 +1,13 @@
 using EduPlatform.BLL.DTOs.Packages;
 using EduPlatform.BLL.DTOs.Subscriptions;
 using EduPlatform.BLL.Enums;
-using EduPlatform.BLL.Exceptions;
 using EduPlatform.BLL.Interfaces;
+using EduPlatform.DAL.Entities;
 using EduPlatform.Web.Security;
 using EduPlatform.Web.ViewModels.Packages;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using BllUserRole = EduPlatform.BLL.Enums.UserRole;
 
 namespace EduPlatform.Web.Controllers;
 
@@ -35,37 +36,29 @@ public sealed class PackageController(
         return RedirectToAction(nameof(Index));
     }
 
-    [Authorize]
+    [Authorize(Roles = "Student")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Buy(Guid packageId, CancellationToken cancellationToken)
+    public IActionResult Buy(Guid packageId)
     {
         var actor = User.GetRequiredActor();
-        if (actor.Role != UserRole.Student)
+        if (actor.Role != BllUserRole.Student)
         {
             TempData["ErrorMessage"] = "Chỉ học viên mới có thể mua gói.";
             return RedirectToAction(nameof(Index));
         }
 
-        try
-        {
-            await packageService.GetByIdAsync(packageId, cancellationToken);
-            TempData["ErrorMessage"] =
-                "Thanh toán chưa được bật. Vui lòng quay lại sau khi cổng thanh toán sẵn sàng.";
-        }
-        catch (ResourceNotFoundException exception)
-        {
-            TempData["ErrorMessage"] = exception.Message;
-        }
-
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(
+            "CreatePayment",
+            "Payment",
+            new { packageId, method = PaymentMethod.VNPay });
     }
 
     private async Task<SubscriptionSummaryDto?> GetCurrentSubscriptionAsync(
         CancellationToken cancellationToken)
     {
         var actor = User.GetActorOrDefault();
-        if (actor is null || actor.Role != UserRole.Student)
+        if (actor is null || actor.Role != BllUserRole.Student)
         {
             return null;
         }

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 
 <head>
@@ -33,7 +33,8 @@
                                 <a class="nav-link" asp-controller="Admin" asp-action="Index">Tổng quan</a>
                             </li>
                         }
-                        @if (User.Identity?.IsAuthenticated != true || User.IsInRole("Student") || User.IsInRole("Admin"))
+                        @if (User.Identity?.IsAuthenticated != true || User.IsInRole("Student") ||
+                        User.IsInRole("Admin"))
                         {
                             <li class="nav-item">
                                 <a class="nav-link" asp-controller="Course" asp-action="Index">Khóa học</a>
@@ -42,7 +43,7 @@
                         @if (User.Identity?.IsAuthenticated != true || User.IsInRole("Student"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Payment" asp-action="Packages">Gói cước</a>
+                                <a class="nav-link" asp-controller="Package" asp-action="Index">Gói cước</a>
                             </li>
                         }
                         @if (User.Identity?.IsAuthenticated == true)
@@ -77,12 +78,12 @@
                                         </li>
                                         <li><a class="dropdown-item" asp-controller="AdminPackage" asp-action="Index">Gói
                                                 cước</a></li>
-                                        <li><a class="dropdown-item" asp-controller="AdminSubscription"
-                                                asp-action="Index">Đăng ký gói</a></li>
-                                        <li><a class="dropdown-item" asp-controller="Reports"
-                                                asp-action="Revenue">Báo cáo doanh thu</a></li>
-                                        <li><a class="dropdown-item" asp-controller="Reports"
-                                                asp-action="UserAnalytics">Phân tích người dùng</a></li>
+                                        <li><a class="dropdown-item" asp-controller="AdminSubscription" asp-action="Index">Đăng
+                                                ký gói</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Reports" asp-action="Revenue">Báo cáo doanh
+                                                thu</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Reports" asp-action="UserAnalytics">Phân
+                                                tích người dùng</a></li>
                                     </ul>
                                 </li>
                             }

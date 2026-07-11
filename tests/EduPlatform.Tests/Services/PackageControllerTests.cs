@@ -92,7 +92,7 @@ public sealed class PackageControllerTests
     }
 
     [TestMethod]
-    public async Task Buy_ValidPackage_RedirectsToPricingWithPendingPaymentMessage()
+    public void Buy_ValidPackage_RedirectsToPaymentControllerWithVNPay()
     {
         AddDefaultPackages();
         using var controller = CreateController();
@@ -101,16 +101,19 @@ public sealed class PackageControllerTests
             new DefaultHttpContext(),
             new FakeTempDataProvider());
 
-        var result = await controller.Buy(_packageService.Packages[2].Id, CancellationToken.None);
+        var packageId = _packageService.Packages[2].Id;
+        var result = controller.Buy(packageId);
 
         var redirect = Assert.IsInstanceOfType<RedirectToActionResult>(result);
-        Assert.AreEqual(nameof(PackageController.Index), redirect.ActionName);
-        Assert.AreEqual(1, _packageService.GetByIdCallCount);
-        Assert.IsTrue(controller.TempData.ContainsKey("ErrorMessage"));
+        Assert.AreEqual("Payment", redirect.ControllerName);
+        Assert.AreEqual("CreatePayment", redirect.ActionName);
+        Assert.AreEqual(packageId, redirect.RouteValues!["packageId"]);
+        Assert.AreEqual("VNPay", redirect.RouteValues!["method"]!.ToString());
+        Assert.IsFalse(controller.TempData.ContainsKey("ErrorMessage"));
     }
 
     [TestMethod]
-    public async Task Buy_TeacherUser_RedirectsWithoutBuyingPackage()
+    public void Buy_TeacherUser_RedirectsWithoutBuyingPackage()
     {
         AddDefaultPackages();
         using var controller = CreateController();
@@ -119,16 +122,15 @@ public sealed class PackageControllerTests
             controller.HttpContext,
             new FakeTempDataProvider());
 
-        var result = await controller.Buy(_packageService.Packages[2].Id, CancellationToken.None);
+        var result = controller.Buy(_packageService.Packages[2].Id);
 
         var redirect = Assert.IsInstanceOfType<RedirectToActionResult>(result);
         Assert.AreEqual(nameof(PackageController.Index), redirect.ActionName);
-        Assert.AreEqual(0, _packageService.GetByIdCallCount);
         Assert.IsTrue(controller.TempData.ContainsKey("ErrorMessage"));
     }
 
     [TestMethod]
-    public async Task Buy_AdminUser_RedirectsWithoutBuyingPackage()
+    public void Buy_AdminUser_RedirectsWithoutBuyingPackage()
     {
         AddDefaultPackages();
         using var controller = CreateController();
@@ -137,11 +139,10 @@ public sealed class PackageControllerTests
             controller.HttpContext,
             new FakeTempDataProvider());
 
-        var result = await controller.Buy(_packageService.Packages[2].Id, CancellationToken.None);
+        var result = controller.Buy(_packageService.Packages[2].Id);
 
         var redirect = Assert.IsInstanceOfType<RedirectToActionResult>(result);
         Assert.AreEqual(nameof(PackageController.Index), redirect.ActionName);
-        Assert.AreEqual(0, _packageService.GetByIdCallCount);
         Assert.IsTrue(controller.TempData.ContainsKey("ErrorMessage"));
     }
 

@@ -48,6 +48,13 @@ public class PaymentController(
             return Unauthorized();
         }
 
+        if (method != PaymentMethod.VNPay)
+        {
+            TempData["ErrorMessage"] =
+                "Phương thức thanh toán chưa được hỗ trợ. Vui lòng chọn VNPay.";
+            return RedirectToAction("Index", "Package");
+        }
+
         var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
 
         try
@@ -70,8 +77,9 @@ public class PaymentController(
         }
         catch (Exception ex)
         {
-            TempData["ErrorMessage"] = $"Không thể tạo thanh toán: {ex.Message}";
-            return RedirectToAction(nameof(Checkout), new { packageId });
+            TempData["ErrorMessage"] =
+                $"Không thể tạo yêu cầu thanh toán: {ex.Message}";
+            return RedirectToAction("Index", "Package");
         }
     }
 
@@ -95,26 +103,6 @@ public class PaymentController(
         return RedirectToAction(nameof(History));
     }
 
-    [HttpGet("momo-return")]
-    public async Task<IActionResult> MoMoReturn(CancellationToken cancellationToken)
-    {
-        var queryData = Request.Query.ToDictionary(k => k.Key, v => v.Value.ToString());
-        var command = new PaymentCallbackCommand(PaymentMethod.MoMo, queryData);
-
-        var isSuccess = await paymentService.ProcessCallbackAsync(command, cancellationToken);
-
-        if (isSuccess)
-        {
-            TempData["SuccessMessage"] = "Thanh toán MoMo thành công. Gói cước của bạn đã được kích hoạt.";
-        }
-        else
-        {
-            TempData["ErrorMessage"] = "Thanh toán MoMo thất bại hoặc chữ ký không hợp lệ.";
-        }
-
-        return RedirectToAction(nameof(History));
-    }
-
     [AllowAnonymous]
     [HttpGet("vnpay-ipn")]
     public async Task<IActionResult> VNPayIpn(CancellationToken cancellationToken)
@@ -125,23 +113,6 @@ public class PaymentController(
         var isSuccess = await paymentService.ProcessCallbackAsync(command, cancellationToken);
 
         return Ok(new { RspCode = "00", Message = "Confirm Success" });
-    }
-
-    [AllowAnonymous]
-    [HttpPost("momo-ipn")]
-    public async Task<IActionResult> MoMoIpn(CancellationToken cancellationToken)
-    {
-        var queryData = Request.Query.ToDictionary(k => k.Key, v => v.Value.ToString());
-        var command = new PaymentCallbackCommand(PaymentMethod.MoMo, queryData);
-
-        var isSuccess = await paymentService.ProcessCallbackAsync(command, cancellationToken);
-
-        if (isSuccess)
-        {
-            return NoContent();
-        }
-
-        return BadRequest();
     }
 
     [HttpGet("history")]

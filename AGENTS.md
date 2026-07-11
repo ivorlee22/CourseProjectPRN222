@@ -25,7 +25,7 @@ For frontend, UI, UX, styling, responsive, or visual review work, read `taste-sk
 - UI: Bootstrap 5.
 - UI quality guide: project frontend rules, optionally supplemented by the ignored personal local `taste-skill`.
 - Email: Gmail SMTP through MailKit and Google App Password.
-- Payments: both VNPay and MoMo.
+- Payments: VNPay only (MoMo đã bị loại bỏ khỏi luồng thanh toán, PaymentMethod enum giữ lại để tương thích dữ liệu cũ).
 - Unit of Work is not used.
 
 ## Layer Boundaries

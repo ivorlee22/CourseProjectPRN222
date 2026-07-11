@@ -1,4 +1,5 @@
 using EduPlatform.BLL.DTOs.Chats;
+using EduPlatform.BLL.Enums;
 using EduPlatform.BLL.Exceptions;
 using EduPlatform.BLL.Interfaces;
 using EduPlatform.Web.Security;
@@ -8,11 +9,30 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace EduPlatform.Web.Controllers;
 
-[Authorize]
+[Authorize(Roles = "Student")]
 public sealed class ChatController(
     IChatService chatService,
     ICourseService courseService) : Controller
 {
+    private RedirectToActionResult? RejectNonStudent()
+    {
+        var actor = User.GetActorOrDefault();
+        if (actor is null)
+        {
+            return null;
+        }
+
+        if (actor.Role != UserRole.Student)
+        {
+            TempData["ErrorMessage"] =
+                "Trợ lý học tập AI chỉ dành cho học viên. "
+                + "Giảng viên và quản trị viên không thể trò chuyện với AI.";
+            return RedirectToAction("Index", "Course");
+        }
+
+        return null;
+    }
+
     [HttpGet]
     public async Task<IActionResult> Index(
         Guid courseId,
@@ -22,6 +42,11 @@ public sealed class ChatController(
         if (courseId == Guid.Empty)
         {
             return BadRequest();
+        }
+
+        if (RejectNonStudent() is { } redirect)
+        {
+            return redirect;
         }
 
         var actor = User.GetRequiredActor();
@@ -72,10 +97,9 @@ public sealed class ChatController(
         Guid courseId,
         CancellationToken cancellationToken)
     {
-        if (User.GetRequiredActor().IsAdmin)
+        if (RejectNonStudent() is { } redirect)
         {
-            TempData["ErrorMessage"] = "Admin không cần hỏi từ tài liệu.";
-            return RedirectToAction("Details", "Course", new { id = courseId });
+            return redirect;
         }
 
         try
@@ -99,9 +123,9 @@ public sealed class ChatController(
         ChatMessageInputViewModel input,
         CancellationToken cancellationToken)
     {
-        if (User.GetRequiredActor().IsAdmin)
+        if (RejectNonStudent() is { } redirect)
         {
-            return Forbid();
+            return redirect;
         }
 
         var session = await chatService.GetSessionAsync(
@@ -140,9 +164,9 @@ public sealed class ChatController(
         Guid sessionId,
         CancellationToken cancellationToken)
     {
-        if (User.GetRequiredActor().IsAdmin)
+        if (RejectNonStudent() is { } redirect)
         {
-            return Forbid();
+            return redirect;
         }
 
         var session = await chatService.GetSessionAsync(

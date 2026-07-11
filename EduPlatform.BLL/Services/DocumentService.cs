@@ -16,48 +16,35 @@ using BllDocumentStatus = EduPlatform.BLL.Enums.DocumentStatus;
 
 namespace EduPlatform.BLL.Services;
 
-public sealed class DocumentService : IDocumentService
+public sealed class DocumentService(
+    IDocumentRepository documentRepository,
+    ICourseRepository courseRepository,
+    ITextChunker textChunker,
+    IEmbeddingService embeddingService,
+    IEnumerable<ITextExtractor> extractors,
+    IFileStorageService fileStorageService,
+    IOptions<DocumentOptions> options,
+    TimeProvider timeProvider,
+    ILogger<DocumentService> logger) : IDocumentService
 {
     private static readonly HashSet<string> AllowedContentTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "application/pdf",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
         "text/plain",
-        "text/markdown",
-        "application/octet-stream"
+        "text/markdown"
     };
 
-    private readonly IDocumentRepository _documentRepository;
-    private readonly ICourseRepository _courseRepository;
-    private readonly ITextChunker _textChunker;
-    private readonly IEmbeddingService _embeddingService;
-    private readonly IReadOnlyList<ITextExtractor> _extractors;
-    private readonly IFileStorageService _fileStorageService;
-    private readonly DocumentOptions _options;
-    private readonly TimeProvider _timeProvider;
-    private readonly ILogger<DocumentService> _logger;
-
-    public DocumentService(
-        IDocumentRepository documentRepository,
-        ICourseRepository courseRepository,
-        ITextChunker textChunker,
-        IEmbeddingService embeddingService,
-        IEnumerable<ITextExtractor> extractors,
-        IFileStorageService fileStorageService,
-        IOptions<DocumentOptions> options,
-        TimeProvider timeProvider,
-        ILogger<DocumentService> logger)
-    {
-        _documentRepository = documentRepository;
-        _courseRepository = courseRepository;
-        _textChunker = textChunker;
-        _embeddingService = embeddingService;
-        _extractors = extractors.ToArray();
-        _fileStorageService = fileStorageService;
-        _options = options.Value;
-        _timeProvider = timeProvider;
-        _logger = logger;
-    }
+    private readonly IDocumentRepository _documentRepository = documentRepository;
+    private readonly ICourseRepository _courseRepository = courseRepository;
+    private readonly ITextChunker _textChunker = textChunker;
+    private readonly IEmbeddingService _embeddingService = embeddingService;
+    private readonly IReadOnlyList<ITextExtractor> _extractors = [.. extractors];
+    private readonly IFileStorageService _fileStorageService = fileStorageService;
+    private readonly DocumentOptions _options = options.Value;
+    private readonly TimeProvider _timeProvider = timeProvider;
+    private readonly ILogger<DocumentService> _logger = logger;
 
     public async Task<IReadOnlyList<DocumentSummaryDto>> ListByCourseAsync(
         Guid courseId,
@@ -70,9 +57,7 @@ public sealed class DocumentService : IDocumentService
             courseId,
             cancellationToken);
 
-        return documents
-            .Select(MapSummary)
-            .ToArray();
+        return [.. documents.Select(MapSummary)];
     }
 
     public async Task<DocumentDetailsDto> GetByIdAsync(
@@ -99,15 +84,15 @@ public sealed class DocumentService : IDocumentService
         await EnsureCanReadCourseAsync(document.CourseId, actor, cancellationToken);
 
         var chunks = await _documentRepository.ListChunksAsync(id, cancellationToken);
-        return chunks
+        return [.. chunks
             .Select(x => new DocumentChunkDto(
                 x.Id,
                 x.Sequence,
                 x.Content,
                 x.PageNumber,
                 x.Section,
-                x.Embedding is not null))
-            .ToArray();
+                x.Embedding is not null,
+                EmbeddingData: x.Embedding?.ToArray()))];
     }
 
     public async Task<Guid> UploadAsync(
@@ -123,12 +108,22 @@ public sealed class DocumentService : IDocumentService
         if (fileType == DocumentFileType.Unknown)
         {
             throw new BusinessValidationException(
-                "Định dạng tệp chưa được hỗ trợ. Hãy dùng PDF, DOCX, TXT hoặc Markdown.");
+                "Định dạng tệp chưa được hỗ trợ. Hãy dùng PDF, DOCX, PPTX, TXT hoặc Markdown.");
+        }
+
+        if (await _documentRepository.ExistsByCourseAndFileNameAsync(
+                command.CourseId,
+                command.OriginalFileName,
+                cancellationToken))
+        {
+            throw new ResourceConflictException(
+                "Tài liệu cùng tên đã được tải lên trong khóa học này. "
+                + "Hãy đổi tên tệp hoặc xóa bản cũ trước khi tải lại.");
         }
 
         var extractor = ResolveExtractor(command.ContentType, command.OriginalFileName)
             ?? throw new BusinessValidationException(
-                "Định dạng tệp chưa được hỗ trợ. Hãy dùng PDF, DOCX, TXT hoặc Markdown.");
+                "Định dạng tệp chưa được hỗ trợ. Hãy dùng PDF, DOCX, PPTX, TXT hoặc Markdown.");
 
         var documentId = Guid.NewGuid();
 
@@ -163,7 +158,6 @@ public sealed class DocumentService : IDocumentService
                 document,
                 memoryStream,
                 extractor,
-                command.OriginalFileName,
                 cancellationToken);
 
             await _documentRepository.SaveChangesAsync(cancellationToken);
@@ -242,7 +236,6 @@ public sealed class DocumentService : IDocumentService
         Document document,
         Stream fileStream,
         ITextExtractor extractor,
-        string originalFileName,
         CancellationToken cancellationToken)
     {
         var pages = await extractor.ExtractAsync(fileStream, cancellationToken);
@@ -370,7 +363,7 @@ public sealed class DocumentService : IDocumentService
             == DocumentFileType.Unknown)
         {
             throw new BusinessValidationException(
-                "Định dạng tệp chưa được hỗ trợ. Hãy dùng PDF, DOCX, TXT hoặc Markdown.");
+                "Định dạng tệp chưa được hỗ trợ. Hãy dùng PDF, DOCX, PPTX, TXT hoặc Markdown.");
         }
     }
 
@@ -389,6 +382,15 @@ public sealed class DocumentService : IDocumentService
             || fileName.EndsWith(".docx", StringComparison.OrdinalIgnoreCase))
         {
             return DocumentFileType.Docx;
+        }
+
+        if (string.Equals(
+                contentType,
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                StringComparison.OrdinalIgnoreCase)
+            || fileName.EndsWith(".pptx", StringComparison.OrdinalIgnoreCase))
+        {
+            return DocumentFileType.Pptx;
         }
 
         if (fileName.EndsWith(".md", StringComparison.OrdinalIgnoreCase)
@@ -489,6 +491,7 @@ public sealed class DocumentService : IDocumentService
         {
             ".pdf" => DocumentFileType.Pdf,
             ".docx" => DocumentFileType.Docx,
+            ".pptx" => DocumentFileType.Pptx,
             ".txt" => DocumentFileType.Txt,
             ".md" or ".markdown" => DocumentFileType.Md,
             _ => DocumentFileType.Unknown

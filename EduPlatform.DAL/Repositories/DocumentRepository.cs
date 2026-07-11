@@ -27,6 +27,18 @@ public sealed class DocumentRepository(AppDbContext dbContext) : IDocumentReposi
             .ToListAsync(cancellationToken);
     }
 
+    public Task<bool> ExistsByCourseAndFileNameAsync(
+        Guid courseId,
+        string originalFileName,
+        CancellationToken cancellationToken)
+    {
+        return dbContext.Documents
+            .AsNoTracking()
+            .AnyAsync(x => x.CourseId == courseId
+                && x.OriginalFileName == originalFileName,
+                cancellationToken);
+    }
+
     public async Task<IReadOnlyList<DocumentChunk>> ListChunksAsync(
         Guid documentId,
         CancellationToken cancellationToken)

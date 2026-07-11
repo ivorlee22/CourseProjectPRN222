@@ -153,6 +153,11 @@ public sealed class DocumentAccessTests
         {
             return Task.FromResult(1);
         }
+
+        public Task<bool> ExistsByCourseAndFileNameAsync(Guid courseId, string originalFileName, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(Documents.Any(d => d.CourseId == courseId && d.OriginalFileName == originalFileName));
+        }
     }
 
     private sealed class FakeCourseRepository : ICourseRepository

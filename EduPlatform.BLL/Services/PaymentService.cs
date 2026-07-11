@@ -12,7 +12,6 @@ public sealed class PaymentService(
     ISubscriptionRepository subscriptionRepository,
     IUserRepository userRepository,
     IVNPayService vnPayService,
-    IMoMoService moMoService,
     IEmailService emailService,
     ILogger<PaymentService> logger) : IPaymentService
 {
@@ -30,6 +29,12 @@ public sealed class PaymentService(
             throw new ArgumentException("User not found.");
         }
 
+        if (command.Method != PaymentMethod.VNPay)
+        {
+            throw new ArgumentException(
+                "Phương thức thanh toán không được hỗ trợ. Vui lòng chọn VNPay.");
+        }
+
         var internalReference = $"PAY-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString()[..6].ToUpperInvariant()}";
 
         var payment = new Payment
@@ -45,49 +50,34 @@ public sealed class PaymentService(
         paymentRepository.Add(payment);
         await paymentRepository.SaveChangesAsync(cancellationToken);
 
-        string paymentUrl;
-        if (command.Method == PaymentMethod.VNPay)
-        {
-            paymentUrl = vnPayService.CreatePaymentUrl(payment, command.ClientIpAddress);
-        }
-        else if (command.Method == PaymentMethod.MoMo)
-        {
-            paymentUrl = await moMoService.CreatePaymentUrlAsync(payment);
-        }
-        else
-        {
-            throw new NotSupportedException($"Payment method {command.Method} is not supported.");
-        }
+        var paymentUrl = command.Method == PaymentMethod.VNPay
+            ? vnPayService.CreatePaymentUrl(payment, command.ClientIpAddress)
+            : throw new NotSupportedException(
+                $"Payment method {command.Method} is not supported.");
 
         return new PaymentUrlResponse(paymentUrl);
     }
 
     public async Task<bool> ProcessCallbackAsync(PaymentCallbackCommand command, CancellationToken cancellationToken = default)
     {
-        var isSignatureValid = command.Method switch
+        if (command.Method != PaymentMethod.VNPay)
         {
-            PaymentMethod.VNPay => vnPayService.VerifySignature(command.QueryData),
-            PaymentMethod.MoMo => moMoService.VerifySignature(command.QueryData),
-            _ => false
-        };
-
-        if (!isSignatureValid)
-        {
-            logger.LogWarning("Invalid payment signature for method {Method}", command.Method);
+            logger.LogWarning(
+                "Unsupported payment method callback {Method}",
+                command.Method);
             return false;
         }
 
-        var reference = command.Method == PaymentMethod.VNPay
-            ? (command.QueryData.TryGetValue("vnp_TxnRef", out var vnpRef) ? vnpRef : string.Empty)
-            : (command.QueryData.TryGetValue("orderId", out var orderId) ? orderId : string.Empty);
-            
-        var gatewayTxnId = command.Method == PaymentMethod.VNPay
-            ? (command.QueryData.TryGetValue("vnp_TransactionNo", out var vnpNo) ? vnpNo : string.Empty)
-            : (command.QueryData.TryGetValue("transId", out var transId) ? transId : string.Empty);
-            
-        var responseCode = command.Method == PaymentMethod.VNPay
-            ? (command.QueryData.TryGetValue("vnp_ResponseCode", out var vnpRc) ? vnpRc : string.Empty)
-            : (command.QueryData.TryGetValue("resultCode", out var momoRc) ? momoRc : string.Empty);
+        var isSignatureValid = vnPayService.VerifySignature(command.QueryData);
+        if (!isSignatureValid)
+        {
+            logger.LogWarning("Invalid VNPay payment signature.");
+            return false;
+        }
+
+        var reference = command.QueryData.TryGetValue("vnp_TxnRef", out var vnpRef) ? vnpRef : string.Empty;
+        var gatewayTxnId = command.QueryData.TryGetValue("vnp_TransactionNo", out var vnpNo) ? vnpNo : string.Empty;
+        var responseCode = command.QueryData.TryGetValue("vnp_ResponseCode", out var vnpRc) ? vnpRc : string.Empty;
 
         if (string.IsNullOrEmpty(reference))
         {
@@ -101,7 +91,6 @@ public sealed class PaymentService(
             return false;
         }
 
-        // Idempotency check
         if (payment.Status != PaymentStatus.Pending)
         {
             return true;
@@ -112,15 +101,12 @@ public sealed class PaymentService(
         payment.ProcessedAtUtc = DateTimeOffset.UtcNow;
         payment.RawResponseJson = System.Text.Json.JsonSerializer.Serialize(command.QueryData);
 
-        var isSuccess = command.Method == PaymentMethod.VNPay 
-            ? responseCode == "00" 
-            : responseCode == "0";
+        var isSuccess = responseCode == "00";
 
         if (isSuccess)
         {
             payment.Status = PaymentStatus.Succeeded;
-            
-            // Cancel existing active subscription if any and create new
+
             var existingSubscription = await subscriptionRepository.GetActiveSubscriptionAsync(payment.UserId, cancellationToken);
             if (existingSubscription != null)
             {
@@ -128,7 +114,7 @@ public sealed class PaymentService(
                 existingSubscription.CancelledAtUtc = DateTimeOffset.UtcNow;
                 subscriptionRepository.Update(existingSubscription);
             }
-            
+
             var package = payment.Package;
             var subscription = new Subscription
             {
@@ -138,17 +124,14 @@ public sealed class PaymentService(
                 StartsAtUtc = DateTimeOffset.UtcNow,
                 EndsAtUtc = DateTimeOffset.UtcNow.AddDays(package.DurationDays)
             };
-            
+
             await subscriptionRepository.AddAsync(subscription, cancellationToken);
-            
-            // Assign subscription to payment
+
             payment.Subscription = subscription;
 
-            // Send confirmation email asynchronously (fire and forget or just await here depending on design)
-            // Assuming emailService throws on fail, we might want to catch it to not fail the transaction
             try
             {
-                var user = payment.User; // EF should load this or we query
+                var user = payment.User;
                 if (user != null)
                 {
                     await emailService.SendPaymentConfirmationAsync(
@@ -179,7 +162,7 @@ public sealed class PaymentService(
     public async Task<List<PaymentSummaryDto>> GetUserPaymentsAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var payments = await paymentRepository.GetByUserIdAsync(userId, cancellationToken);
-        
+
         return payments.Select(p => new PaymentSummaryDto(
             p.Id,
             p.PackageId,

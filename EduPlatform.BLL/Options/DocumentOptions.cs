@@ -19,7 +19,7 @@ public sealed class DocumentOptions
     public int ChunkSize { get; init; } = 1500;
 
     /// <summary>Overlap in characters between consecutive chunks.</summary>
-    public int ChunkOverlap { get; init; } = 200;
+    public int ChunkOverlap { get; init; }
 
     /// <summary>Embedding dimension produced by the configured Gemini model.</summary>
     public int EmbeddingDimensions { get; init; } = 3072;
