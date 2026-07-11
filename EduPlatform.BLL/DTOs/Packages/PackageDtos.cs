@@ -7,7 +7,8 @@ public record PackageDto(
     decimal Price,
     int MaxCourses,
     int DailyChats,
-    int DurationDays);
+    int DurationDays,
+    bool IsActive);
 
 public record PackageAdminDto(
     Guid Id,
@@ -36,4 +37,5 @@ public record UpdatePackageCommand(
     decimal Price,
     int MaxCourses,
     int DailyChats,
-    int DurationDays);
+    int DurationDays,
+    bool IsActive);

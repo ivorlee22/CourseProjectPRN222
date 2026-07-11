@@ -6,7 +6,7 @@ public interface IDocumentRepository
 {
     Task<Document?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 
-    Task<IReadOnlyList<Document>> ListByCourseAsync(
+    Task<IReadOnlyList<DocumentListItem>> ListByCourseAsync(
         Guid courseId,
         CancellationToken cancellationToken);
 
@@ -22,3 +22,14 @@ public interface IDocumentRepository
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
+
+public sealed record DocumentListItem(
+    Guid Id,
+    Guid CourseId,
+    string CourseTitle,
+    string OriginalFileName,
+    long SizeBytes,
+    DocumentStatus Status,
+    string? FailureReason,
+    int ChunkCount,
+    DateTimeOffset CreatedAtUtc);

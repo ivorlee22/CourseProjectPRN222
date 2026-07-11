@@ -68,17 +68,8 @@ public sealed class AdminPackageController(IPackageService packageService) : Con
                 MaxCourses = package.MaxCourses,
                 DailyChats = package.DailyChats,
                 DurationDays = package.DurationDays,
-                IsActive = true // We need GetByIdAsync to return IsActive or we use GetAllPackagesAsync to find it.
+                IsActive = package.IsActive
             };
-            
-            // Temporary workaround since GetByIdAsync returns PackageDto without IsActive.
-            // Let's get it from GetAllPackagesAsync
-            var all = await packageService.GetAllPackagesAsync(cancellationToken);
-            var target = all.FirstOrDefault(x => x.Id == id);
-            if (target != null)
-            {
-                model.IsActive = target.IsActive;
-            }
 
             return View(model);
         }
@@ -105,15 +96,11 @@ public sealed class AdminPackageController(IPackageService packageService) : Con
                 model.Price,
                 model.MaxCourses,
                 model.DailyChats,
-                model.DurationDays);
+                model.DurationDays,
+                model.IsActive);
 
             await packageService.UpdatePackageAsync(command, cancellationToken);
             
-            // Update IsActive status separately if needed, or we just handle it via ToggleStatus.
-            // Wait, the Edit view might not include IsActive, or if it does, we should update it. 
-            // In our BLL, UpdatePackageAsync doesn't take IsActive. TogglePackageStatusAsync handles it.
-            // We can call TogglePackageStatusAsync here.
-            await packageService.TogglePackageStatusAsync(model.Id, model.IsActive, cancellationToken);
 
             TempData["SuccessMessage"] = "Cập nhật gói thành công.";
             return RedirectToAction(nameof(Index));
