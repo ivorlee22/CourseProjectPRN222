@@ -66,6 +66,41 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-11 - Document list and package edit cleanup
+
+**Owner**
+
+- Codex (Agent) / repository review follow-up requested by user.
+
+**Completed**
+
+- Replaced the document list entity graph load with a DAL projection that selects only list fields and computes `ChunkCount` in SQL, avoiding document chunk content, metadata, and embedding materialization.
+- Added `IsActive` to the package detail DTO and update command so Admin package edit uses one package query and one save.
+- Removed the unused legacy `Views/Payment/Packages.cshtml` while preserving the `/payment/packages` redirect route used by navigation.
+- Marked success and error toast icons as decorative with `aria-hidden="true"`.
+- Added regression coverage for projected document chunk counts, package active status, and single-save package updates.
+
+**UI/UX**
+
+- Design Read: maintenance update for the existing product UI, preserving Bootstrap/MVC behavior while improving accessibility semantics.
+- Dials: `DESIGN_VARIANCE 3`, `MOTION_INTENSITY 2`, `VISUAL_DENSITY 6`.
+- Pre-flight: routes, navigation labels, form fields, responsive behavior, focus behavior, motion, and visible copy were unchanged; decorative toast icons are now hidden from assistive technology.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\tests\EduPlatform.Tests\EduPlatform.Tests.csproj -c Release --no-build --no-restore` passed: 93 succeeded, 1 opt-in live Gemini test skipped without credentials.
+- Targeted PackageService and DocumentAccess tests passed: 7 succeeded, 0 failed.
+- `git diff --check` passed.
+
+**Remaining**
+
+- None for this cleanup scope.
+
+**Blocked**
+
+- None.
+
 ### 2026-07-10 - Fix Admin course delete redirect
 
 **Owner**

@@ -60,6 +60,7 @@ public sealed class PackageService(IPackageRepository packageRepository) : IPack
         package.MaxCourses = command.MaxCourses;
         package.DailyChats = command.DailyChats;
         package.DurationDays = command.DurationDays;
+        package.IsActive = command.IsActive;
         package.UpdatedAtUtc = DateTimeOffset.UtcNow;
 
         packageRepository.Update(package);
@@ -87,7 +88,8 @@ public sealed class PackageService(IPackageRepository packageRepository) : IPack
             package.Price,
             package.MaxCourses,
             package.DailyChats,
-            package.DurationDays);
+            package.DurationDays,
+            package.IsActive);
     }
 
     private static PackageAdminDto MapAdmin(Package package)

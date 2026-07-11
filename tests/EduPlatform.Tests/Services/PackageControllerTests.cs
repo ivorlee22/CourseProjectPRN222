@@ -163,10 +163,10 @@ public sealed class PackageControllerTests
     {
         _packageService.Packages.AddRange(
         [
-            new PackageDto(Guid.NewGuid(), "Free", "Free", 0m, 2, 10, 36500),
-            new PackageDto(Guid.NewGuid(), "Plus", "Plus", 99000m, 10, 50, 30),
-            new PackageDto(Guid.NewGuid(), "Pro", "Pro", 199000m, 20, 100, 30),
-            new PackageDto(Guid.NewGuid(), "Max", "Max", 399000m, 200, 200, 30)
+            new PackageDto(Guid.NewGuid(), "Free", "Free", 0m, 2, 10, 36500, true),
+            new PackageDto(Guid.NewGuid(), "Plus", "Plus", 99000m, 10, 50, 30, true),
+            new PackageDto(Guid.NewGuid(), "Pro", "Pro", 199000m, 20, 100, 30, true),
+            new PackageDto(Guid.NewGuid(), "Max", "Max", 399000m, 200, 200, 30, true)
         ]);
     }
 

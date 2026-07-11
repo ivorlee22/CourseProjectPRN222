@@ -33,12 +33,29 @@ public sealed class PackageServiceTests
     public async Task GetByIdAsync_PackageExists_ReturnsPackage()
     {
         var id = Guid.NewGuid();
-        _repository.Packages.Add(new Package { Id = id, Name = "Pro", Price = 199000 });
+        _repository.Packages.Add(new Package { Id = id, Name = "Pro", Price = 199000, IsActive = false });
 
         var package = await _service.GetByIdAsync(id, CancellationToken.None);
 
         Assert.IsNotNull(package);
         Assert.AreEqual("Pro", package.Name);
+        Assert.IsFalse(package.IsActive);
+    }
+
+    [TestMethod]
+    public async Task UpdatePackageAsync_UpdatesFieldsAndSavesOnce()
+    {
+        var id = Guid.NewGuid();
+        _repository.Packages.Add(new Package { Id = id, Name = "Old", IsActive = true });
+
+        await _service.UpdatePackageAsync(
+            new UpdatePackageCommand(id, "Pro", "Updated", 199000m, 20, 100, 30, false),
+            CancellationToken.None);
+
+        var package = _repository.Packages.Single();
+        Assert.AreEqual("Pro", package.Name);
+        Assert.IsFalse(package.IsActive);
+        Assert.AreEqual(1, _repository.SaveChangesCallCount);
     }
 
     [TestMethod]
@@ -56,7 +73,12 @@ public sealed class PackageServiceTests
         public Task<IReadOnlyList<Package>> GetAllAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Package>>(Packages);
         public Task AddAsync(Package package, CancellationToken cancellationToken) { Packages.Add(package); return Task.CompletedTask; }
         public void Update(Package package) { }
-        public Task<int> SaveChangesAsync(CancellationToken cancellationToken) => Task.FromResult(0);
+        public int SaveChangesCallCount { get; private set; }
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken)
+        {
+            SaveChangesCallCount++;
+            return Task.FromResult(1);
+        }
 
         public List<Package> Packages { get; } = [];
 
