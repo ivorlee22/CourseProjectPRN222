@@ -161,11 +161,8 @@ public sealed class ReportRepository(AppDbContext dbContext) : IReportRepository
         CancellationToken cancellationToken)
     {
         var subscriptionPackages = await ActiveSubscriptions(nowUtc)
-            .Join(
-                dbContext.Packages.AsNoTracking(),
-                subscription => subscription.PackageId,
-                package => package.Id,
-                (subscription, package) => package.Name)
+            .Include(subscription => subscription.Package)
+            .Select(subscription => subscription.Package.Name)
             .ToListAsync(cancellationToken);
 
         return subscriptionPackages

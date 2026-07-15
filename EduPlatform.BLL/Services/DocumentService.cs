@@ -435,18 +435,18 @@ public sealed class DocumentService(
         }
     }
 
-    private static DocumentSummaryDto MapSummary(Document document)
+    private static DocumentSummaryDto MapSummary(DocumentListItem document)
     {
         return new DocumentSummaryDto(
             document.Id,
             document.CourseId,
-            document.Course.Title,
+            document.CourseTitle,
             document.OriginalFileName,
             ResolveFileTypeFromName(document.OriginalFileName),
             document.SizeBytes,
             ToBll(document.Status),
             document.FailureReason,
-            document.Chunks.Count,
+            document.ChunkCount,
             document.CreatedAtUtc);
     }
 

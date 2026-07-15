@@ -2,8 +2,8 @@ namespace EduPlatform.BLL.Interfaces;
 
 public interface ICourseQuotaService
 {
-    Task EnsureCanCreateCourseAsync(
+    Task EnsureCanJoinCourseAsync(
         Guid userId,
-        int currentCourseCount,
+        int currentActiveCourseCount,
         CancellationToken cancellationToken);
 }

@@ -17,4 +17,5 @@ public sealed record PackagePricingItemViewModel(
 
 public sealed record PaymentCheckoutViewModel(
     PackageDto Package,
-    bool IsCurrent);
+    bool IsCurrent,
+    SubscriptionSummaryDto? CurrentSubscription);

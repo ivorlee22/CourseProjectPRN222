@@ -54,7 +54,7 @@
                                     <a class="nav-link" asp-controller="Course" asp-action="Mine">Khóa học của tôi</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" asp-controller="Reports" asp-action="StudentUsage">Sử dụng</a>
+                                    <a class="nav-link" asp-controller="Reports" asp-action="StudentUsage">Thống kê</a>
                                 </li>
                             }
                             @if (User.IsInRole("Teacher"))
@@ -154,7 +154,7 @@
                 aria-atomic="true">
                 <div class="d-flex">
                     <div class="toast-body">
-                        <i class="bi bi-check-circle-fill me-2"></i> @successMessage
+                        <i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i> @successMessage
                     </div>
                     <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
                         aria-label="Đóng"></button>
@@ -167,7 +167,7 @@
                 aria-atomic="true">
                 <div class="d-flex">
                     <div class="toast-body">
-                        <i class="bi bi-exclamation-circle-fill me-2"></i> @errorMessage
+                        <i class="bi bi-exclamation-circle-fill me-2" aria-hidden="true"></i> @errorMessage
                     </div>
                     <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
                         aria-label="Đóng"></button>

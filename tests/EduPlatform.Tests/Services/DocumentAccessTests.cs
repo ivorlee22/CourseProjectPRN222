@@ -45,7 +45,10 @@ public sealed class DocumentAccessTests
     public async Task ListByCourseAsync_PublicVisibleCourse_AllowsStudentWithoutEnrollment()
     {
         _courseRepository.Courses.Add(CreateCourse(DalCourseType.Public, isVisible: true));
-        _documentRepository.Documents.Add(CreateDocument());
+        var document = CreateDocument();
+        document.Chunks.Add(new DocumentChunk { DocumentId = document.Id, Sequence = 0, Content = "First" });
+        document.Chunks.Add(new DocumentChunk { DocumentId = document.Id, Sequence = 1, Content = "Second" });
+        _documentRepository.Documents.Add(document);
 
         var documents = await _service.ListByCourseAsync(
             CourseId,
@@ -53,6 +56,7 @@ public sealed class DocumentAccessTests
             CancellationToken.None);
 
         Assert.HasCount(1, documents);
+        Assert.AreEqual(2, documents[0].ChunkCount);
     }
 
     [TestMethod]
@@ -123,9 +127,21 @@ public sealed class DocumentAccessTests
             return Task.FromResult(Documents.SingleOrDefault(x => x.Id == id));
         }
 
-        public Task<IReadOnlyList<Document>> ListByCourseAsync(Guid courseId, CancellationToken cancellationToken)
+        public Task<IReadOnlyList<DocumentListItem>> ListByCourseAsync(Guid courseId, CancellationToken cancellationToken)
         {
-            return Task.FromResult<IReadOnlyList<Document>>(Documents.Where(x => x.CourseId == courseId).ToArray());
+            return Task.FromResult<IReadOnlyList<DocumentListItem>>(Documents
+                .Where(x => x.CourseId == courseId)
+                .Select(x => new DocumentListItem(
+                    x.Id,
+                    x.CourseId,
+                    x.Course.Title,
+                    x.OriginalFileName,
+                    x.SizeBytes,
+                    x.Status,
+                    x.FailureReason,
+                    x.Chunks.Count,
+                    x.CreatedAtUtc))
+                .ToArray());
         }
 
         public Task<IReadOnlyList<DocumentChunk>> ListChunksAsync(Guid documentId, CancellationToken cancellationToken)
@@ -182,6 +198,11 @@ public sealed class DocumentAccessTests
         }
 
         public Task<int> CountByOwnerAsync(Guid ownerId, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<int> CountActiveEnrollmentsByUserAsync(Guid userId, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }

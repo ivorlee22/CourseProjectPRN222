@@ -14,16 +14,24 @@ public sealed class DocumentRepository(AppDbContext dbContext) : IDocumentReposi
             .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Document>> ListByCourseAsync(
+    public async Task<IReadOnlyList<DocumentListItem>> ListByCourseAsync(
         Guid courseId,
         CancellationToken cancellationToken)
     {
         return await dbContext.Documents
             .AsNoTracking()
-            .Include(x => x.Course)
-            .Include(x => x.Chunks)
             .Where(x => x.CourseId == courseId)
             .OrderByDescending(x => x.CreatedAtUtc)
+            .Select(x => new DocumentListItem(
+                x.Id,
+                x.CourseId,
+                x.Course.Title,
+                x.OriginalFileName,
+                x.SizeBytes,
+                x.Status,
+                x.FailureReason,
+                x.Chunks.Count,
+                x.CreatedAtUtc))
             .ToListAsync(cancellationToken);
     }
 

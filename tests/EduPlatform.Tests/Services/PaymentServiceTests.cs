@@ -74,8 +74,8 @@ public sealed class PaymentServiceTests
         // Arrange
         var userId = Guid.NewGuid();
         var packageId = Guid.NewGuid();
-        var user = new User { Id = userId, Email = "test@eduplatform.com", FullName = "Test User" };
-        var package = new Package { Id = packageId, Name = "Pro Gói", Price = 199000, DurationDays = 30 };
+        var user = new User { Id = userId, Email = "test@eduplatform.com", FullName = "Test User", Role = UserRole.Student };
+        var package = new Package { Id = packageId, Name = "Pro Goi", Price = 199000, DurationDays = 30, MaxCourses = 20, DailyChats = 100 };
         var payment = new Payment
         {
             Id = Guid.NewGuid(),
@@ -115,10 +115,102 @@ public sealed class PaymentServiceTests
         Assert.AreEqual(userId, sub.UserId);
         Assert.AreEqual(packageId, sub.PackageId);
         Assert.AreEqual(SubscriptionStatus.Active, sub.Status);
+        Assert.AreEqual(package, sub.Package);
         Assert.AreEqual(sub, payment.Subscription);
         Assert.HasCount(1, _emailService.SentConfirmationEmails);
         Assert.AreEqual(1, _paymentRepository.UpdateCallCount);
         Assert.AreEqual(1, _paymentRepository.SaveChangesCallCount);
+    }
+
+    [TestMethod]
+    public async Task ProcessCallbackAsync_Upgrade_ReplacesCurrentAndActivatesNewPlan()
+    {
+        var userId = Guid.NewGuid();
+        var currentPackage = new Package { Id = Guid.NewGuid(), Name = "Plus", Price = 99000, DurationDays = 30, MaxCourses = 10, DailyChats = 50 };
+        var newPackage = new Package { Id = Guid.NewGuid(), Name = "Pro", Price = 199000, DurationDays = 30, MaxCourses = 20, DailyChats = 100 };
+        var current = CreateActiveSubscription(userId, currentPackage);
+        var payment = AddPendingPayment(userId, newPackage);
+        _subscriptionRepository.Subscriptions.Add(current);
+        _userRepository.Users.Add(new User { Id = userId, Email = "test@eduplatform.com", FullName = "Test User", Role = UserRole.Student });
+        _vnPayService.VerifySignatureResult = true;
+
+        var result = await _service.ProcessCallbackAsync(
+            CreateSuccessCallback(payment.InternalReference),
+            CancellationToken.None);
+
+        Assert.IsTrue(result);
+        Assert.AreEqual(SubscriptionStatus.Expired, current.Status);
+        var activated = _subscriptionRepository.Subscriptions.Single(x => x != current);
+        Assert.AreEqual(SubscriptionStatus.Active, activated.Status);
+        Assert.AreEqual(newPackage.Id, activated.PackageId);
+    }
+
+    [TestMethod]
+    public async Task ProcessCallbackAsync_Downgrade_SchedulesNewPlanAfterCurrentEnds()
+    {
+        var userId = Guid.NewGuid();
+        var currentPackage = new Package { Id = Guid.NewGuid(), Name = "Pro", Price = 199000, DurationDays = 30, MaxCourses = 20, DailyChats = 100 };
+        var newPackage = new Package { Id = Guid.NewGuid(), Name = "Plus", Price = 99000, DurationDays = 30, MaxCourses = 10, DailyChats = 50 };
+        var current = CreateActiveSubscription(userId, currentPackage);
+        var payment = AddPendingPayment(userId, newPackage);
+        _subscriptionRepository.Subscriptions.Add(current);
+        _userRepository.Users.Add(new User { Id = userId, Email = "test@eduplatform.com", FullName = "Test User", Role = UserRole.Student });
+        _vnPayService.VerifySignatureResult = true;
+
+        var result = await _service.ProcessCallbackAsync(
+            CreateSuccessCallback(payment.InternalReference),
+            CancellationToken.None);
+
+        Assert.IsTrue(result);
+        Assert.AreEqual(SubscriptionStatus.Active, current.Status);
+        var nextPeriod = _subscriptionRepository.Subscriptions.Single(x => x != current);
+        Assert.AreEqual(SubscriptionStatus.Active, nextPeriod.Status);
+        Assert.AreEqual(newPackage.Id, nextPeriod.PackageId);
+        Assert.AreEqual(current.EndsAtUtc, nextPeriod.StartsAtUtc);
+    }
+
+    private Payment AddPendingPayment(Guid userId, Package package)
+    {
+        var user = new User { Id = userId, Email = "test@eduplatform.com", FullName = "Test User", Role = UserRole.Student };
+        var payment = new Payment
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            PackageId = package.Id,
+            Amount = package.Price,
+            Method = PaymentMethod.VNPay,
+            Status = PaymentStatus.Pending,
+            InternalReference = $"PAY-{Guid.NewGuid():N}",
+            Package = package,
+            User = user
+        };
+        _paymentRepository.Payments.Add(payment);
+        _packageRepository.Packages.Add(package);
+        return payment;
+    }
+
+    private static Subscription CreateActiveSubscription(Guid userId, Package package)
+    {
+        return new Subscription
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            PackageId = package.Id,
+            Package = package,
+            Status = SubscriptionStatus.Active,
+            StartsAtUtc = DateTimeOffset.UtcNow.AddDays(-5),
+            EndsAtUtc = DateTimeOffset.UtcNow.AddDays(25)
+        };
+    }
+
+    private static PaymentCallbackCommand CreateSuccessCallback(string reference)
+    {
+        return new PaymentCallbackCommand(PaymentMethod.VNPay, new Dictionary<string, string>
+        {
+            { "vnp_TxnRef", reference },
+            { "vnp_TransactionNo", Guid.NewGuid().ToString("N") },
+            { "vnp_ResponseCode", "00" }
+        });
     }
 
     private sealed class FakePaymentRepository : IPaymentRepository

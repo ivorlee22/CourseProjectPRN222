@@ -17,6 +17,8 @@ public interface ICourseRepository
 
     Task<int> CountByOwnerAsync(Guid ownerId, CancellationToken cancellationToken);
 
+    Task<int> CountActiveEnrollmentsByUserAsync(Guid userId, CancellationToken cancellationToken);
+
     Task<bool> UserExistsAsync(Guid userId, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<User>> FindActiveStudentsByEmailOrNameAsync(

@@ -8,7 +8,7 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 - Application code: Builds successfully on .NET 10.
 - Canonical plan: `implementation_plan.md`.
 - Architecture: Strict `Web → BLL → DAL`.
-- Test baseline: 71 tests passing, 1 opt-in live Gemini test skipped without credentials.
+- Test baseline: 99 tests passing, 1 opt-in live Gemini test skipped without credentials.
 - Database: Initial migration applied to Neon; pgvector 0.8.1 verified.
 - Next milestone: Nguyên continues Package/Subscription polish and quota verification after the payment scope was reduced to VNPay only.
 
@@ -65,6 +65,156 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-11 - Document list and package edit cleanup
+
+**Owner**
+
+- Codex (Agent) / repository review follow-up requested by user.
+
+**Completed**
+
+- Replaced the document list entity graph load with a DAL projection that selects only list fields and computes `ChunkCount` in SQL, avoiding document chunk content, metadata, and embedding materialization.
+- Added `IsActive` to the package detail DTO and update command so Admin package edit uses one package query and one save.
+- Removed the unused legacy `Views/Payment/Packages.cshtml` while preserving the `/payment/packages` redirect route used by navigation.
+- Marked success and error toast icons as decorative with `aria-hidden="true"`.
+- Added regression coverage for projected document chunk counts, package active status, and single-save package updates.
+
+**UI/UX**
+
+- Design Read: maintenance update for the existing product UI, preserving Bootstrap/MVC behavior while improving accessibility semantics.
+- Dials: `DESIGN_VARIANCE 3`, `MOTION_INTENSITY 2`, `VISUAL_DENSITY 6`.
+- Pre-flight: routes, navigation labels, form fields, responsive behavior, focus behavior, motion, and visible copy were unchanged; decorative toast icons are now hidden from assistive technology.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` passed with 0 warnings and 0 errors.
+- `dotnet test .\tests\EduPlatform.Tests\EduPlatform.Tests.csproj -c Release --no-build --no-restore` passed: 93 succeeded, 1 opt-in live Gemini test skipped without credentials.
+- Targeted PackageService and DocumentAccess tests passed: 7 succeeded, 0 failed.
+- `git diff --check` passed.
+
+**Remaining**
+
+- None for this cleanup scope.
+
+**Blocked**
+
+- None.
+
+### 2026-07-11 - Refine Payment History Layout
+
+**Owner**
+
+- Codex (Agent) / user visual review feedback.
+
+**Design Read**
+
+- Product/data screen for Students reviewing transactions; design variance low, motion intensity low, visual density medium.
+
+**Completed**
+
+- Removed the inline Payment history success/error alerts because `_Layout.cshtml` already shows TempData messages as global toasts.
+- Reduced the Payment history heading scale and spacing so the screen reads as a transaction table, not a landing-page hero.
+- Removed the redundant "Xem gói cước" header action from Payment history.
+- Added Payment history specific CSS for tighter heading rhythm, table spacing, and action button sizing.
+- Confirmed the invalid-signature wording is not exposed in the user-facing Payment views.
+
+**Verification**
+
+- `git diff --check` - passed with line-ending warnings only.
+- `dotnet test .\tests\EduPlatform.Tests\EduPlatform.Tests.csproj -c Release --no-restore` - passed: 99 succeeded, 1 skipped live Gemini smoke test because `GEMINI_API_KEY` is not set.
+
+### 2026-07-11 - Make Payment Failure Copy User-Friendly
+
+**Owner**
+
+- Codex (Agent) / user visual review feedback.
+
+**Completed**
+
+- Replaced the user-facing VNPay return error that mentioned an invalid signature with a non-technical payment failure message.
+- Kept invalid signature handling in the backend/IPN response path while hiding gateway implementation details from Students.
+- Re-saved Payment history and detail views with proper Vietnamese Unicode text.
+- Made the Payment history alert read as an incomplete payment state instead of exposing low-level gateway validation.
+
+**Verification**
+
+- `dotnet test .\tests\EduPlatform.Tests\EduPlatform.Tests.csproj -c Release --no-restore` - passed: 99 succeeded, 1 skipped live Gemini smoke test because `GEMINI_API_KEY` is not set.
+
+### 2026-07-11 - Refine Student Usage Navigation
+
+**Owner**
+
+- Codex (Agent) / user visual review feedback.
+
+**Completed**
+
+- Renamed the Student header navigation item from "Sử dụng" to "Thống kê" to match the usage statistics screen.
+- Removed the redundant "Khóa học của tôi" hero button from the Student usage statistics page because the same destination already exists in the main header.
+- Re-saved `StudentUsage.cshtml` with proper Vietnamese Unicode text while preserving the existing layout and data bindings.
+
+**Verification**
+
+- `dotnet test .\tests\EduPlatform.Tests\EduPlatform.Tests.csproj -c Release --no-restore` - passed: 99 succeeded, 1 skipped live Gemini smoke test because `GEMINI_API_KEY` is not set.
+
+### 2026-07-11 - Refine Student Subscription Screen IA
+
+**Owner**
+
+- Codex (Agent) / user visual review feedback.
+
+**Completed**
+
+- Removed the redundant "Xem bảng giá" action from the Student subscription header.
+- Removed the secondary "Xem gói khác" action from the current subscription card; the screen now has one clear primary action: renew the current package.
+- Removed the history table action column entirely because cancelled/expired rows are audit records, not active workflow items.
+- Rebalanced the current subscription card into a summary row plus a consistent metric row for course quota, daily chat quota, start date, and end date.
+
+**Verification**
+
+- `dotnet test .\tests\EduPlatform.Tests\EduPlatform.Tests.csproj -c Release --no-restore` - passed: 99 succeeded, 1 skipped live Gemini smoke test because `GEMINI_API_KEY` is not set.
+
+### 2026-07-11 - Polish Student Subscription Management UI Copy
+
+**Owner**
+
+- Codex (Agent) / user visual review feedback.
+
+**Completed**
+
+- Restored Vietnamese accented status labels in Student subscription history.
+- Renamed the current-package CTA from "Gia hạn qua VNPay" to "Gia hạn" to keep payment implementation details out of the management screen.
+- Replaced "Đổi gói" with "Xem gói khác" on the current subscription card so the action accurately opens pricing instead of implying an instant switch.
+- Fixed `SubscriptionHistoryItemViewModel` mapping so active and expired rows can show the renew action while cancellation remains hidden.
+- Tightened the current subscription card layout with clearer metric tiles and consistent action sizing.
+
+**Verification**
+
+- `dotnet test .\tests\EduPlatform.Tests\EduPlatform.Tests.csproj -c Release --no-restore` - passed: 99 succeeded, 1 skipped live Gemini smoke test because `GEMINI_API_KEY` is not set.
+
+### 2026-07-11 - Align Student Package Quota and VNPay Subscription Lifecycle
+
+**Owner**
+
+- Codex (Agent) / user-confirmed Package and Course requirements.
+
+**Completed**
+
+- Enforced package purchase as Student-only in the BLL payment flow.
+- Moved course quota from course creation to Student course participation: public enrollment and accepted invitations now count active enrollments and call `ICourseQuotaService`.
+- Kept Admin-created courses and Teacher-assigned courses outside package quota; Teacher still cannot create courses.
+- Removed active package cancellation from the Subscription UI; prepaid VNPay subscriptions are allowed to expire naturally.
+- Changed subscription renew/change actions to go through Payment checkout instead of creating subscriptions directly from Subscription management.
+- Implemented immediate upgrade behavior by expiring the current active subscription and activating the higher-priced paid package after successful VNPay payment.
+- Implemented next-period downgrade/renew behavior without schema changes by creating a future-dated active subscription that becomes eligible only when `StartsAtUtc <= now`.
+- Kept the implementation within existing entities and migrations; no Entity or Migration changes were retained.
+- Updated Package, Payment, and Subscription copy to describe `MaxCourses` as courses the Student can join.
+- Fixed VNPay IPN response handling to return success only when callback processing succeeds.
+- Updated focused unit tests for payment lifecycle, subscription cancel/renew redirect, and enrollment quota enforcement.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` - passed.
+- `dotnet test .\tests\EduPlatform.Tests\EduPlatform.Tests.csproj -c Release --no-build --no-restore` - passed: 99 succeeded, 1 skipped live Gemini smoke test because `GEMINI_API_KEY` is not set.
 ### 2026-07-11 - Preserve chat state after streaming completes
 
 **Owner**
@@ -478,7 +628,7 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 **Completed**
 
-- Hid the shared `.section-label` page eyebrow style so small uppercase labels such as the Course page "Khong gian hoc tap" no longer render visually.
+- Hid the shared `.section-label` page eyebrow style so small uppercase labels such as the Course page "Không gian học tập" no longer render visually.
 - Kept the change scoped to `EduPlatform.Web/wwwroot/css/site.css`.
 - Preserved Razor views, routes, controllers, actions, model binding, and backend logic.
 
