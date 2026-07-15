@@ -40,11 +40,11 @@
                     <div class="row mb-3 border-bottom pb-3">
                         <div class="col-sm-4 text-muted fw-bold">Trạng thái:</div>
                         <div class="col-sm-8">
-                            @if (Model.Status == EduPlatform.DAL.Entities.PaymentStatus.Succeeded)
+                            @if (Model.Status == PaymentStatus.Succeeded)
                             {
                                 <span class="badge bg-success">Thành công</span>
                             }
-                            else if (Model.Status == EduPlatform.DAL.Entities.PaymentStatus.Failed)
+                            else if (Model.Status == PaymentStatus.Failed)
                             {
                                 <span class="badge bg-danger">Thất bại</span>
                             }
