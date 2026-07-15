@@ -1,4 +1,4 @@
-using EduPlatform.DAL.Entities;
+using EduPlatform.BLL.Enums;
 
 namespace EduPlatform.BLL.DTOs.Payments;
 
