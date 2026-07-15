@@ -106,11 +106,14 @@
                     </form>
                 }
 
-                @if (Model.CanViewDocuments)
+                @if (Model.Course.IsEnrolled)
                 {
                     <a class="btn btn-primary" asp-controller="Chat" asp-action="Index" asp-route-courseId="@Model.Course.Id">
                         Mở trợ lý học tập
                     </a>
+                }
+                @if (Model.CanViewDocuments)
+                {
                     <a class="btn btn-outline-primary" asp-controller="Document" asp-action="Index" asp-route-courseId="@Model.Course.Id">
                         Xem tài liệu học
                     </a>

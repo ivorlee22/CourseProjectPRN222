@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+@using EduPlatform.Web.Security
+@inject EduPlatform.BLL.Interfaces.IChatQuotaService ChatQuotaService
+<!DOCTYPE html>
 <html lang="vi">
 
 <head>
@@ -85,6 +87,20 @@
                                                 asp-action="UserAnalytics">Phân tích người dùng</a></li>
                                     </ul>
                                 </li>
+                            }
+                            @if (User.IsInRole("Student"))
+                            {
+                                var actor = User.GetActorOrDefault();
+                                if (actor != null)
+                                {
+                                    var quotaInfo = await ChatQuotaService.GetQuotaInfoAsync(actor.UserId, CancellationToken.None);
+                                    var remainingChats = Math.Max(0, quotaInfo.DailyLimit - quotaInfo.MessageCount);
+                                    <li class="nav-item ms-lg-2 d-flex align-items-center" title="Lượt chat trong ngày">
+                                        <span class="badge bg-primary text-light rounded-pill px-3 py-2" style="font-weight: 500;">
+                                            Chat: @remainingChats / @quotaInfo.DailyLimit
+                                        </span>
+                                    </li>
+                                }
                             }
                             <li class="nav-item ms-lg-2 dropdown d-flex align-items-center">
                                 <a class="nav-link dropdown-toggle fw-semibold text-dark" href="#" id="user-menu-btn"

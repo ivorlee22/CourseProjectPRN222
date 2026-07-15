@@ -454,6 +454,11 @@ public sealed class ChatServiceTests
                 ? Task.CompletedTask
                 : Task.FromException(ExceptionToThrow);
         }
+
+        public Task<(int MessageCount, int DailyLimit)> GetQuotaInfoAsync(Guid userId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult((0, 10));
+        }
     }
 
     private sealed class FakeChatRepository : IChatRepository
