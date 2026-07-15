@@ -3,6 +3,10 @@ using EduPlatform.BLL.Interfaces;
 using EduPlatform.DAL.Entities;
 using EduPlatform.DAL.Repositories;
 using Microsoft.Extensions.Logging;
+using BllPaymentMethod = EduPlatform.BLL.Enums.PaymentMethod;
+using BllPaymentStatus = EduPlatform.BLL.Enums.PaymentStatus;
+using DalPaymentMethod = EduPlatform.DAL.Entities.PaymentMethod;
+using DalPaymentStatus = EduPlatform.DAL.Entities.PaymentStatus;
 
 namespace EduPlatform.BLL.Services;
 
@@ -19,7 +23,7 @@ public sealed class PaymentService(
         CreatePaymentCommand command,
         CancellationToken cancellationToken = default)
     {
-        if (command.Method != PaymentMethod.VNPay)
+        if (command.Method != BllPaymentMethod.VNPay)
         {
             throw new NotSupportedException("EduPlatform currently supports VNPay payments only.");
         }
@@ -48,8 +52,8 @@ public sealed class PaymentService(
             UserId = user.Id,
             PackageId = package.Id,
             Amount = package.Price,
-            Method = command.Method,
-            Status = PaymentStatus.Pending,
+            Method = MapPaymentMethod(command.Method),
+            Status = DalPaymentStatus.Pending,
             InternalReference = internalReference
         };
 
@@ -64,7 +68,7 @@ public sealed class PaymentService(
         PaymentCallbackCommand command,
         CancellationToken cancellationToken = default)
     {
-        if (command.Method != PaymentMethod.VNPay)
+        if (command.Method != BllPaymentMethod.VNPay)
         {
             logger.LogWarning("Unsupported payment callback method {Method}", command.Method);
             return false;
@@ -102,7 +106,7 @@ public sealed class PaymentService(
             return false;
         }
 
-        if (payment.Status != PaymentStatus.Pending)
+        if (payment.Status != DalPaymentStatus.Pending)
         {
             return true;
         }
@@ -115,12 +119,12 @@ public sealed class PaymentService(
         var isSuccess = responseCode == "00";
         if (isSuccess)
         {
-            payment.Status = PaymentStatus.Succeeded;
+            payment.Status = DalPaymentStatus.Succeeded;
             await ApplySubscriptionChangeAsync(payment, cancellationToken);
         }
         else
         {
-            payment.Status = PaymentStatus.Failed;
+            payment.Status = DalPaymentStatus.Failed;
         }
 
         paymentRepository.Update(payment);
@@ -143,9 +147,9 @@ public sealed class PaymentService(
         return payments.Select(p =>
         {
             var status = p.Status;
-            if (status == PaymentStatus.Pending && DateTimeOffset.UtcNow - p.CreatedAtUtc > TimeSpan.FromMinutes(15))
+            if (status == DalPaymentStatus.Pending && DateTimeOffset.UtcNow - p.CreatedAtUtc > TimeSpan.FromMinutes(15))
             {
-                status = PaymentStatus.Failed;
+                status = DalPaymentStatus.Failed;
             }
 
             return new PaymentSummaryDto(
@@ -153,8 +157,8 @@ public sealed class PaymentService(
                 p.PackageId,
                 p.Package.Name,
                 p.Amount,
-                p.Method,
-                status,
+                MapPaymentMethod(p.Method),
+                MapPaymentStatus(status),
                 p.InternalReference,
                 p.CreatedAtUtc,
                 p.ProcessedAtUtc);
@@ -173,9 +177,9 @@ public sealed class PaymentService(
         }
 
         var status = payment.Status;
-        if (status == PaymentStatus.Pending && DateTimeOffset.UtcNow - payment.CreatedAtUtc > TimeSpan.FromMinutes(15))
+        if (status == DalPaymentStatus.Pending && DateTimeOffset.UtcNow - payment.CreatedAtUtc > TimeSpan.FromMinutes(15))
         {
-            status = PaymentStatus.Failed;
+            status = DalPaymentStatus.Failed;
         }
 
         return new PaymentDetailDto(
@@ -184,8 +188,8 @@ public sealed class PaymentService(
             payment.PackageId,
             payment.Package.Name,
             payment.Amount,
-            payment.Method,
-            status,
+            MapPaymentMethod(payment.Method),
+            MapPaymentStatus(status),
             payment.InternalReference,
             payment.GatewayTransactionId,
             payment.CreatedAtUtc,
@@ -286,4 +290,26 @@ public sealed class PaymentService(
     {
         return subscription.Package.Price;
     }
+
+    private static DalPaymentMethod MapPaymentMethod(BllPaymentMethod method) => method switch
+    {
+        BllPaymentMethod.VNPay => DalPaymentMethod.VNPay,
+        BllPaymentMethod.MoMo => DalPaymentMethod.MoMo,
+        _ => throw new ArgumentOutOfRangeException(nameof(method), method, null)
+    };
+
+    private static BllPaymentMethod MapPaymentMethod(DalPaymentMethod method) => method switch
+    {
+        DalPaymentMethod.VNPay => BllPaymentMethod.VNPay,
+        DalPaymentMethod.MoMo => BllPaymentMethod.MoMo,
+        _ => throw new ArgumentOutOfRangeException(nameof(method), method, null)
+    };
+
+    private static BllPaymentStatus MapPaymentStatus(DalPaymentStatus status) => status switch
+    {
+        DalPaymentStatus.Pending => BllPaymentStatus.Pending,
+        DalPaymentStatus.Succeeded => BllPaymentStatus.Succeeded,
+        DalPaymentStatus.Failed => BllPaymentStatus.Failed,
+        _ => throw new ArgumentOutOfRangeException(nameof(status), status, null)
+    };
 }

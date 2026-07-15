@@ -65,6 +65,26 @@ Shared handoff log for developers and AI agents. Keep historical entries and add
 
 ## Activity Log
 
+### 2026-07-15 - Payment DTO layer boundary cleanup
+
+**Owner**
+
+- Codex (Agent) / user-requested fix for payment layer boundary review finding.
+
+**Completed**
+
+- Added BLL-owned payment method and status enums for payment DTOs and commands.
+- Removed Web and payment DTO references to `EduPlatform.DAL.Entities`.
+- Mapped DAL payment enums to BLL enums inside `PaymentService` before returning payment DTOs.
+- Updated payment views, controller, and payment service tests to use BLL payment command/DTO types at the Web boundary.
+
+**Verification**
+
+- `dotnet build .\EduPlatform.sln -c Release --no-restore` — passed, 0 warnings, 0 errors.
+- `dotnet test .\tests\EduPlatform.Tests\EduPlatform.Tests.csproj -c Release --no-build --no-restore --filter PaymentServiceTests` — passed, 4 tests.
+- `dotnet test .\tests\EduPlatform.Tests\EduPlatform.Tests.csproj -c Release --no-build --no-restore` — passed, 100 tests; 1 live Gemini smoke test skipped because `GEMINI_API_KEY` is not set.
+- `rg -n "EduPlatform\.DAL\.Entities|DAL\.Entities" EduPlatform.Web EduPlatform.BLL\DTOs\Payments` — no matches.
+
 ### 2026-07-11 - Document list and package edit cleanup
 
 **Owner**

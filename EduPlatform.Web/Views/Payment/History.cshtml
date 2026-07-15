@@ -1,4 +1,5 @@
 @using EduPlatform.BLL.DTOs.Payments
+@using EduPlatform.BLL.Enums
 @model List<PaymentSummaryDto>
 
 @{
@@ -45,7 +46,7 @@
                             <td><span class="fw-medium">@p.PackageName</span></td>
                             <td>@p.Amount.ToString("N0") VND</td>
                             <td>
-                                @if (p.Method == EduPlatform.DAL.Entities.PaymentMethod.VNPay)
+                                @if (p.Method == PaymentMethod.VNPay)
                                 {
                                     <span class="badge bg-info text-dark">VNPay</span>
                                 }
@@ -55,11 +56,11 @@
                                 }
                             </td>
                             <td>
-                                @if (p.Status == EduPlatform.DAL.Entities.PaymentStatus.Succeeded)
+                                @if (p.Status == PaymentStatus.Succeeded)
                                 {
                                     <span class="badge bg-success">Thành công</span>
                                 }
-                                else if (p.Status == EduPlatform.DAL.Entities.PaymentStatus.Failed)
+                                else if (p.Status == PaymentStatus.Failed)
                                 {
                                     <span class="badge bg-danger">Thất bại</span>
                                 }
