@@ -41,7 +41,8 @@
                 <tbody>
                     @foreach (var p in Model)
                     {
-                        <tr class="clickable-row" data-clickable-card tabindex="0" role="link" aria-label="Xem chi tiết giao dịch @p.InternalReference">
+                        <tr class="clickable-row" data-clickable-card tabindex="0" role="link"
+                            aria-label="Xem chi tiết giao dịch @p.InternalReference">
                             <td><small class="text-muted">@p.InternalReference</small></td>
                             <td><span class="fw-medium">@p.PackageName</span></td>
                             <td>@p.Amount.ToString("N0") VND</td>
@@ -71,7 +72,8 @@
                             </td>
                             <td>@p.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
                             <td class="text-end">
-                                <a asp-action="Detail" asp-route-id="@p.Id" class="btn btn-sm btn-outline-secondary" data-card-link>Chi tiết</a>
+                                <a asp-action="Detail" asp-route-id="@p.Id" class="btn btn-sm btn-outline-secondary"
+                                    data-card-link>Chi tiết</a>
                             </td>
                         </tr>
                     }
