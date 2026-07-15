@@ -1,9 +1,9 @@
 using System.Security.Claims;
 using EduPlatform.BLL.DTOs.Payments;
 using EduPlatform.BLL.DTOs.Subscriptions;
+using EduPlatform.BLL.Enums;
 using EduPlatform.BLL.Exceptions;
 using EduPlatform.BLL.Interfaces;
-using EduPlatform.DAL.Entities;
 using EduPlatform.Web.ViewModels.Packages;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

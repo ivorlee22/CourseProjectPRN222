@@ -54,7 +54,7 @@ public sealed class PaymentServiceTests
             { "vnp_TransactionNo", "0" },
             { "vnp_ResponseCode", "24" } // User cancelled
         };
-        var command = new PaymentCallbackCommand(PaymentMethod.VNPay, queryData);
+        var command = new PaymentCallbackCommand(EduPlatform.BLL.Enums.PaymentMethod.VNPay, queryData);
 
         // Act
         var result = await _service.ProcessCallbackAsync(command, CancellationToken.None);
@@ -100,7 +100,7 @@ public sealed class PaymentServiceTests
             { "vnp_TransactionNo", "12345678" },
             { "vnp_ResponseCode", "00" } // Success
         };
-        var command = new PaymentCallbackCommand(PaymentMethod.VNPay, queryData);
+        var command = new PaymentCallbackCommand(EduPlatform.BLL.Enums.PaymentMethod.VNPay, queryData);
 
         // Act
         var result = await _service.ProcessCallbackAsync(command, CancellationToken.None);
@@ -205,7 +205,7 @@ public sealed class PaymentServiceTests
 
     private static PaymentCallbackCommand CreateSuccessCallback(string reference)
     {
-        return new PaymentCallbackCommand(PaymentMethod.VNPay, new Dictionary<string, string>
+        return new PaymentCallbackCommand(EduPlatform.BLL.Enums.PaymentMethod.VNPay, new Dictionary<string, string>
         {
             { "vnp_TxnRef", reference },
             { "vnp_TransactionNo", Guid.NewGuid().ToString("N") },
