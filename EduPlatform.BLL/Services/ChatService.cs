@@ -321,15 +321,16 @@ public sealed partial class ChatService(
         Message[] history)
     {
         var builder = new StringBuilder();
-        builder.AppendLine("Bạn là trợ lý học tập của EduPlatform.");
-        builder.AppendLine("Chỉ trả lời dựa trên ngữ cảnh được cung cấp.");
-        builder.AppendLine("Nếu ngữ cảnh không đủ, hãy nói rõ rằng tài liệu chưa cung cấp đủ thông tin.");
-        builder.AppendLine("Trích dẫn nguồn bằng ký hiệu [1], [2] tương ứng với các đoạn bên dưới.");
-        builder.AppendLine("Trả lời súc tích, đủ ý và không lặp lại toàn bộ tài liệu.");
+        builder.AppendLine("You are an educational assistant for EduPlatform.");
+        builder.AppendLine("CRITICAL RULE: You MUST reply in the EXACT SAME LANGUAGE that the user uses in their question. If they ask in English, reply in English. If they ask in Vietnamese, reply in Vietnamese.");
+        builder.AppendLine("Only answer based on the provided context.");
+        builder.AppendLine("If the context does not contain enough information, clearly state that the documents do not provide enough information.");
+        builder.AppendLine("Cite sources using [1], [2] corresponding to the document chunks provided below.");
+        builder.AppendLine("Keep your answer concise, complete, and do not repeat the entire document.");
         builder.AppendLine();
         if (history.Length > 0)
         {
-            builder.AppendLine("LỊCH SỬ GẦN ĐÂY (chỉ dùng để hiểu câu hỏi, không dùng làm nguồn):");
+            builder.AppendLine("RECENT HISTORY (for understanding context only, not as a source of truth):");
             var remainingHistory = Math.Max(_options.MaxHistoryCharacters, 0);
             var selectedHistory = new List<(Message Message, string Content)>();
             foreach (var message in history.Reverse())
@@ -349,21 +350,21 @@ public sealed partial class ChatService(
             foreach (var item in selectedHistory.AsEnumerable().Reverse())
             {
                 var message = item.Message;
-                builder.Append(message.Role == MessageRole.User ? "Người học: " : "Trợ lý: ");
+                builder.Append(message.Role == MessageRole.User ? "User: " : "Assistant: ");
                 builder.AppendLine(item.Content);
             }
 
             builder.AppendLine();
         }
 
-        builder.AppendLine("NGỮ CẢNH:");
+        builder.AppendLine("CONTEXT:");
 
         var remaining = Math.Max(_options.MaxContextCharacters, 1000);
         for (var index = 0; index < chunks.Length && remaining > 0; index++)
         {
             var chunk = chunks[index];
             var header = $"[{index + 1}] {chunk.DocumentName}"
-                + (chunk.Chunk.PageNumber.HasValue ? $", trang {chunk.Chunk.PageNumber}" : string.Empty);
+                + (chunk.Chunk.PageNumber.HasValue ? $", page {chunk.Chunk.PageNumber}" : string.Empty);
             builder.AppendLine(header);
             var content = chunk.Chunk.Content.Length <= remaining
                 ? chunk.Chunk.Content
@@ -373,7 +374,7 @@ public sealed partial class ChatService(
             remaining -= content.Length;
         }
 
-        builder.AppendLine("CÂU HỎI:");
+        builder.AppendLine("QUESTION:");
         builder.AppendLine(question);
         return builder.ToString();
     }

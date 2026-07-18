@@ -1,0 +1,152 @@
+@model EduPlatform.Web.ViewModels.Admin.ChunkingConfigViewModel
+@{
+    ViewData["Title"] = "Cấu hình Chunking";
+}
+
+<div class="admin-dashboard">
+    <div class="admin-dashboard__hero">
+        <div>
+            <p class="section-label">Cấu hình hệ thống</p>
+            <h1>Cấu hình Chunking Data</h1>
+            <p>Tùy chỉnh cách hệ thống chia nhỏ tài liệu trước khi tạo embedding cho trợ lý học tập.</p>
+        </div>
+    </div>
+
+    <section class="content-panel p-4" aria-label="Chunking Configuration">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 col-xl-6">
+                @if (Model.LastUpdatedUtc.HasValue)
+                {
+                    <div class="alert alert-info d-flex align-items-center mb-4" role="status">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="me-2 flex-shrink-0" viewBox="0 0 16 16">
+                            <path d="M8 16A8 8 0 108 0a8 8 0 000 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.399l-.451-.003.082-.381 1.97-.411.164-.014z"/>
+                            <path d="M8 5.5a1 1 0 110-2 1 1 0 010 2z"/>
+                        </svg>
+                        <span>
+                            Lần cập nhật cuối:
+                            <strong>@Model.LastUpdatedUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</strong>
+                        </span>
+                    </div>
+                }
+
+                <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                <form asp-action="ChunkingConfig" method="post" id="chunking-config-form">
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-white border-bottom">
+                            <h2 class="h6 mb-0 fw-semibold">Tham số chia nhỏ văn bản</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-4">
+                                <label asp-for="ChunkSize" class="form-label fw-medium">Chunk Size (ký tự)</label>
+                                <input asp-for="ChunkSize" class="form-control" type="number"
+                                       min="100" max="10000" step="50"
+                                       id="input-chunk-size"
+                                       aria-describedby="chunk-size-help" />
+                                <div id="chunk-size-help" class="form-text">
+                                    Số ký tự tối đa mỗi đoạn văn bản. Mặc định: <strong>1500</strong>.
+                                    Giá trị lớn hơn giúp giữ nhiều ngữ cảnh nhưng tăng chi phí embedding.
+                                </div>
+                                <span asp-validation-for="ChunkSize" class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="ChunkOverlap" class="form-label fw-medium">Chunk Overlap (ký tự)</label>
+                                <input asp-for="ChunkOverlap" class="form-control" type="number"
+                                       min="0" max="9999" step="50"
+                                       id="input-chunk-overlap"
+                                       aria-describedby="chunk-overlap-help" />
+                                <div id="chunk-overlap-help" class="form-text">
+                                    Độ chồng chéo giữa các đoạn liền kề. Mặc định: <strong>200</strong>.
+                                    Giúp tránh mất ngữ cảnh ở biên giới các đoạn.
+                                </div>
+                                <span asp-validation-for="ChunkOverlap" class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="MaxFileSizeMb" class="form-label fw-medium">Kích thước file tối đa (MB)</label>
+                                <input asp-for="MaxFileSizeMb" class="form-control" type="number"
+                                       min="1" max="100" step="1"
+                                       id="input-max-file-size"
+                                       aria-describedby="max-file-help" />
+                                <div id="max-file-help" class="form-text">
+                                    Giới hạn kích thước file upload. Mặc định: <strong>25 MB</strong>.
+                                </div>
+                                <span asp-validation-for="MaxFileSizeMb" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-white border-bottom">
+                            <h2 class="h6 mb-0 fw-semibold">Xem trước</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <div class="border rounded-3 p-3">
+                                        <div class="text-muted small mb-1">Bước nhảy</div>
+                                        <strong class="fs-5" id="preview-step">--</strong>
+                                        <div class="text-muted small">ký tự/bước</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="border rounded-3 p-3">
+                                        <div class="text-muted small mb-1">Số chunk (10k ký tự)</div>
+                                        <strong class="fs-5" id="preview-chunks">--</strong>
+                                        <div class="text-muted small">đoạn</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="border rounded-3 p-3">
+                                        <div class="text-muted small mb-1">Tỷ lệ overlap</div>
+                                        <strong class="fs-5" id="preview-ratio">--</strong>
+                                        <div class="text-muted small">%</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a asp-action="Index" class="btn btn-outline-secondary">Quay lại</a>
+                        <button type="submit" class="btn btn-primary px-4" id="btn-save-chunking">
+                            Lưu cấu hình
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const sizeInput = document.getElementById('input-chunk-size');
+            const overlapInput = document.getElementById('input-chunk-overlap');
+            const stepEl = document.getElementById('preview-step');
+            const chunksEl = document.getElementById('preview-chunks');
+            const ratioEl = document.getElementById('preview-ratio');
+
+            function updatePreview() {
+                const size = parseInt(sizeInput.value, 10) || 0;
+                const overlap = parseInt(overlapInput.value, 10) || 0;
+                const step = Math.max(1, size - overlap);
+
+                stepEl.textContent = step.toLocaleString('vi-VN');
+
+                const sampleLength = 10000;
+                const estimatedChunks = size > 0 ? Math.ceil(sampleLength / step) : 0;
+                chunksEl.textContent = estimatedChunks.toLocaleString('vi-VN');
+
+                const ratio = size > 0 ? ((overlap / size) * 100).toFixed(1) : '0';
+                ratioEl.textContent = ratio;
+            }
+
+            sizeInput.addEventListener('input', updatePreview);
+            overlapInput.addEventListener('input', updatePreview);
+            updatePreview();
+        })();
+    </script>
+}

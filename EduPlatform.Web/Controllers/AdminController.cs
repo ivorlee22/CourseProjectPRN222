@@ -4,17 +4,20 @@ using EduPlatform.BLL.DTOs.Users;
 using EduPlatform.BLL.Enums;
 using EduPlatform.BLL.Exceptions;
 using EduPlatform.BLL.Interfaces;
-using EduPlatform.BLL.Models;
 using EduPlatform.Web.Security;
 using EduPlatform.Web.ViewModels.Admin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OfficeOpenXml;
+using EduPlatform.BLL.DTOs.Settings;
 
 namespace EduPlatform.Web.Controllers;
 
 [Authorize(Roles = "Admin")]
-public sealed class AdminController(IUserService userService, IReportService reportService) : Controller
+public sealed class AdminController(
+    IUserService userService,
+    IReportService reportService,
+    ISystemSettingService systemSettingService) : Controller
 {
     private const string DefaultImportPassword = "EduPlatform@123";
 
@@ -159,8 +162,8 @@ public sealed class AdminController(IUserService userService, IReportService rep
             var actor = User.GetRequiredActor();
             await userService.SetActiveAsync(id, isActive, actor, cancellationToken);
 
-            TempData["SuccessMessage"] = isActive 
-                ? "Đã mở khóa tài khoản." 
+            TempData["SuccessMessage"] = isActive
+                ? "Đã mở khóa tài khoản."
                 : "Đã tạm khóa tài khoản.";
         }
         catch (BusinessValidationException ex)
@@ -231,7 +234,7 @@ public sealed class AdminController(IUserService userService, IReportService rep
                     new CreateUserCommand(fullName, email, DefaultImportPassword, role),
                     actor,
                     cancellationToken);
-                
+
                 importedCount++;
             }
             catch (Exception)
@@ -250,5 +253,50 @@ public sealed class AdminController(IUserService userService, IReportService rep
         }
 
         return RedirectToAction(nameof(Users));
+    }
+
+    // -- Chunking Configuration ------------------------------------------------
+
+    [HttpGet]
+    public async Task<IActionResult> ChunkingConfig(CancellationToken cancellationToken)
+    {
+        var config = await systemSettingService.GetChunkingConfigAsync(cancellationToken);
+        var model = new ChunkingConfigViewModel
+        {
+            ChunkSize = config.ChunkSize,
+            ChunkOverlap = config.ChunkOverlap,
+            MaxFileSizeMb = config.MaxFileSizeBytes / (1024L * 1024L),
+            LastUpdatedUtc = config.LastUpdatedUtc
+        };
+        return View(model);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ChunkingConfig(
+        ChunkingConfigViewModel model,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        try
+        {
+            await systemSettingService.UpdateChunkingConfigAsync(
+                new UpdateChunkingConfigCommand(
+                    model.ChunkSize,
+                    model.ChunkOverlap,
+                    model.MaxFileSizeMb),
+                cancellationToken);
+
+            TempData["SuccessMessage"] = "Cập nhật cấu hình chunking thành công.";
+            return RedirectToAction(nameof(ChunkingConfig));
+        }
+        catch (BusinessValidationException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return View(model);
+        }
     }
 }

@@ -27,6 +27,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     public DbSet<Payment> Payments => Set<Payment>();
 
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         UpdateTimestamps();
@@ -53,6 +55,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         ConfigureDocuments(modelBuilder);
         ConfigureChat(modelBuilder);
         ConfigureCommerce(modelBuilder);
+        ConfigureSystemSettings(modelBuilder);
         SeedUsers(modelBuilder);
         SeedPackages(modelBuilder);
     }
@@ -225,6 +228,15 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             .WithMany(x => x.Payments)
             .HasForeignKey(x => x.SubscriptionId)
             .OnDelete(DeleteBehavior.Restrict);
+    }
+
+    private static void ConfigureSystemSettings(ModelBuilder modelBuilder)
+    {
+        var setting = modelBuilder.Entity<SystemSetting>();
+        setting.ToTable("SystemSettings");
+        setting.HasKey(x => x.Key);
+        setting.Property(x => x.Key).HasMaxLength(128).IsRequired();
+        setting.Property(x => x.Value).HasMaxLength(4000).IsRequired();
     }
 
     private static void SeedUsers(ModelBuilder modelBuilder)

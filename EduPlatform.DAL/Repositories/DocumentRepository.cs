@@ -46,6 +46,18 @@ public sealed class DocumentRepository(AppDbContext dbContext) : IDocumentReposi
             .ToListAsync(cancellationToken);
     }
 
+    public Task<Pgvector.Vector?> GetChunkEmbeddingAsync(
+        Guid documentId,
+        Guid chunkId,
+        CancellationToken cancellationToken)
+    {
+        return dbContext.DocumentChunks
+            .AsNoTracking()
+            .Where(x => x.DocumentId == documentId && x.Id == chunkId)
+            .Select(x => x.Embedding)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public Task AddAsync(Document document, CancellationToken cancellationToken)
     {
         return dbContext.Documents.AddAsync(document, cancellationToken).AsTask();

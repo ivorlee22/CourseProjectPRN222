@@ -1,4 +1,4 @@
-@model DocumentDetailsViewModel
+﻿@model DocumentDetailsViewModel
 @{
     ViewData["Title"] = Model.Document.OriginalFileName;
 }
@@ -49,7 +49,7 @@
     @if (Model.CanManage)
     {
         <form asp-action="Delete" asp-route-id="@Model.Document.Id" method="post"
-              data-confirm="Bạn có chắc muốn xóa tài liệu này? Tất cả đoạn đã tạo sẽ bị xóa.">
+            data-confirm="Bạn có chắc muốn xóa tài liệu này? Tất cả đoạn đã tạo sẽ bị xóa.">
             <button class="btn btn-outline-danger" type="submit">Xóa tài liệu</button>
         </form>
     }
@@ -82,14 +82,16 @@
                             {
                                 <span class="chunk-page">Trang @chunk.PageNumber</span>
                             }
-                            @if (chunk.HasEmbedding)
+                            @* @if (chunk.HasEmbedding)
                             {
-                                <span class="badge text-bg-success">Đã nhúng vector</span>
+                                <button type="button" class="btn btn-sm btn-success badge rounded-pill border-0 view-heatmap-btn"
+                                    data-url="@Url.Action("ChunkEmbedding", "Document", new { id = Model.Document.Id, chunkId = chunk.Id })"
+                                    title="Xem Heatmap">Đã nhúng vector</button>
                             }
                             else
                             {
                                 <span class="badge text-bg-secondary">Chưa nhúng</span>
-                            }
+                            } *@
                         </header>
                         <pre class="chunk-content">@chunk.Content</pre>
                     </article>
@@ -150,4 +152,86 @@ else
 
         return new HtmlString($"<span class=\"{cssClass}\">{label}</span>");
     }
+}
+
+<div class="modal fade" id="heatmapModal" tabindex="-1" aria-labelledby="heatmapModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="heatmapModalLabel">Heatmap Vector Nhúng</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="heatmapLoading" class="spinner-border text-primary d-none" role="status">
+                    <span class="visually-hidden">Đang tải...</span>
+                </div>
+                <div id="heatmapError" class="alert alert-danger d-none"></div>
+                <div id="heatmapContainer" style="display: flex; flex-wrap: wrap; gap: 2px; justify-content: center;">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const modalEl = document.getElementById('heatmapModal');
+            if (!modalEl) return;
+            const heatmapModal = new bootstrap.Modal(modalEl);
+            const container = document.getElementById('heatmapContainer');
+            const loading = document.getElementById('heatmapLoading');
+            const error = document.getElementById('heatmapError');
+
+            document.querySelectorAll('.view-heatmap-btn').forEach(btn => {
+                btn.addEventListener('click', async function () {
+                    const url = this.getAttribute('data-url');
+
+                    container.innerHTML = '';
+                    error.classList.add('d-none');
+                    loading.classList.remove('d-none');
+
+                    heatmapModal.show();
+
+                    try {
+                        const response = await fetch(url);
+                        const data = await response.json();
+
+                        if (!response.ok) throw new Error(data.message || 'Không thể tải dữ liệu vector.');
+
+                        const vector = data.vector;
+                        loading.classList.add('d-none');
+
+                        // Render heatmap
+                        const maxAbs = Math.max(...vector.map(Math.abs));
+
+                        vector.forEach(val => {
+                            const normalized = maxAbs > 0 ? Math.max(-1, Math.min(1, val / maxAbs)) : 0;
+                            const intensity = Math.floor(Math.abs(normalized) * 255);
+                            let color = 'rgb(240, 240, 240)';
+
+                            if (normalized > 0) {
+                                color = `rgb(255, ${255 - intensity}, ${255 - intensity})`;
+                            } else if (normalized < 0) {
+                                color = `rgb(${255 - intensity}, ${255 - intensity}, 255)`;
+                            }
+
+                            const cell = document.createElement('div');
+                            cell.style.width = '12px';
+                            cell.style.height = '12px';
+                            cell.style.backgroundColor = color;
+                            cell.title = val.toFixed(4);
+
+                            container.appendChild(cell);
+                        });
+
+                    } catch (err) {
+                        loading.classList.add('d-none');
+                        error.textContent = err.message;
+                        error.classList.remove('d-none');
+                    }
+                });
+            });
+        });
+    </script>
 }

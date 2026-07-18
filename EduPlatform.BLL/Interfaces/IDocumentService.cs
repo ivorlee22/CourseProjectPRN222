@@ -20,6 +20,12 @@ public interface IDocumentService
         ActorContext actor,
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<float>?> GetChunkEmbeddingAsync(
+        Guid documentId,
+        Guid chunkId,
+        ActorContext actor,
+        CancellationToken cancellationToken);
+
     Task<Guid> UploadAsync(
         UploadDocumentCommand command,
         ActorContext actor,

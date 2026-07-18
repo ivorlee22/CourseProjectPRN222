@@ -14,6 +14,11 @@ public interface IDocumentRepository
         Guid documentId,
         CancellationToken cancellationToken);
 
+    Task<Pgvector.Vector?> GetChunkEmbeddingAsync(
+        Guid documentId,
+        Guid chunkId,
+        CancellationToken cancellationToken);
+
     Task AddAsync(Document document, CancellationToken cancellationToken);
 
     Task AddChunksAsync(IEnumerable<DocumentChunk> chunks, CancellationToken cancellationToken);

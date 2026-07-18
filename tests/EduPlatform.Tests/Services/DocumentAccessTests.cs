@@ -1,4 +1,4 @@
-using EduPlatform.BLL.Enums;
+using EduPlatform.BLL.DTOs.Settings;
 using EduPlatform.BLL.Exceptions;
 using EduPlatform.BLL.Interfaces;
 using EduPlatform.BLL.Models;
@@ -9,7 +9,6 @@ using EduPlatform.DAL.Repositories;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using DalCourseType = EduPlatform.DAL.Entities.CourseType;
-using DalEnrollmentStatus = EduPlatform.DAL.Entities.EnrollmentStatus;
 using DalUserRole = EduPlatform.DAL.Entities.UserRole;
 using BllUserRole = EduPlatform.BLL.Enums.UserRole;
 
@@ -36,6 +35,7 @@ public sealed class DocumentAccessTests
             new FakeEmbeddingService(),
             Array.Empty<ITextExtractor>(),
             new FakeFileStorageService(),
+            new FakeSystemSettingService(),
             Options.Create(new DocumentOptions()),
             TimeProvider.System,
             NullLogger<DocumentService>.Instance);
@@ -147,6 +147,11 @@ public sealed class DocumentAccessTests
         public Task<IReadOnlyList<DocumentChunk>> ListChunksAsync(Guid documentId, CancellationToken cancellationToken)
         {
             return Task.FromResult<IReadOnlyList<DocumentChunk>>(Array.Empty<DocumentChunk>());
+        }
+
+        public Task<Pgvector.Vector?> GetChunkEmbeddingAsync(Guid documentId, Guid chunkId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult<Pgvector.Vector?>(new Pgvector.Vector(FakeEmbedding));
         }
 
         public Task AddAsync(Document document, CancellationToken cancellationToken)
@@ -298,6 +303,22 @@ public sealed class DocumentAccessTests
         }
 
         public Task DeleteAsync(string storedPath)
+        {
+            return Task.CompletedTask;
+        }
+    }
+    private sealed class FakeSystemSettingService : ISystemSettingService
+    {
+        public Task<ChunkingConfigDto> GetChunkingConfigAsync(
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new ChunkingConfigDto(
+                1500, 200, 25L * 1024L * 1024L, null));
+        }
+
+        public Task UpdateChunkingConfigAsync(
+            UpdateChunkingConfigCommand command,
+            CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
         }

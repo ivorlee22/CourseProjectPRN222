@@ -6,7 +6,6 @@ using EduPlatform.BLL.Services.TextExtractors;
 using EduPlatform.DAL;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Http;
 
 namespace EduPlatform.BLL;
 
@@ -35,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<IEmailService, GmailEmailService>();
         services.AddScoped<IChatService, ChatService>();
         services.AddScoped<IReportService, ReportService>();
+        services.AddScoped<ISystemSettingService, SystemSettingService>();
 
         // Document pipeline
         services.AddScoped<IDocumentService, DocumentService>();

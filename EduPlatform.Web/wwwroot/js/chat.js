@@ -469,6 +469,16 @@ if (workspace) {
     input.value = "";
     resizeInput();
     setComposerBusy(true, "Đang đọc tài liệu và tạo câu trả lời...");
+    
+    let originalQuota = null;
+    const quotaSpan = document.getElementById("chat-quota-remaining");
+    if (quotaSpan) {
+      originalQuota = parseInt(quotaSpan.textContent, 10);
+      if (!isNaN(originalQuota) && originalQuota > 0) {
+        quotaSpan.textContent = String(originalQuota - 1);
+      }
+    }
+
     let completed = false;
     let completedItem = null;
     let streamError = "";
@@ -495,6 +505,9 @@ if (workspace) {
             answer.closest(".chat-message")?.classList.add("chat-message--notice");
             stream.scrollTop = stream.scrollHeight;
           }
+          if (quotaSpan && originalQuota !== null) {
+            quotaSpan.textContent = String(originalQuota);
+          }
         }
         if (item.type === "completed") {
           completed = true;
@@ -505,6 +518,9 @@ if (workspace) {
         setComposerBusy(false, "Chưa gửi xong. Qb thử lại giúp xha nhen.");
         input.value = question;
         resizeInput();
+        if (quotaSpan && originalQuota !== null) {
+          quotaSpan.textContent = String(originalQuota);
+        }
       },
       complete: () => {
         if (streamError) {

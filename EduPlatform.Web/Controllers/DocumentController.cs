@@ -145,12 +145,30 @@ public sealed class DocumentController(
 
     [Authorize]
     [HttpGet]
+    public async Task<IActionResult> ChunkEmbedding(
+        Guid id,
+        Guid chunkId,
+        CancellationToken cancellationToken)
+    {
+        var actor = User.GetRequiredActor();
+        var embedding = await documentService.GetChunkEmbeddingAsync(id, chunkId, actor, cancellationToken);
+
+        if (embedding == null)
+        {
+            return NotFound(new { message = "Không tìm thấy vector nhúng hoặc bạn không có quyền truy cập." });
+        }
+
+        return Json(new { vector = embedding });
+    }
+
+    [Authorize]
+    [HttpGet]
     public async Task<IActionResult> Download(
         Guid id,
         CancellationToken cancellationToken)
     {
         var actor = User.GetRequiredActor();
-        
+
         try
         {
             var url = await documentService.GetDownloadUrlAsync(id, actor, cancellationToken);

@@ -33,6 +33,7 @@ public sealed class DocumentService : IDocumentService
     private readonly IEmbeddingService _embeddingService;
     private readonly IReadOnlyList<ITextExtractor> _extractors;
     private readonly IFileStorageService _fileStorageService;
+    private readonly ISystemSettingService _systemSettingService;
     private readonly DocumentOptions _options;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<DocumentService> _logger;
@@ -44,6 +45,7 @@ public sealed class DocumentService : IDocumentService
         IEmbeddingService embeddingService,
         IEnumerable<ITextExtractor> extractors,
         IFileStorageService fileStorageService,
+        ISystemSettingService systemSettingService,
         IOptions<DocumentOptions> options,
         TimeProvider timeProvider,
         ILogger<DocumentService> logger)
@@ -54,6 +56,7 @@ public sealed class DocumentService : IDocumentService
         _embeddingService = embeddingService;
         _extractors = extractors.ToArray();
         _fileStorageService = fileStorageService;
+        _systemSettingService = systemSettingService;
         _options = options.Value;
         _timeProvider = timeProvider;
         _logger = logger;
@@ -108,6 +111,21 @@ public sealed class DocumentService : IDocumentService
                 x.Section,
                 x.Embedding is not null))
             .ToArray();
+    }
+
+    public async Task<IReadOnlyList<float>?> GetChunkEmbeddingAsync(
+        Guid documentId,
+        Guid chunkId,
+        ActorContext actor,
+        CancellationToken cancellationToken)
+    {
+        var document = await _documentRepository.GetByIdAsync(documentId, cancellationToken)
+            ?? throw new ResourceNotFoundException("Không tìm thấy tài liệu.");
+
+        await EnsureCanReadCourseAsync(document.CourseId, actor, cancellationToken);
+
+        var embedding = await _documentRepository.GetChunkEmbeddingAsync(documentId, chunkId, cancellationToken);
+        return embedding?.ToArray();
     }
 
     public async Task<Guid> UploadAsync(
@@ -257,10 +275,12 @@ public sealed class DocumentService : IDocumentService
         document.Status = DalDocumentStatus.Processing;
         await _documentRepository.SaveChangesAsync(cancellationToken);
 
+        var chunkingConfig = await _systemSettingService.GetChunkingConfigAsync(cancellationToken);
+
         var chunks = _textChunker.Chunk(
             pages,
-            _options.ChunkSize,
-            _options.ChunkOverlap);
+            chunkingConfig.ChunkSize,
+            chunkingConfig.ChunkOverlap);
 
         if (chunks.Count == 0)
         {
