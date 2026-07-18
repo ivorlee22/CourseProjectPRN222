@@ -202,5 +202,10 @@ public sealed class LiveGeminiSmokeTests
         {
             return Task.CompletedTask;
         }
+
+        public Task<(int MessageCount, int DailyLimit)> GetQuotaInfoAsync(Guid userId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult((0, 10));
+        }
     }
 }

@@ -42,14 +42,7 @@ public sealed class VNPayService(IOptions<VNPayOptions> options) : IVNPayService
         }
         string queryString = data.ToString().TrimEnd('&');
 
-        Console.WriteLine("SIGN DATA: " + queryString);
-        Console.WriteLine("HASH SECRET: " + _options.HashSecret?.Trim());
-        Console.WriteLine("TMN CODE: " + _options.TmnCode?.Trim());
-
         var vnpSecureHash = ComputeHmacSha512(_options.HashSecret?.Trim() ?? string.Empty, queryString);
-        Console.WriteLine("SECURE HASH: " + vnpSecureHash);
-
-        Console.WriteLine("PAYMENT URL: " + $"{_options.PaymentUrl}?{queryString}&vnp_SecureHash={vnpSecureHash}");
         return $"{_options.PaymentUrl}?{queryString}&vnp_SecureHash={vnpSecureHash}";
     }
 
